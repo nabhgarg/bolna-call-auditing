@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bolna Call Audit</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <section id="loginScreen" class="login-screen">
+      <form id="loginForm" class="login-card">
+        <div>
+          <h1>Call Audit</h1>
+          <p>Choose your queue and audit mode.</p>
+        </div>
+        <label>
+          Reviewer name
+          <input id="loginName" placeholder="Type your name" autocomplete="name" required />
+        </label>
+        <label>
+          Audit mode
+          <select id="loginMode">
+            <option value="technical_audio">Technical audio audit</option>
+            <option value="vibe_transcription">Vibe + transcription</option>
+          </select>
+        </label>
+        <button class="primary" type="submit">Start reviewing</button>
+      </form>
+    </section>
+
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div>
+            <h1>Call Audit</h1>
+            <p id="activeReviewer">Internal review cockpit</p>
+          </div>
+          <div class="brand-actions">
+            <button id="switchReviewerBtn" class="ghost">Switch</button>
+            <button id="importBtn" class="ghost">Import</button>
+          </div>
+        </div>
+
+        <div class="reviewer-box">
+          <label>
+            Audit mode
+            <select id="reviewMode">
+              <option value="technical_audio">Technical audio audit</option>
+              <option value="vibe_transcription">Vibe + transcription</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="queue-toolbar">
+          <input id="searchCalls" placeholder="Search call ID" />
+          <button id="hideReviewedBtn" class="ghost" data-active="false">Hide reviewed</button>
+        </div>
+        <div class="queue-filters">
+          <label>
+            Client
+            <select id="clientFilter">
+              <option value="">All clients</option>
+            </select>
+          </label>
+          <label>
+            Agent
+            <select id="agentFilter">
+              <option value="">All agents</option>
+            </select>
+          </label>
+        </div>
+        <div id="queueStats" class="queue-stats"></div>
+        <nav id="callList" class="call-list"></nav>
+      </aside>
+
+      <main class="workspace">
+        <section class="audio-bar">
+          <div class="call-heading">
+            <span id="callOrg">No call selected</span>
+            <strong id="callAgent">Import calls to start</strong>
+            <span id="callMeta"></span>
+          </div>
+          <audio id="audio" controls preload="metadata"></audio>
+          <div class="audio-actions">
+            <button id="back5">-5s</button>
+            <button id="forward5">+5s</button>
+            <label class="capture-select">
+              Issue
+              <select id="captureIssueType"></select>
+            </label>
+            <button id="captureTime" class="primary">Capture <span id="currentTime">00:00</span></button>
+            <span id="capturedTime" class="captured">Captured: 00:00</span>
+          </div>
+        </section>
+
+        <section class="content-grid">
+          <aside class="audit-panel">
+            <div class="panel-title">
+              <h2>Review</h2>
+              <button id="nextCallBtn" class="ghost">Next</button>
+            </div>
+
+            <section id="vibePrimary" class="vibe-primary hidden-field">
+              <label>
+                Vibe score
+                <select id="primaryVibeScore">
+                  <option value="">Select vibe score</option>
+                  <option value="1">1 - Very poor</option>
+                  <option value="2">2 - Poor</option>
+                  <option value="3">3 - Acceptable</option>
+                  <option value="4">4 - Good</option>
+                </select>
+              </label>
+            </section>
+
+            <div class="quick-flags"></div>
+
+            <form id="issueForm" class="issue-form">
+              <div class="form-row">
+                <label>
+                  Issue type
+                  <select id="issueType"></select>
+                </label>
+                <label>
+                  Timestamp
+                  <input id="issueTimestamp" value="00:00" />
+                </label>
+              </div>
+
+              <div id="dynamicFields" class="dynamic-fields"></div>
+              <button class="primary" type="submit">Add Issue</button>
+            </form>
+
+            <section class="issue-list-wrap">
+              <div class="panel-title small">
+                <h3>Logged issues</h3>
+                <span id="issueCount">0</span>
+              </div>
+              <div id="issueList" class="issue-list empty-state">No issues yet.</div>
+            </section>
+
+            <details class="scores">
+              <summary>Optional call summary</summary>
+              <label data-summary-field="vibe">
+                Vibe score
+                <select id="vibeScore">
+                  <option value="">Skip</option>
+                  <option value="1">1 - Very poor</option>
+                  <option value="2">2 - Poor</option>
+                  <option value="3">3 - Acceptable</option>
+                  <option value="4">4 - Good</option>
+                </select>
+              </label>
+              <label data-summary-field="flow">
+                Flow score
+                <select id="flowScore">
+                  <option value="">Skip</option>
+                  <option value="1">1 - Nonsensical</option>
+                  <option value="2">2 - Broken</option>
+                  <option value="3">3 - Mostly completed</option>
+                  <option value="4">4 - Smooth conclusion</option>
+                </select>
+              </label>
+              <label data-summary-field="llm-rating">
+                LLM call-level rating
+                <select id="llmRating">
+                  <option value="">Skip</option>
+                  <option value="as_expected">As expected</option>
+                  <option value="not_perfect">Correct but not perfect</option>
+                  <option value="deviated">Deviated</option>
+                </select>
+              </label>
+              <label id="llmErrorTypeWrap" data-summary-field="llm-error" class="hidden-field">
+                LLM error type
+                <select id="llmErrorType">
+                  <option value="">None</option>
+                  <option value="irrelevant_response">Irrelevant response</option>
+                  <option value="loop">Agent stuck in loop / same info captured repeatedly</option>
+                  <option value="context_not_carried">Context not carried through</option>
+                  <option value="factual_inaccuracy">Factual Inaccuracy / Hallucination</option>
+                  <option value="rule_conflict">Rule Navigation / Instruction Conflict</option>
+                  <option value="other">Others</option>
+                </select>
+              </label>
+              <label data-summary-field="notes">
+                Notes
+                <textarea id="reviewNotes" rows="3" placeholder="Only capture what helps Bolna act."></textarea>
+              </label>
+            </details>
+
+            <div class="submit-row">
+              <a class="ghost export" href="/api/reviews.csv">Export CSV</a>
+              <button id="syncSheets" class="ghost" type="button">Sync Sheets</button>
+              <button id="submitReview" class="primary">Submit Review</button>
+            </div>
+          </aside>
+
+          <article class="transcript-panel">
+            <div class="panel-title">
+              <h2>Transcript</h2>
+              <span id="turnCount"></span>
+            </div>
+            <div id="transcript" class="transcript empty-state">
+              Select a call from the queue.
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+.next/
+node_modules/
+.env.local
+calls.json
+npm-debug.log*

@@ -1,0 +1,44 @@
+create extension if not exists pgcrypto;
+
+create table if not exists public.calls (
+  execution_id text primary key,
+  assigned_reviewer text,
+  org_name text,
+  agent_id text,
+  agent_name text,
+  duration_sec numeric,
+  created_at_ist text,
+  to_number text,
+  status text,
+  transcriber_language text,
+  transcript text,
+  recording_url text,
+  agent_interrupted_user_count numeric,
+  source_sheet text,
+  imported_at timestamptz not null default now()
+);
+
+create table if not exists public.reviews (
+  id bigserial primary key,
+  call_id text not null references public.calls(execution_id),
+  reviewer_name text,
+  review_mode text,
+  vibe_score text,
+  flow_score text,
+  llm_rating text,
+  llm_error_type text,
+  notes text,
+  issues_json jsonb not null default '[]'::jsonb,
+  started_at text,
+  submitted_at timestamptz not null default now(),
+  duration_taken_sec integer,
+  sheets_synced_at timestamptz,
+  sheets_sync_error text
+);
+
+create index if not exists calls_assigned_reviewer_idx on public.calls(assigned_reviewer);
+create index if not exists calls_org_name_idx on public.calls(org_name);
+create index if not exists calls_agent_name_idx on public.calls(agent_name);
+create index if not exists reviews_call_id_idx on public.reviews(call_id);
+create index if not exists reviews_sheets_synced_at_idx on public.reviews(sheets_synced_at);
+
