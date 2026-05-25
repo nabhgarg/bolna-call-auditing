@@ -263,6 +263,17 @@ export default function Page() {
     }
   }
 
+  async function importSheets() {
+    try {
+      setStatusMessage("Importing calls from Google Sheets...");
+      const result = await api("/api/import-sheets", { method: "POST", body: "{}" });
+      await loadCalls();
+      setStatusMessage(`Imported ${result.imported} call(s) from Google Sheets.`);
+    } catch (error) {
+      setStatusMessage(`Sheet import failed: ${(error as Error).message}`);
+    }
+  }
+
   return (
     <>
       {loginVisible && (
@@ -296,6 +307,7 @@ export default function Page() {
               <p>{reviewerName ? `${reviewerName} · ${mode === "technical_audio" ? "Technical audio audit" : "Vibe + transcription"}` : "Internal review cockpit"}</p>
             </div>
             <div className="brand-actions">
+              <button className="ghost" onClick={importSheets}>Import Calls</button>
               <button className="ghost" onClick={() => setLoginVisible(true)}>Switch</button>
             </div>
           </div>

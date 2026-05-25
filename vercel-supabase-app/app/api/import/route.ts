@@ -1,24 +1,8 @@
 import { NextResponse } from "next/server";
+import { normalizeCallRows } from "../../../lib/callImport";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
-
-const allowedColumns = [
-  "execution_id",
-  "assigned_reviewer",
-  "org_name",
-  "agent_id",
-  "agent_name",
-  "duration_sec",
-  "created_at_ist",
-  "to_number",
-  "status",
-  "transcriber_language",
-  "transcript",
-  "recording_url",
-  "agent_interrupted_user_count",
-  "source_sheet"
-];
 
 export async function POST(request: Request) {
   const payload = await request.json();
@@ -27,14 +11,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "calls array is required" }, { status: 400 });
   }
 
-  const rows = calls
-    .filter((call: Record<string, unknown>) => call.execution_id)
-    .map((call: Record<string, unknown>) => {
-      const row: Record<string, unknown> = {};
-      for (const column of allowedColumns) row[column] = call[column] ?? "";
-      row.imported_at = new Date().toISOString();
-      return row;
-    });
+  const rows = normalizeCallRows(calls);
 
   const supabase = supabaseAdmin();
   const { error } = await supabase.from("calls").upsert(rows, { onConflict: "execution_id" });

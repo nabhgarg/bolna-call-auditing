@@ -28,13 +28,68 @@ SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_optional_but_recommended
 GOOGLE_SHEETS_WEBHOOK_URL=
+GOOGLE_SHEETS_WEBHOOK_SECRET=
 ```
 
 `GOOGLE_SHEETS_WEBHOOK_URL` can stay blank until the Apps Script is deployed. Reviews still save in Supabase.
+`GOOGLE_SHEETS_WEBHOOK_SECRET` is optional, but recommended. If you set it in Vercel, set the same value in `google_apps_script.gs` as `SHARED_SECRET`.
 
 If you only use the publishable key, make sure the Supabase tables and RLS policies allow the app to read/write the required rows. For the quickest private MVP, use the service role key in Vercel server environment variables and do not expose it in client code.
 
-## 3. Seed Calls
+## 3. Google Sheets Import And Export
+
+Create a Google Sheet with two tabs:
+
+```text
+Calls
+Reviews
+```
+
+The `Calls` tab should have one header row. Supported headers include:
+
+```text
+execution_id
+assigned_reviewer
+org_name
+agent_id
+agent_name
+duration_sec
+created_at_ist
+to_number
+status
+transcriber_language
+transcript
+recording_url
+agent_interrupted_user_count
+source_sheet
+```
+
+Common aliases also work, such as `call_id`, `client`, `agent`, `duration`, `language`, `audio_url`, `assigned_to`, and `reviewer`.
+
+Setup:
+
+1. Open the Google Sheet.
+2. Go to `Extensions -> Apps Script`.
+3. Paste `../google_apps_script.gs`.
+4. Optional: set `SHARED_SECRET` in the script.
+5. Deploy as a Web App.
+6. Copy the Web App URL.
+7. Set the Web App URL as `GOOGLE_SHEETS_WEBHOOK_URL` in Vercel.
+8. If using a secret, set the same value as `GOOGLE_SHEETS_WEBHOOK_SECRET` in Vercel.
+
+Import flow:
+
+- Click `Import Calls` in the app.
+- The app reads rows from the `Calls` tab.
+- Rows are upserted into Supabase by `execution_id`.
+
+Export flow:
+
+- Every submitted review saves to Supabase first.
+- The app then appends exported issue rows to the `Reviews` tab.
+- If Sheets export fails, the review stays saved in Supabase. Use `Sync Sheets` to retry pending rows.
+
+## 4. Seed Calls
 
 For now, seed calls by posting JSON to `/api/import` or with the JSON seed script.
 
@@ -64,19 +119,6 @@ assignee
 ```
 
 If one of these exists, reviewers only see calls assigned to their login name.
-
-## 4. Google Sheets Realtime Output
-
-1. Create/open a Google Sheet.
-2. Open `Extensions -> Apps Script`.
-3. Paste `../google_apps_script.gs` or the same script from the root workspace.
-4. Deploy as Web App.
-5. Copy the Web App URL.
-6. Set it as `GOOGLE_SHEETS_WEBHOOK_URL` in Vercel.
-
-Every submitted review saves to Supabase first, then attempts to append rows to the `Reviews` tab.
-
-If Sheets sync fails, reviewers do not lose work. Use the `Sync Sheets` button to retry pending rows.
 
 ## 5. Deploy To Vercel
 
