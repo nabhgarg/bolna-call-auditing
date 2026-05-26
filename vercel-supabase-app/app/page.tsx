@@ -27,14 +27,15 @@ type Issue = Record<string, string>;
 type MetricRating = { rating: string; reason: string };
 const AUDIT_MODE = "technical_audio";
 const issueTypes = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness"];
-const ratingMetrics = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness"];
+const ratingMetrics = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness", "overall"];
 
 const issueLabels: Record<string, string> = {
   pronunciation: "Pronunciation",
   tone: "Tone",
   barge_in: "Barge-in",
   latency: "Latency",
-  response_appropriateness: "Response appropriateness"
+  response_appropriateness: "Response appropriateness",
+  overall: "Overall"
 };
 
 const issueConfigs: Record<string, Array<[string, string, "text" | "select", string[]?]>> = {
