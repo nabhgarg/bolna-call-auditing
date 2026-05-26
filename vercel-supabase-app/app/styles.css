@@ -392,33 +392,18 @@ audio {
   justify-content: start;
 }
 
+.quick-flags button.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+}
+
 .issue-form,
 .dynamic-fields,
-.scores[open] {
+.metric-ratings {
   display: grid;
   gap: 10px;
-}
-
-.scores {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfcfd;
-}
-
-.scores summary {
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 800;
-  padding: 10px 12px;
-}
-
-.scores[open] {
-  padding: 0 12px 12px;
-}
-
-.scores[open] summary {
-  margin: 0 -12px;
-  border-bottom: 1px solid var(--line);
 }
 
 .hidden-field {
@@ -436,6 +421,21 @@ audio {
   background: var(--soft);
   border-color: var(--accent);
   padding: 10px;
+}
+
+.rating-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.rating-card.selected {
+  border-color: var(--accent);
+  background: var(--soft);
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.1);
 }
 
 .form-row {

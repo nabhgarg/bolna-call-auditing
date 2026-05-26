@@ -24,13 +24,15 @@ type CallDetail = CallSummary & {
 };
 
 type Issue = Record<string, string>;
+type MetricRating = { rating: string; reason: string };
 const AUDIT_MODE = "technical_audio";
-const issueTypes = ["pronunciation", "tone", "interruption", "latency", "response_appropriateness"];
+const issueTypes = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness"];
+const ratingMetrics = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness"];
 
 const issueLabels: Record<string, string> = {
   pronunciation: "Pronunciation",
   tone: "Tone",
-  interruption: "Interruption",
+  barge_in: "Barge-in",
   latency: "Latency",
   response_appropriateness: "Response appropriateness"
 };
@@ -39,26 +41,30 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
   pronunciation: [
     ["correct_form", "Correct form", "text"],
     ["word_heard", "Word heard", "text"],
-    ["severity", "Severity", "select", ["1 - Caused confusion", "2 - Understood with effort", "3 - Minor"]],
-    ["content_tag", "Content tag", "select", ["General", "City", "Proper Noun"]]
+    ["content_tag", "Content tag", "select", ["General", "City", "Proper Noun"]],
+    ["notes", "Notes", "text"]
   ],
   tone: [
     ["tag", "Tag", "select", ["Too robotic", "Wrong emotion", "Too fast", "Too slow", "Other"]],
     ["notes", "Notes", "text"]
   ],
-  interruption: [
-    ["valid", "Validity", "select", ["User had paused/finished", "User was mid sentence"]],
+  barge_in: [
     ["consequence", "Consequence", "select", ["User repeated themselves", "User showed confusion", "Others"]],
     ["notes", "Notes", "text"]
   ],
   latency: [
-    ["reaction", "User reaction", "select", ["None - call continued", "Spoke again unprompted", "Said hello / are you there", "Expressed frustration", "Hung up"]]
+    ["reaction", "User reaction", "select", ["None - call continued", "Spoke again unprompted", "Said hello / are you there", "Expressed frustration", "Call ended"]],
+    ["notes", "Notes", "text"]
   ],
   response_appropriateness: [
     ["response_error_type", "Type of error", "select", ["Irrelevant response", "Agent stuck in loop/same info captured repeatedly", "Context not carried through", "Factual Inaccuracy/Hallucination", "Rule Navigation/Instruction Conflict", "Others"]],
-    ["notes", "Notes", "text"]
+    ["error_explanation", "Explain the error", "text"]
   ]
 };
+
+const emptyMetricRatings = () => Object.fromEntries(
+  ratingMetrics.map((metric) => [metric, { rating: "", reason: "" }])
+) as Record<string, MetricRating>;
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
@@ -91,6 +97,7 @@ export default function Page() {
   const [capturedTime, setCapturedTime] = useState("00:00");
   const [issueType, setIssueType] = useState("pronunciation");
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [metricRatings, setMetricRatings] = useState<Record<string, MetricRating>>(emptyMetricRatings);
   const [startedAt, setStartedAt] = useState("");
   const [notes, setNotes] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
@@ -146,6 +153,7 @@ export default function Page() {
     const call = await api(`/api/calls/${encodeURIComponent(id)}`);
     setCurrentCall(call);
     setIssues([]);
+    setMetricRatings(emptyMetricRatings());
     setCapturedTime("00:00");
     setStartedAt(new Date().toISOString());
     setNotes("");
@@ -181,12 +189,31 @@ export default function Page() {
     setIssues((existing) => [...existing, issue]);
   }
 
+  function updateMetricRating(metric: string, key: keyof MetricRating, value: string) {
+    setMetricRatings((existing) => ({
+      ...existing,
+      [metric]: {
+        ...existing[metric],
+        [key]: value
+      }
+    }));
+  }
+
   async function submitReview() {
     if (!currentCall) {
       alert("Select a call first.");
       return;
     }
     const durationTaken = startedAt ? Math.floor((Date.now() - Date.parse(startedAt)) / 1000) : 0;
+    const ratingIssues = ratingMetrics
+      .filter((metric) => metricRatings[metric]?.rating || metricRatings[metric]?.reason)
+      .map((metric) => ({
+        type: "metric_rating",
+        metric,
+        metric_label: issueLabels[metric],
+        rating: metricRatings[metric]?.rating || "",
+        reason: metricRatings[metric]?.reason || ""
+      }));
     const result = await api("/api/reviews", {
       method: "POST",
       body: JSON.stringify({
@@ -198,7 +225,7 @@ export default function Page() {
         llm_rating: "",
         llm_error_type: "",
         notes,
-        issues,
+        issues: [...issues, ...ratingIssues],
         started_at: startedAt,
         duration_taken_sec: durationTaken
       })
@@ -337,10 +364,18 @@ export default function Page() {
               </div>
 
               <div className="quick-flags">
-                {issueTypes.map((type) => <button key={type} onClick={() => setIssueType(type)}>{issueLabels[type]}</button>)}
+                {issueTypes.map((type) => (
+                  <button
+                    key={type}
+                    className={issueType === type ? "selected" : ""}
+                    onClick={() => setIssueType(type)}
+                  >
+                    {issueLabels[type]}
+                  </button>
+                ))}
               </div>
 
-              <form className="issue-form" onSubmit={addIssue}>
+              <form className="issue-form issue-form-active" onSubmit={addIssue}>
                 <div className="form-row">
                   <label>
                     Issue type
@@ -377,7 +412,7 @@ export default function Page() {
                 <div className={`issue-list ${issues.length ? "" : "empty-state"}`}>
                   {issues.length ? issues.map((issue, index) => (
                     <div className="issue-item" key={`${issue.type}-${issue.timestamp}-${index}`}>
-                      <header><span>{issue.type} · {issue.timestamp}</span></header>
+                      <header><span>{issueLabels[issue.type] || issue.type} · {issue.timestamp}</span></header>
                       <p>{Object.entries(issue).filter(([key]) => !["type", "timestamp"].includes(key)).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · ")}</p>
                       <button type="button" onClick={() => setIssues((existing) => existing.filter((_, itemIndex) => itemIndex !== index))}>Remove</button>
                     </div>
@@ -389,6 +424,39 @@ export default function Page() {
                 Notes
                 <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Only capture what helps Bolna act." />
               </label>
+
+              <section className="metric-ratings">
+                <div className="panel-title small">
+                  <h3>Call ratings</h3>
+                  <span>1-4</span>
+                </div>
+                {ratingMetrics.map((metric) => (
+                  <div className={`rating-card ${issueType === metric ? "selected" : ""}`} key={metric}>
+                    <label>
+                      {issueLabels[metric]}
+                      <select
+                        value={metricRatings[metric]?.rating || ""}
+                        onChange={(event) => updateMetricRating(metric, "rating", event.target.value)}
+                      >
+                        <option value="">Not rated</option>
+                        <option value="1">1 - Major issue</option>
+                        <option value="2">2 - Noticeable issue</option>
+                        <option value="3">3 - Minor issue</option>
+                        <option value="4">4 - Good</option>
+                      </select>
+                    </label>
+                    <label>
+                      Reason
+                      <textarea
+                        value={metricRatings[metric]?.reason || ""}
+                        onChange={(event) => updateMetricRating(metric, "reason", event.target.value)}
+                        rows={2}
+                        placeholder={`Why this ${issueLabels[metric].toLowerCase()} rating?`}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </section>
 
               <div className="submit-row">
                 <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(AUDIT_MODE)}`}>Export CSV</a>

@@ -73,8 +73,8 @@ function appendReviews(payload) {
 
   Object.keys(rowsBySheet).forEach((sheetName) => {
     const sheet = spreadsheet.getSheetByName(sheetName) || spreadsheet.insertSheet(sheetName);
-    if (sheet.getLastRow() === 0 && columns.length) {
-      sheet.appendRow(columns);
+    if (columns.length) {
+      ensureHeaders(sheet, columns);
     }
     const sheetRows = rowsBySheet[sheetName];
     if (sheetRows.length) {
@@ -85,12 +85,25 @@ function appendReviews(payload) {
 
   if (!rows.length) {
     const sheet = spreadsheet.getSheetByName(REVIEWS_SHEET_NAME) || spreadsheet.insertSheet(REVIEWS_SHEET_NAME);
-    if (sheet.getLastRow() === 0 && columns.length) {
-      sheet.appendRow(columns);
+    if (columns.length) {
+      ensureHeaders(sheet, columns);
     }
   }
 
   return { ok: true, rows: rows.length };
+}
+
+function ensureHeaders(sheet, columns) {
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(columns);
+    return;
+  }
+
+  const existing = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), columns.length)).getValues()[0];
+  const same = columns.every((column, index) => String(existing[index] || "").trim() === column);
+  if (!same || existing.length < columns.length) {
+    sheet.getRange(1, 1, 1, columns.length).setValues([columns]);
+  }
 }
 
 function jsonOutput(value) {

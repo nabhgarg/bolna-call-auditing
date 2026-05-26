@@ -107,13 +107,15 @@ issue_timestamp
 issue_recording_link
 pronunciation_correct_form
 pronunciation_word_heard
-severity
 content_tag
 tone_tag
-interruption_validity
-interruption_consequence
+barge_in_consequence
 latency_reaction
 response_error_type
+response_error_explanation
+metric_rating_name
+metric_rating_value
+metric_rating_reason
 issue_notes
 review_notes
 issue_payload_json
@@ -170,6 +172,6 @@ vercel-supabase-app
 - Technical audio audit:
   - Pronunciation
   - Tone
-  - Interruption
+  - Barge-in
   - Latency
   - Response appropriateness
