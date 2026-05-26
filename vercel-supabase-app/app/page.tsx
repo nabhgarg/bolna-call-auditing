@@ -86,6 +86,10 @@ function shortCallId(id: string) {
   return id.slice(0, 8);
 }
 
+function wordCount(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 export default function Page() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [calls, setCalls] = useState<CallSummary[]>([]);
@@ -490,16 +494,23 @@ export default function Page() {
                 <span>{currentCall?.turns?.length || 0} turns · click a turn to jump approximately</span>
               </div>
               <div className={`transcript ${currentCall ? "" : "empty-state"}`}>
-                {currentCall?.turns?.length ? currentCall.turns.map((turn, index) => {
+                {currentCall?.turns?.length ? (() => {
                   const duration = Number(currentCall.duration_sec || 0);
-                  const jumpTime = Math.floor((duration / Math.max(currentCall.turns?.length || 1, 1)) * index);
-                  return (
-                    <div className={`turn ${turn.role}`} key={`${turn.role}-${index}`} onClick={() => { if (audioRef.current) audioRef.current.currentTime = jumpTime; }}>
-                      <div className="turn-role"><span>{index + 1}. {turn.role}</span><span className="turn-time">~{formatTime(jumpTime)}</span></div>
-                      <div>{turn.text}</div>
-                    </div>
-                  );
-                }) : "Select a call from the queue."}
+                  const turnWordCounts = currentCall.turns.map((turn) => wordCount(turn.text));
+                  const totalWords = turnWordCounts.reduce((sum, count) => sum + count, 0) || currentCall.turns.length;
+                  let cumulativeWords = 0;
+
+                  return currentCall.turns.map((turn, index) => {
+                    const jumpTime = Math.floor((cumulativeWords / totalWords) * duration);
+                    cumulativeWords += turnWordCounts[index] || 1;
+                    return (
+                      <div className={`turn ${turn.role}`} key={`${turn.role}-${index}`} onClick={() => { if (audioRef.current) audioRef.current.currentTime = jumpTime; }}>
+                        <div className="turn-role"><span>{index + 1}. {turn.role}</span><span className="turn-time">~{formatTime(jumpTime)}</span></div>
+                        <div>{turn.text}</div>
+                      </div>
+                    );
+                  });
+                })() : "Select a call from the queue."}
               </div>
             </article>
           </section>
