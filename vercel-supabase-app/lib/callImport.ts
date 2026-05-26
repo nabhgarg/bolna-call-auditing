@@ -12,6 +12,7 @@ export const CALL_IMPORT_COLUMNS = [
   "transcript",
   "recording_url",
   "agent_interrupted_user_count",
+  "audit_mode",
   "source_sheet"
 ] as const;
 
@@ -46,6 +47,9 @@ const headerAliases: Record<string, string> = {
   recording_url: "recording_url",
   audio_url: "recording_url",
   agent_interrupted_user_count: "agent_interrupted_user_count",
+  audit_mode: "audit_mode",
+  review_mode: "audit_mode",
+  import_mode: "audit_mode",
   source: "source_sheet",
   source_sheet: "source_sheet"
 };
@@ -63,7 +67,16 @@ function normalizeCell(value: unknown) {
   return String(value);
 }
 
-export function normalizeCallRows(calls: Array<Record<string, unknown>>) {
+export function normalizeAuditMode(value?: unknown) {
+  const normalized = normalizeHeader(String(value || ""));
+  if (["vibe_transcription", "vibe", "transcription", "vibe_and_transcription", "vibe_transcript"].includes(normalized)) {
+    return "vibe_transcription";
+  }
+  return "technical_audio";
+}
+
+export function normalizeCallRows(calls: Array<Record<string, unknown>>, auditMode = "technical_audio") {
+  const mode = normalizeAuditMode(auditMode);
   return calls
     .map((call) => {
       const row: Record<string, unknown> = {};
@@ -73,6 +86,7 @@ export function normalizeCallRows(calls: Array<Record<string, unknown>>) {
         if (target) row[target] = normalizeCell(value);
       }
       for (const column of CALL_IMPORT_COLUMNS) row[column] = row[column] ?? "";
+      row.audit_mode = normalizeAuditMode(row.audit_mode || mode);
       row.imported_at = new Date().toISOString();
       return row;
     })

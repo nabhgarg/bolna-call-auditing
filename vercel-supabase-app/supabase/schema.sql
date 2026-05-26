@@ -14,6 +14,7 @@ create table if not exists public.calls (
   transcript text,
   recording_url text,
   agent_interrupted_user_count numeric,
+  audit_mode text not null default 'technical_audio',
   source_sheet text,
   imported_at timestamptz not null default now()
 );
@@ -36,9 +37,20 @@ create table if not exists public.reviews (
   sheets_sync_error text
 );
 
+create table if not exists public.call_audit_queue (
+  call_id text not null references public.calls(execution_id) on delete cascade,
+  audit_mode text not null,
+  assigned_reviewer text,
+  source_sheet text,
+  imported_at timestamptz not null default now(),
+  primary key (call_id, audit_mode)
+);
+
 create index if not exists calls_assigned_reviewer_idx on public.calls(assigned_reviewer);
+create index if not exists calls_audit_mode_idx on public.calls(audit_mode);
 create index if not exists calls_org_name_idx on public.calls(org_name);
 create index if not exists calls_agent_name_idx on public.calls(agent_name);
+create index if not exists call_audit_queue_audit_mode_idx on public.call_audit_queue(audit_mode);
+create index if not exists call_audit_queue_assigned_reviewer_idx on public.call_audit_queue(assigned_reviewer);
 create index if not exists reviews_call_id_idx on public.reviews(call_id);
 create index if not exists reviews_sheets_synced_at_idx on public.reviews(sheets_synced_at);
-

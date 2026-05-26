@@ -11,6 +11,7 @@ type CallSummary = {
   created_at_ist?: string | null;
   status?: string | null;
   language?: string | null;
+  audit_mode?: string | null;
   source_sheet?: string | null;
   reviewed?: boolean;
   reviewer_name?: string | null;
@@ -70,6 +71,10 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
   ]
 };
 
+function auditModeLabel(value: string) {
+  return value === "vibe_transcription" ? "vibe + transcription" : "technical audio";
+}
+
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
   const total = Math.floor(seconds);
@@ -121,12 +126,12 @@ export default function Page() {
   const vibeMode = mode === "vibe_transcription";
 
   useEffect(() => {
-    loadCalls();
     const storedName = window.localStorage.getItem("auditReviewer") || "";
     const storedMode = window.localStorage.getItem("auditMode") || "technical_audio";
     setLoginName(storedName);
     setMode(storedMode);
     setIssueType(modeIssues[storedMode]?.[0] || "pronunciation");
+    loadCalls(storedMode);
     if (storedName) {
       setReviewerName(storedName);
       setLoginVisible(false);
@@ -141,6 +146,7 @@ export default function Page() {
     setFlowScore("");
     setLlmRating("");
     setLlmErrorType("");
+    loadCalls(mode);
   }, [mode]);
 
   async function api(path: string, options?: RequestInit) {
@@ -154,8 +160,8 @@ export default function Page() {
     return payload;
   }
 
-  async function loadCalls() {
-    const payload = await api("/api/calls");
+  async function loadCalls(auditMode = mode) {
+    const payload = await api(`/api/calls?mode=${encodeURIComponent(auditMode)}`);
     setCalls(payload.calls || []);
   }
 
@@ -255,29 +261,31 @@ export default function Page() {
       })
     });
     setStatusMessage(result.sheets_sync?.ok ? "Saved and synced to Sheets." : "Saved locally. Sheets sync pending.");
-    await loadCalls();
+    await loadCalls(mode);
     const openCalls = filteredCalls.filter((call) => !call.reviewed && call.execution_id !== currentCall.execution_id);
     if (openCalls[0]) await selectCall(openCalls[0].execution_id);
   }
 
   async function syncSheets() {
     try {
-      const result = await api("/api/sync-sheets", { method: "POST", body: "{}" });
-      alert(`Synced ${result.synced_reviews} review(s) to Google Sheets.`);
+      const result = await api("/api/sync-sheets", { method: "POST", body: JSON.stringify({ audit_mode: mode }) });
+      alert(`Synced ${result.synced_reviews} ${auditModeLabel(mode)} review(s) to Google Sheets.`);
     } catch (error) {
       alert(`Sheets sync not complete: ${(error as Error).message}`);
     }
   }
 
-  async function importSheets() {
+  async function importSheets(auditMode: string) {
     if (importingCalls) return;
     try {
       setImportingCalls(true);
-      setImportStatus("Importing calls from Google Sheets...");
-      const result = await api("/api/import-sheets", { method: "POST", body: "{}" });
-      await loadCalls();
-      setImportStatus(`Imported ${result.imported} call(s) from Google Sheets.`);
-      setStatusMessage(`Imported ${result.imported} call(s) from Google Sheets.`);
+      setImportStatus(`Importing ${auditModeLabel(auditMode)} calls from Google Sheets...`);
+      const result = await api("/api/import-sheets", { method: "POST", body: JSON.stringify({ audit_mode: auditMode }) });
+      setMode(auditMode);
+      window.localStorage.setItem("auditMode", auditMode);
+      await loadCalls(auditMode);
+      setImportStatus(`Imported ${result.imported} ${auditModeLabel(auditMode)} call(s) from ${result.sheet_name || "Google Sheets"}.`);
+      setStatusMessage(`Imported ${result.imported} ${auditModeLabel(auditMode)} call(s).`);
     } catch (error) {
       setImportStatus(`Sheet import failed: ${(error as Error).message}`);
       setStatusMessage(`Sheet import failed: ${(error as Error).message}`);
@@ -319,9 +327,16 @@ export default function Page() {
               <p>{reviewerName ? `${reviewerName} · ${mode === "technical_audio" ? "Technical audio audit" : "Vibe + transcription"}` : "Internal review cockpit"}</p>
             </div>
             <div className="brand-actions">
-              <button className="ghost" onClick={importSheets} disabled={importingCalls}>{importingCalls ? "Importing..." : "Import Calls"}</button>
               <button className="ghost" onClick={() => setLoginVisible(true)}>Switch</button>
             </div>
+          </div>
+          <div className="import-actions">
+            <button className="ghost" onClick={() => importSheets("technical_audio")} disabled={importingCalls}>
+              {importingCalls ? "Importing..." : "Import technical"}
+            </button>
+            <button className="ghost" onClick={() => importSheets("vibe_transcription")} disabled={importingCalls}>
+              {importingCalls ? "Importing..." : "Import vibe"}
+            </button>
           </div>
           {importStatus && <div className="import-status">{importStatus}</div>}
 
@@ -481,7 +496,7 @@ export default function Page() {
               </details>
 
               <div className="submit-row">
-                <a className="ghost export" href="/api/reviews.csv">Export CSV</a>
+                <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(mode)}`}>Export CSV</a>
                 <button className="ghost" type="button" onClick={syncSheets}>Sync Sheets</button>
                 <button className="primary" type="button" onClick={submitReview}>Submit Review</button>
               </div>

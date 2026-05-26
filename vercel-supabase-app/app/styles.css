@@ -103,6 +103,7 @@ button:hover,
 }
 
 .brand,
+.import-actions,
 .reviewer-box,
 .queue-toolbar,
 .queue-filters,
@@ -120,6 +121,12 @@ button:hover,
 
 .brand-actions {
   display: flex;
+  gap: 8px;
+}
+
+.import-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 

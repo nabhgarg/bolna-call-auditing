@@ -12,6 +12,7 @@ export type CallRow = {
   transcript?: string | null;
   recording_url?: string | null;
   agent_interrupted_user_count?: number | null;
+  audit_mode?: string | null;
   source_sheet?: string | null;
 };
 
@@ -32,7 +33,36 @@ export type ReviewRow = {
   calls?: CallRow | null;
 };
 
-export const REVIEW_EXPORT_COLUMNS = [
+export const TECHNICAL_REVIEW_EXPORT_COLUMNS = [
+  "review_id",
+  "call_id",
+  "org_name",
+  "agent_name",
+  "call_duration_sec",
+  "call_created_at_ist",
+  "reviewer_name",
+  "review_mode",
+  "issue_type",
+  "issue_timestamp",
+  "issue_recording_link",
+  "pronunciation_correct_form",
+  "pronunciation_word_heard",
+  "severity",
+  "content_tag",
+  "tone_tag",
+  "interruption_validity",
+  "interruption_consequence",
+  "latency_reaction",
+  "response_error_type",
+  "issue_notes",
+  "review_notes",
+  "issue_payload_json",
+  "started_at",
+  "submitted_at",
+  "duration_taken_sec"
+] as const;
+
+export const VIBE_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS = [
   "review_id",
   "call_id",
   "org_name",
@@ -42,18 +72,26 @@ export const REVIEW_EXPORT_COLUMNS = [
   "reviewer_name",
   "review_mode",
   "vibe_score",
-  "flow_score",
-  "llm_rating",
-  "llm_error_type",
-  "notes",
-  "issue_type",
   "issue_timestamp",
   "issue_recording_link",
+  "transcription_error_type",
+  "audio_unclear",
+  "audio_said",
+  "transcripted",
+  "content_tag",
+  "review_notes",
   "issue_payload_json",
   "started_at",
   "submitted_at",
   "duration_taken_sec"
 ] as const;
+
+export const REVIEW_EXPORT_COLUMNS_BY_MODE = {
+  technical_audio: TECHNICAL_REVIEW_EXPORT_COLUMNS,
+  vibe_transcription: VIBE_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS
+} as const;
+
+export const REVIEW_EXPORT_COLUMNS = TECHNICAL_REVIEW_EXPORT_COLUMNS;
 
 export function parseTurns(transcript = "") {
   const turns: Array<{ role: string; text: string }> = [];
@@ -115,10 +153,18 @@ function normalizeIssues(issues: unknown): Array<Record<string, unknown>> {
   return [];
 }
 
-export function exportRowsFromReviews(reviews: ReviewRow[]) {
+export function normalizeReviewMode(mode?: string | null) {
+  return mode === "vibe_transcription" ? "vibe_transcription" : "technical_audio";
+}
+
+export function exportRowsFromReviews(reviews: ReviewRow[], mode?: string | null) {
   const rows: Array<Record<string, unknown>> = [];
+  const requestedMode = mode ? normalizeReviewMode(mode) : "";
 
   for (const review of reviews) {
+    const reviewMode = normalizeReviewMode(review.review_mode);
+    if (requestedMode && reviewMode !== requestedMode) continue;
+
     const call = (review.calls || {}) as Partial<CallRow>;
     const issues = normalizeIssues(review.issues_json);
     const issueRows = issues.length ? issues : [{}];
@@ -135,13 +181,24 @@ export function exportRowsFromReviews(reviews: ReviewRow[]) {
         reviewer_name: review.reviewer_name || "",
         review_mode: review.review_mode || "",
         vibe_score: review.vibe_score || "",
-        flow_score: review.flow_score || "",
-        llm_rating: review.llm_rating || "",
-        llm_error_type: review.llm_error_type || "",
-        notes: review.notes || "",
         issue_type: issue.type || "",
         issue_timestamp: timestamp,
         issue_recording_link: recordingLinkAt(call.recording_url, timestamp),
+        pronunciation_correct_form: issue.correct_form || "",
+        pronunciation_word_heard: issue.word_heard || "",
+        severity: issue.severity || "",
+        content_tag: issue.content_tag || "",
+        tone_tag: issue.tag || "",
+        interruption_validity: issue.valid || "",
+        interruption_consequence: issue.consequence || "",
+        latency_reaction: issue.reaction || "",
+        response_error_type: issue.response_error_type || "",
+        transcription_error_type: issue.transcription_error_type || "",
+        audio_unclear: issue.audio_unclear || "",
+        audio_said: issue.audio_said || "",
+        transcripted: issue.transcripted || "",
+        issue_notes: issue.notes || "",
+        review_notes: review.notes || "",
         issue_payload_json: JSON.stringify(issue),
         started_at: review.started_at || "",
         submitted_at: review.submitted_at || "",
@@ -153,7 +210,7 @@ export function exportRowsFromReviews(reviews: ReviewRow[]) {
   return rows;
 }
 
-export function toCsv(rows: Array<Record<string, unknown>>) {
+export function toCsv(rows: Array<Record<string, unknown>>, columns: readonly string[] = REVIEW_EXPORT_COLUMNS) {
   const escapeCell = (value: unknown) => {
     const text = String(value ?? "");
     if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
@@ -161,7 +218,7 @@ export function toCsv(rows: Array<Record<string, unknown>>) {
   };
 
   return [
-    REVIEW_EXPORT_COLUMNS.join(","),
-    ...rows.map((row) => REVIEW_EXPORT_COLUMNS.map((column) => escapeCell(row[column])).join(","))
+    columns.join(","),
+    ...rows.map((row) => columns.map((column) => escapeCell(row[column])).join(","))
   ].join("\n");
 }

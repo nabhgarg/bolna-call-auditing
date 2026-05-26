@@ -38,18 +38,21 @@ If you only use the publishable key, make sure the Supabase tables and RLS polic
 
 ## 3. Google Sheets Import And Export
 
-Create a Google Sheet with two tabs:
+Create a Google Sheet with four tabs:
 
 ```text
-Calls
-Reviews
+Calls_Technical_Audio
+Calls_Vibe_Transcription
+Reviews_Technical_Audio
+Reviews_Vibe_Transcription
 ```
 
-The `Calls` tab should have one header row. Supported headers include:
+Each `Calls_*` tab should have one header row. Supported headers include:
 
 ```text
 execution_id
 assigned_reviewer
+audit_mode
 org_name
 agent_id
 agent_name
@@ -79,15 +82,76 @@ Setup:
 
 Import flow:
 
-- Click `Import Calls` in the app.
-- The app reads rows from the `Calls` tab.
-- Rows are upserted into Supabase by `execution_id`.
+- Click `Import technical` to read `Calls_Technical_Audio`.
+- Click `Import vibe` to read `Calls_Vibe_Transcription`.
+- Base call data is upserted into `calls` by `execution_id`.
+- Queue membership and reviewer assignment are stored separately per `(execution_id, audit_mode)`, so one call can appear in both audit queues.
 
 Export flow:
 
 - Every submitted review saves to Supabase first.
-- The app then appends exported issue rows to the `Reviews` tab.
+- Technical audio reviews append to `Reviews_Technical_Audio`.
+- Vibe + transcription reviews append to `Reviews_Vibe_Transcription`.
+- Technical audio and vibe + transcription use different review/export schemas, so each review tab only gets the fields relevant to that audit workflow.
+- Manual CSV export downloads the currently selected audit mode in that mode's schema.
 - If Sheets export fails, the review stays saved in Supabase. Use `Sync Sheets` to retry pending rows.
+
+Technical audio review export columns:
+
+```text
+review_id
+call_id
+org_name
+agent_name
+call_duration_sec
+call_created_at_ist
+reviewer_name
+review_mode
+issue_type
+issue_timestamp
+issue_recording_link
+pronunciation_correct_form
+pronunciation_word_heard
+severity
+content_tag
+tone_tag
+interruption_validity
+interruption_consequence
+latency_reaction
+response_error_type
+issue_notes
+review_notes
+issue_payload_json
+started_at
+submitted_at
+duration_taken_sec
+```
+
+Vibe + transcription review export columns:
+
+```text
+review_id
+call_id
+org_name
+agent_name
+call_duration_sec
+call_created_at_ist
+reviewer_name
+review_mode
+vibe_score
+issue_timestamp
+issue_recording_link
+transcription_error_type
+audio_unclear
+audio_said
+transcripted
+content_tag
+review_notes
+issue_payload_json
+started_at
+submitted_at
+duration_taken_sec
+```
 
 ## 4. Seed Calls
 

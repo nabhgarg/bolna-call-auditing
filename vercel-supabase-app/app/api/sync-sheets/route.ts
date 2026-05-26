@@ -1,17 +1,26 @@
 import { NextResponse } from "next/server";
 import { ReviewRow } from "../../../lib/audit";
+import { normalizeAuditMode } from "../../../lib/callImport";
 import { syncReviewsToSheets } from "../../../lib/sheetsSync";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const payload = await request.json().catch(() => ({}));
+  const mode = payload.audit_mode || payload.review_mode;
   const supabase = supabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from("reviews")
     .select("*, calls(*)")
     .is("sheets_synced_at", null)
     .order("submitted_at", { ascending: true });
+
+  if (mode) {
+    query = query.eq("review_mode", normalizeAuditMode(mode));
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
