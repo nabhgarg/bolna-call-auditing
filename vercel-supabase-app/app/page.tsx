@@ -49,7 +49,6 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
     ["notes", "Notes", "text"]
   ],
   barge_in: [
-    ["consequence", "Consequence", "select", ["User repeated themselves", "User showed confusion", "Others"]],
     ["notes", "Notes", "text"]
   ],
   latency: [
@@ -65,6 +64,12 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
 const emptyMetricRatings = () => Object.fromEntries(
   ratingMetrics.map((metric) => [metric, { rating: "", reason: "" }])
 ) as Record<string, MetricRating>;
+
+const requiredIssueFields: Record<string, string[]> = {
+  pronunciation: ["word_heard"],
+  tone: ["tag"],
+  response_appropriateness: ["response_error_type", "error_explanation"]
+};
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
@@ -98,6 +103,8 @@ export default function Page() {
   const [issueType, setIssueType] = useState("pronunciation");
   const [issues, setIssues] = useState<Issue[]>([]);
   const [metricRatings, setMetricRatings] = useState<Record<string, MetricRating>>(emptyMetricRatings);
+  const [missingIssueFields, setMissingIssueFields] = useState<string[]>([]);
+  const [missingRatingFields, setMissingRatingFields] = useState<string[]>([]);
   const [startedAt, setStartedAt] = useState("");
   const [notes, setNotes] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
@@ -154,6 +161,8 @@ export default function Page() {
     setCurrentCall(call);
     setIssues([]);
     setMetricRatings(emptyMetricRatings());
+    setMissingIssueFields([]);
+    setMissingRatingFields([]);
     setCapturedTime("00:00");
     setStartedAt(new Date().toISOString());
     setNotes("");
@@ -186,10 +195,20 @@ export default function Page() {
     for (const [key, value] of formData.entries()) {
       if (key !== "timestamp") issue[key] = String(value);
     }
+    const missing = (requiredIssueFields[issueType] || []).filter((field) => !String(issue[field] || "").trim());
+    if (missing.length) {
+      setMissingIssueFields(missing);
+      return;
+    }
+    setMissingIssueFields([]);
     setIssues((existing) => [...existing, issue]);
   }
 
   function updateMetricRating(metric: string, key: keyof MetricRating, value: string) {
+    const missingKey = `${metric}.${key}`;
+    if (value.trim()) {
+      setMissingRatingFields((existing) => existing.filter((item) => item !== missingKey));
+    }
     setMetricRatings((existing) => ({
       ...existing,
       [metric]: {
@@ -204,6 +223,18 @@ export default function Page() {
       alert("Select a call first.");
       return;
     }
+    const missingRatings = ratingMetrics.flatMap((metric) => {
+      const fields: string[] = [];
+      if (!metricRatings[metric]?.rating) fields.push(`${metric}.rating`);
+      if (!metricRatings[metric]?.reason.trim()) fields.push(`${metric}.reason`);
+      return fields;
+    });
+    if (missingRatings.length) {
+      setMissingRatingFields(missingRatings);
+      alert("Please complete all call ratings and reasons before submitting.");
+      return;
+    }
+    setMissingRatingFields([]);
     const durationTaken = startedAt ? Math.floor((Date.now() - Date.parse(startedAt)) / 1000) : 0;
     const ratingIssues = ratingMetrics
       .filter((metric) => metricRatings[metric]?.rating || metricRatings[metric]?.reason)
@@ -375,11 +406,14 @@ export default function Page() {
                 ))}
               </div>
 
-              <form className="issue-form issue-form-active" onSubmit={addIssue}>
+              <form className="issue-form issue-form-active" onSubmit={addIssue} noValidate>
                 <div className="form-row">
                   <label>
                     Issue type
-                    <select value={issueType} onChange={(event) => setIssueType(event.target.value)}>
+                    <select value={issueType} onChange={(event) => {
+                      setIssueType(event.target.value);
+                      setMissingIssueFields([]);
+                    }}>
                       {issueTypes.map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
                     </select>
                   </label>
@@ -390,17 +424,25 @@ export default function Page() {
                 </div>
 
                 <div className="dynamic-fields">
-                  {(issueConfigs[issueType] || []).map(([name, label, kind, options]) => (
-                    <label key={name}>
+                  {(issueConfigs[issueType] || []).map(([name, label, kind, options]) => {
+                    const required = (requiredIssueFields[issueType] || []).includes(name);
+                    const missing = missingIssueFields.includes(name);
+                    return (
+                    <label key={name} className={missing ? "field-missing" : ""}>
                       {label}
                       {kind === "select" ? (
-                        <select name={name}>{(options || []).map((option) => <option key={option} value={option}>{option}</option>)}</select>
+                        <select name={name} required={required} defaultValue={required ? "" : options?.[0]}>
+                          {required && <option value="">Select {label.toLowerCase()}</option>}
+                          {(options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+                        </select>
                       ) : (
-                        <input name={name} />
+                        <input name={name} required={required} />
                       )}
                     </label>
-                  ))}
+                    );
+                  })}
                 </div>
+                {missingIssueFields.length > 0 && <p className="validation-message">Fill the highlighted required field before adding the issue.</p>}
                 <button className="primary" type="submit">Add Issue</button>
               </form>
 
@@ -431,8 +473,8 @@ export default function Page() {
                   <span>1-4</span>
                 </div>
                 {ratingMetrics.map((metric) => (
-                  <div className={`rating-card ${issueType === metric ? "selected" : ""}`} key={metric}>
-                    <label>
+                  <div className={`rating-card ${issueType === metric ? "selected" : ""} ${missingRatingFields.some((field) => field.startsWith(`${metric}.`)) ? "missing" : ""}`} key={metric}>
+                    <label className={missingRatingFields.includes(`${metric}.rating`) ? "field-missing" : ""}>
                       {issueLabels[metric]}
                       <select
                         value={metricRatings[metric]?.rating || ""}
@@ -445,7 +487,7 @@ export default function Page() {
                         <option value="4">4 - Good</option>
                       </select>
                     </label>
-                    <label>
+                    <label className={missingRatingFields.includes(`${metric}.reason`) ? "field-missing" : ""}>
                       Reason
                       <textarea
                         value={metricRatings[metric]?.reason || ""}

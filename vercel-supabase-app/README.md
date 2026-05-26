@@ -109,7 +109,6 @@ pronunciation_correct_form
 pronunciation_word_heard
 content_tag
 tone_tag
-barge_in_consequence
 latency_reaction
 response_error_type
 response_error_explanation

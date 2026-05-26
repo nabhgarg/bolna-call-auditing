@@ -438,6 +438,24 @@ audio {
   box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.1);
 }
 
+.rating-card.missing,
+.field-missing input,
+.field-missing select,
+.field-missing textarea {
+  border-color: #b42318;
+  background: #fff7f5;
+}
+
+.rating-card.missing {
+  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.12);
+}
+
+.validation-message {
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 750;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 120px;
