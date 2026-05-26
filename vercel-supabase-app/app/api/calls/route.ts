@@ -3,6 +3,21 @@ import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
+function normalizeName(value?: string | null) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isAssignedToReviewer(assignedReviewer: string | null | undefined, reviewer: string) {
+  const assigned = normalizeName(assignedReviewer);
+  const current = normalizeName(reviewer);
+  if (!current) return true;
+  if (!assigned || ["all", "everyone", "any"].includes(assigned)) return true;
+  return assigned
+    .split(/[,;/|]+/)
+    .map((name) => normalizeName(name))
+    .includes(current);
+}
+
 export async function GET(request: Request) {
   const supabase = supabaseAdmin();
   const url = new URL(request.url);
@@ -16,7 +31,7 @@ export async function GET(request: Request) {
     .order("call_id", { ascending: true });
 
   if (!queueResult.error) {
-    const queueRows = queueResult.data || [];
+    const queueRows = (queueResult.data || []).filter((row: any) => isAssignedToReviewer(row.assigned_reviewer, reviewer));
     const callIds = queueRows.map((row: any) => row.call_id).filter(Boolean);
     if (!callIds.length) {
       return NextResponse.json({ calls: [] }, { headers: { "Cache-Control": "no-store" } });
@@ -100,7 +115,7 @@ export async function GET(request: Request) {
   }
 
   const response = NextResponse.json({
-    calls: (calls || []).map((call: any) => {
+    calls: (calls || []).filter((call: any) => isAssignedToReviewer(call.assigned_reviewer, reviewer)).map((call: any) => {
       const review = Array.isArray(call.reviews)
         ? call.reviews.find((item: any) => item.review_mode === auditMode && (!reviewer || item.reviewer_name === reviewer)) || null
         : null;

@@ -98,7 +98,7 @@ export default function Page() {
   const [search, setSearch] = useState("");
   const [clientFilter, setClientFilter] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
-  const [hideReviewed, setHideReviewed] = useState(false);
+  const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
   const [issueType, setIssueType] = useState("pronunciation");
@@ -150,14 +150,17 @@ export default function Page() {
     const query = search.trim().toLowerCase();
     return calls
       .filter((call) => {
-        if (hideReviewed && call.reviewed) return false;
+        if (queueView === "pending" && call.reviewed) return false;
+        if (queueView === "submitted" && !call.reviewed) return false;
         if (clientFilter && call.org_name !== clientFilter) return false;
         if (agentFilter && call.agent_name !== agentFilter) return false;
         if (!query) return true;
         return call.execution_id.toLowerCase().includes(query);
       })
       .sort((a, b) => a.execution_id.localeCompare(b.execution_id));
-  }, [agentFilter, calls, clientFilter, hideReviewed, search]);
+  }, [agentFilter, calls, clientFilter, queueView, search]);
+  const reviewedCount = calls.filter((call) => call.reviewed).length;
+  const pendingCount = calls.length - reviewedCount;
   const currentCallSummary = currentCall ? calls.find((call) => call.execution_id === currentCall.execution_id) : null;
   const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentCall.execution_id));
 
@@ -284,6 +287,7 @@ export default function Page() {
       )));
       setCurrentCall((existing) => existing ? { ...existing, reviewed: true, reviewer_name: reviewerName } : existing);
       setStatusMessage(result.sheets_sync?.ok ? "Submitted and synced to Sheets." : "Submitted locally. Sheets sync pending.");
+      setQueueView("pending");
     } finally {
       setSubmittingReview(false);
     }
@@ -353,7 +357,22 @@ export default function Page() {
 
           <div className="queue-toolbar">
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search call ID" />
-            <button className="ghost" onClick={() => setHideReviewed((value) => !value)}>{hideReviewed ? "Show reviewed" : "Hide reviewed"}</button>
+          </div>
+          <div className="queue-tabs" role="tablist" aria-label="Review queue status">
+            <button
+              type="button"
+              className={queueView === "pending" ? "active" : ""}
+              onClick={() => setQueueView("pending")}
+            >
+              Pending <span>{pendingCount}</span>
+            </button>
+            <button
+              type="button"
+              className={queueView === "submitted" ? "active" : ""}
+              onClick={() => setQueueView("submitted")}
+            >
+              Submitted <span>{reviewedCount}</span>
+            </button>
           </div>
           <div className="queue-filters">
             <label>
@@ -371,7 +390,7 @@ export default function Page() {
               </select>
             </label>
           </div>
-          <div className="queue-stats">{calls.length} imported · {calls.filter((call) => call.reviewed).length} reviewed by you · {filteredCalls.length} shown</div>
+          <div className="queue-stats">{pendingCount} pending · {reviewedCount} submitted · {calls.length} assigned</div>
           <nav className="call-list">
             {filteredCalls.map((call) => (
               <button key={call.execution_id} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${currentCall?.execution_id === call.execution_id ? "active" : ""}`} onClick={() => selectCall(call.execution_id)}>
@@ -381,6 +400,11 @@ export default function Page() {
                 <span>{call.reviewed ? "Submitted by you" : "Open"} · {call.created_at_ist || ""}</span>
               </button>
             ))}
+            {!filteredCalls.length && (
+              <div className="queue-empty">
+                {queueView === "pending" ? "No pending calls. Nice, this queue is clear." : "No submitted calls yet."}
+              </div>
+            )}
           </nav>
         </aside>
 

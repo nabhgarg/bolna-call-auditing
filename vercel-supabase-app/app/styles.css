@@ -106,6 +106,7 @@ button:hover,
 .import-actions,
 .reviewer-box,
 .queue-toolbar,
+.queue-tabs,
 .queue-filters,
 .queue-stats {
   padding: 14px;
@@ -196,9 +197,35 @@ textarea {
 }
 
 .queue-toolbar {
+  display: block;
+}
+
+.queue-tabs {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.queue-tabs button {
+  justify-content: space-between;
+  font-weight: 750;
+}
+
+.queue-tabs button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.queue-tabs span {
+  border-radius: 999px;
+  background: rgba(23, 32, 42, 0.08);
+  padding: 1px 8px;
+  font-size: 12px;
+}
+
+.queue-tabs button.active span {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .queue-filters {
@@ -250,6 +277,16 @@ textarea {
 .call-card.submitted .call-id,
 .call-card.submitted span:last-child {
   color: var(--accent-strong);
+}
+
+.queue-empty {
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 14px;
+  text-align: center;
 }
 
 .workspace {
