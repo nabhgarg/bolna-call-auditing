@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   const supabase = supabaseAdmin();
   const url = new URL(request.url);
   const auditMode = url.searchParams.get("audit_mode") || url.searchParams.get("mode") || "technical_audio";
+  const reviewer = String(url.searchParams.get("reviewer") || "").trim();
 
   const queueResult = await supabase
     .from("call_audit_queue")
@@ -21,6 +22,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ calls: [] }, { headers: { "Cache-Control": "no-store" } });
     }
 
+    let reviewsQuery = supabase
+      .from("reviews")
+      .select("call_id,reviewer_name,review_mode")
+      .in("call_id", callIds)
+      .eq("review_mode", auditMode);
+
+    if (reviewer) {
+      reviewsQuery = reviewsQuery.eq("reviewer_name", reviewer);
+    }
+
     const [{ data: calls, error: callsError }, { data: reviews, error: reviewsError }] = await Promise.all([
       supabase
         .from("calls")
@@ -28,11 +39,7 @@ export async function GET(request: Request) {
           "execution_id,org_name,agent_name,duration_sec,created_at_ist,status,transcriber_language,recording_url,source_sheet"
         )
         .in("execution_id", callIds),
-      supabase
-        .from("reviews")
-        .select("call_id,reviewer_name,review_mode")
-        .in("call_id", callIds)
-        .eq("review_mode", auditMode)
+      reviewsQuery
     ]);
 
     const error = callsError || reviewsError;
@@ -95,7 +102,7 @@ export async function GET(request: Request) {
   const response = NextResponse.json({
     calls: (calls || []).map((call: any) => {
       const review = Array.isArray(call.reviews)
-        ? call.reviews.find((item: any) => item.review_mode === auditMode) || null
+        ? call.reviews.find((item: any) => item.review_mode === auditMode && (!reviewer || item.reviewer_name === reviewer)) || null
         : null;
       return {
         execution_id: call.execution_id,

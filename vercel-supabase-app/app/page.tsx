@@ -24,19 +24,15 @@ type CallDetail = CallSummary & {
 };
 
 type Issue = Record<string, string>;
+const AUDIT_MODE = "technical_audio";
+const issueTypes = ["pronunciation", "tone", "interruption", "latency", "response_appropriateness"];
 
 const issueLabels: Record<string, string> = {
   pronunciation: "Pronunciation",
   tone: "Tone",
   interruption: "Interruption",
   latency: "Latency",
-  transcription: "Transcription",
   response_appropriateness: "Response appropriateness"
-};
-
-const modeIssues: Record<string, string[]> = {
-  technical_audio: ["pronunciation", "tone", "interruption", "latency", "response_appropriateness"],
-  vibe_transcription: ["transcription"]
 };
 
 const issueConfigs: Record<string, Array<[string, string, "text" | "select", string[]?]>> = {
@@ -58,22 +54,11 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
   latency: [
     ["reaction", "User reaction", "select", ["None - call continued", "Spoke again unprompted", "Said hello / are you there", "Expressed frustration", "Hung up"]]
   ],
-  transcription: [
-    ["transcription_error_type", "Type of transcription error", "select", ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"]],
-    ["audio_unclear", "Audio unclear?", "select", ["No", "Yes"]],
-    ["audio_said", "What was said in audio", "text"],
-    ["transcripted", "What was transcripted", "text"],
-    ["content_tag", "Type of transcription content", "select", ["City", "Other Proper Noun", "General"]]
-  ],
   response_appropriateness: [
     ["response_error_type", "Type of error", "select", ["Irrelevant response", "Agent stuck in loop/same info captured repeatedly", "Context not carried through", "Factual Inaccuracy/Hallucination", "Rule Navigation/Instruction Conflict", "Others"]],
     ["notes", "Notes", "text"]
   ]
 };
-
-function auditModeLabel(value: string) {
-  return value === "vibe_transcription" ? "vibe + transcription" : "technical audio";
-}
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
@@ -81,10 +66,6 @@ function formatTime(seconds: number) {
   const mins = String(Math.floor(total / 60)).padStart(2, "0");
   const secs = String(total % 60).padStart(2, "0");
   return `${mins}:${secs}`;
-}
-
-function normalize(value?: string | null) {
-  return String(value || "").trim().toLowerCase();
 }
 
 function shortCallId(id: string) {
@@ -101,7 +82,6 @@ export default function Page() {
   const [currentCall, setCurrentCall] = useState<CallDetail | null>(null);
   const [reviewerName, setReviewerName] = useState("");
   const [loginName, setLoginName] = useState("");
-  const [mode, setMode] = useState("technical_audio");
   const [loginVisible, setLoginVisible] = useState(true);
   const [search, setSearch] = useState("");
   const [clientFilter, setClientFilter] = useState("");
@@ -112,42 +92,21 @@ export default function Page() {
   const [issueType, setIssueType] = useState("pronunciation");
   const [issues, setIssues] = useState<Issue[]>([]);
   const [startedAt, setStartedAt] = useState("");
-  const [primaryVibeScore, setPrimaryVibeScore] = useState("");
-  const [vibeScore, setVibeScore] = useState("");
-  const [flowScore, setFlowScore] = useState("");
-  const [llmRating, setLlmRating] = useState("");
-  const [llmErrorType, setLlmErrorType] = useState("");
   const [notes, setNotes] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [importStatus, setImportStatus] = useState("");
   const [importingCalls, setImportingCalls] = useState(false);
 
-  const issueTypes = modeIssues[mode] || modeIssues.technical_audio;
-  const vibeMode = mode === "vibe_transcription";
-
   useEffect(() => {
     const storedName = window.localStorage.getItem("auditReviewer") || "";
-    const storedMode = window.localStorage.getItem("auditMode") || "technical_audio";
     setLoginName(storedName);
-    setMode(storedMode);
-    setIssueType(modeIssues[storedMode]?.[0] || "pronunciation");
-    loadCalls(storedMode);
+    setIssueType(issueTypes[0]);
+    loadCalls(storedName);
     if (storedName) {
       setReviewerName(storedName);
       setLoginVisible(false);
     }
   }, []);
-
-  useEffect(() => {
-    setIssueType(issueTypes[0]);
-    setIssues([]);
-    setPrimaryVibeScore("");
-    setVibeScore("");
-    setFlowScore("");
-    setLlmRating("");
-    setLlmErrorType("");
-    loadCalls(mode);
-  }, [mode]);
 
   async function api(path: string, options?: RequestInit) {
     const response = await fetch(path, {
@@ -160,25 +119,19 @@ export default function Page() {
     return payload;
   }
 
-  async function loadCalls(auditMode = mode) {
-    const payload = await api(`/api/calls?mode=${encodeURIComponent(auditMode)}`);
+  async function loadCalls(reviewer = reviewerName) {
+    const params = new URLSearchParams({ mode: AUDIT_MODE });
+    if (reviewer) params.set("reviewer", reviewer);
+    const payload = await api(`/api/calls?${params.toString()}`);
     setCalls(payload.calls || []);
   }
 
-  const assignmentsEnabled = calls.some((call) => normalize(call.assigned_reviewer));
-  const reviewerCalls = useMemo(() => {
-    return calls.filter((call) => {
-      if (!assignmentsEnabled) return true;
-      return normalize(call.assigned_reviewer) === normalize(reviewerName);
-    });
-  }, [assignmentsEnabled, calls, reviewerName]);
-
-  const clients = useMemo(() => [...new Set(reviewerCalls.map((call) => call.org_name).filter(Boolean))].sort() as string[], [reviewerCalls]);
-  const agents = useMemo(() => [...new Set(reviewerCalls.map((call) => call.agent_name).filter(Boolean))].sort() as string[], [reviewerCalls]);
+  const clients = useMemo(() => [...new Set(calls.map((call) => call.org_name).filter(Boolean))].sort() as string[], [calls]);
+  const agents = useMemo(() => [...new Set(calls.map((call) => call.agent_name).filter(Boolean))].sort() as string[], [calls]);
 
   const filteredCalls = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return reviewerCalls
+    return calls
       .filter((call) => {
         if (hideReviewed && call.reviewed) return false;
         if (clientFilter && call.org_name !== clientFilter) return false;
@@ -187,7 +140,7 @@ export default function Page() {
         return call.execution_id.toLowerCase().includes(query);
       })
       .sort((a, b) => a.execution_id.localeCompare(b.execution_id));
-  }, [agentFilter, clientFilter, hideReviewed, reviewerCalls, search]);
+  }, [agentFilter, calls, clientFilter, hideReviewed, search]);
 
   async function selectCall(id: string) {
     const call = await api(`/api/calls/${encodeURIComponent(id)}`);
@@ -195,11 +148,6 @@ export default function Page() {
     setIssues([]);
     setCapturedTime("00:00");
     setStartedAt(new Date().toISOString());
-    setPrimaryVibeScore("");
-    setVibeScore("");
-    setFlowScore("");
-    setLlmRating("");
-    setLlmErrorType("");
     setNotes("");
   }
 
@@ -210,7 +158,7 @@ export default function Page() {
     setReviewerName(name);
     setLoginVisible(false);
     window.localStorage.setItem("auditReviewer", name);
-    window.localStorage.setItem("auditMode", mode);
+    loadCalls(name);
   }
 
   function captureTimestamp() {
@@ -238,22 +186,17 @@ export default function Page() {
       alert("Select a call first.");
       return;
     }
-    if (vibeMode && !primaryVibeScore) {
-      alert("Please select a vibe score before submitting.");
-      return;
-    }
-
     const durationTaken = startedAt ? Math.floor((Date.now() - Date.parse(startedAt)) / 1000) : 0;
     const result = await api("/api/reviews", {
       method: "POST",
       body: JSON.stringify({
         call_id: currentCall.execution_id,
         reviewer_name: reviewerName,
-        review_mode: mode,
-        vibe_score: primaryVibeScore || vibeScore,
-        flow_score: vibeMode ? "" : flowScore,
-        llm_rating: vibeMode ? "" : llmRating,
-        llm_error_type: vibeMode ? "" : llmErrorType,
+        review_mode: AUDIT_MODE,
+        vibe_score: "",
+        flow_score: "",
+        llm_rating: "",
+        llm_error_type: "",
         notes,
         issues,
         started_at: startedAt,
@@ -261,31 +204,29 @@ export default function Page() {
       })
     });
     setStatusMessage(result.sheets_sync?.ok ? "Saved and synced to Sheets." : "Saved locally. Sheets sync pending.");
-    await loadCalls(mode);
+    await loadCalls();
     const openCalls = filteredCalls.filter((call) => !call.reviewed && call.execution_id !== currentCall.execution_id);
     if (openCalls[0]) await selectCall(openCalls[0].execution_id);
   }
 
   async function syncSheets() {
     try {
-      const result = await api("/api/sync-sheets", { method: "POST", body: JSON.stringify({ audit_mode: mode }) });
-      alert(`Synced ${result.synced_reviews} ${auditModeLabel(mode)} review(s) to Google Sheets.`);
+      const result = await api("/api/sync-sheets", { method: "POST", body: JSON.stringify({ audit_mode: AUDIT_MODE }) });
+      alert(`Synced ${result.synced_reviews} technical audio review(s) to Google Sheets.`);
     } catch (error) {
       alert(`Sheets sync not complete: ${(error as Error).message}`);
     }
   }
 
-  async function importSheets(auditMode: string) {
+  async function importSheets() {
     if (importingCalls) return;
     try {
       setImportingCalls(true);
-      setImportStatus(`Importing ${auditModeLabel(auditMode)} calls from Google Sheets...`);
-      const result = await api("/api/import-sheets", { method: "POST", body: JSON.stringify({ audit_mode: auditMode }) });
-      setMode(auditMode);
-      window.localStorage.setItem("auditMode", auditMode);
-      await loadCalls(auditMode);
-      setImportStatus(`Imported ${result.imported} ${auditModeLabel(auditMode)} call(s) from ${result.sheet_name || "Google Sheets"}.`);
-      setStatusMessage(`Imported ${result.imported} ${auditModeLabel(auditMode)} call(s).`);
+      setImportStatus("Importing technical audio calls from Google Sheets...");
+      const result = await api("/api/import-sheets", { method: "POST", body: JSON.stringify({ audit_mode: AUDIT_MODE }) });
+      await loadCalls();
+      setImportStatus(`Imported ${result.imported} technical audio call(s) from ${result.sheet_name || "Google Sheets"}.`);
+      setStatusMessage(`Imported ${result.imported} technical audio call(s).`);
     } catch (error) {
       setImportStatus(`Sheet import failed: ${(error as Error).message}`);
       setStatusMessage(`Sheet import failed: ${(error as Error).message}`);
@@ -301,18 +242,11 @@ export default function Page() {
           <form className="login-card" onSubmit={startSession}>
             <div>
               <h1>Call Audit</h1>
-              <p>Choose your queue and audit mode.</p>
+              <p>Enter your name to start the technical audio audit.</p>
             </div>
             <label>
               Reviewer name
               <input value={loginName} onChange={(event) => setLoginName(event.target.value)} placeholder="Type your name" required />
-            </label>
-            <label>
-              Audit mode
-              <select value={mode} onChange={(event) => setMode(event.target.value)}>
-                <option value="technical_audio">Technical audio audit</option>
-                <option value="vibe_transcription">Vibe + transcription</option>
-              </select>
             </label>
             <button className="primary" type="submit">Start reviewing</button>
           </form>
@@ -324,34 +258,18 @@ export default function Page() {
           <div className="brand">
             <div>
               <h1>Call Audit</h1>
-              <p>{reviewerName ? `${reviewerName} · ${mode === "technical_audio" ? "Technical audio audit" : "Vibe + transcription"}` : "Internal review cockpit"}</p>
+              <p>{reviewerName ? `${reviewerName} · Technical audio audit` : "Internal review cockpit"}</p>
             </div>
             <div className="brand-actions">
               <button className="ghost" onClick={() => setLoginVisible(true)}>Switch</button>
             </div>
           </div>
           <div className="import-actions">
-            <button className="ghost" onClick={() => importSheets("technical_audio")} disabled={importingCalls}>
-              {importingCalls ? "Importing..." : "Import technical"}
-            </button>
-            <button className="ghost" onClick={() => importSheets("vibe_transcription")} disabled={importingCalls}>
-              {importingCalls ? "Importing..." : "Import vibe"}
+            <button className="ghost" onClick={importSheets} disabled={importingCalls}>
+              {importingCalls ? "Importing..." : "Import calls"}
             </button>
           </div>
           {importStatus && <div className="import-status">{importStatus}</div>}
-
-          <div className="reviewer-box">
-            <label>
-              Audit mode
-              <select value={mode} onChange={(event) => {
-                setMode(event.target.value);
-                window.localStorage.setItem("auditMode", event.target.value);
-              }}>
-                <option value="technical_audio">Technical audio audit</option>
-                <option value="vibe_transcription">Vibe + transcription</option>
-              </select>
-            </label>
-          </div>
 
           <div className="queue-toolbar">
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search call ID" />
@@ -373,7 +291,7 @@ export default function Page() {
               </select>
             </label>
           </div>
-          <div className="queue-stats">{assignmentsEnabled ? `${reviewerCalls.length} assigned` : `${calls.length} imported`} · {reviewerCalls.filter((call) => call.reviewed).length} reviewed · {filteredCalls.length} shown</div>
+          <div className="queue-stats">{calls.length} imported · {calls.filter((call) => call.reviewed).length} reviewed by you · {filteredCalls.length} shown</div>
           <nav className="call-list">
             {filteredCalls.map((call) => (
               <button key={call.execution_id} className={`call-card ${call.reviewed ? "reviewed" : ""} ${currentCall?.execution_id === call.execution_id ? "active" : ""}`} onClick={() => selectCall(call.execution_id)}>
@@ -417,21 +335,6 @@ export default function Page() {
                   if (next) selectCall(next.execution_id);
                 }}>Next</button>
               </div>
-
-              {vibeMode && (
-                <section className="vibe-primary">
-                  <label>
-                    Vibe score
-                    <select value={primaryVibeScore} onChange={(event) => setPrimaryVibeScore(event.target.value)}>
-                      <option value="">Select vibe score</option>
-                      <option value="1">1 - Very poor</option>
-                      <option value="2">2 - Poor</option>
-                      <option value="3">3 - Acceptable</option>
-                      <option value="4">4 - Good</option>
-                    </select>
-                  </label>
-                </section>
-              )}
 
               <div className="quick-flags">
                 {issueTypes.map((type) => <button key={type} onClick={() => setIssueType(type)}>{issueLabels[type]}</button>)}
@@ -482,21 +385,13 @@ export default function Page() {
                 </div>
               </section>
 
-              <details className="scores">
-                <summary>Optional call summary</summary>
-                {!vibeMode && (
-                  <>
-                    <label>Vibe score<select value={vibeScore} onChange={(event) => setVibeScore(event.target.value)}><option value="">Skip</option><option value="1">1 - Very poor</option><option value="2">2 - Poor</option><option value="3">3 - Acceptable</option><option value="4">4 - Good</option></select></label>
-                    <label>Flow score<select value={flowScore} onChange={(event) => setFlowScore(event.target.value)}><option value="">Skip</option><option value="1">1 - Nonsensical</option><option value="2">2 - Broken</option><option value="3">3 - Mostly completed</option><option value="4">4 - Smooth conclusion</option></select></label>
-                    <label>LLM call-level rating<select value={llmRating} onChange={(event) => setLlmRating(event.target.value)}><option value="">Skip</option><option value="as_expected">As expected</option><option value="not_perfect">Correct but not perfect</option><option value="deviated">Deviated</option></select></label>
-                    {llmRating === "deviated" && <label>LLM error type<select value={llmErrorType} onChange={(event) => setLlmErrorType(event.target.value)}><option value="">None</option><option value="irrelevant_response">Irrelevant response</option><option value="loop">Agent stuck in loop / same info captured repeatedly</option><option value="context_not_carried">Context not carried through</option><option value="factual_inaccuracy">Factual Inaccuracy / Hallucination</option><option value="rule_conflict">Rule Navigation / Instruction Conflict</option><option value="other">Others</option></select></label>}
-                  </>
-                )}
-                <label>Notes<textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Only capture what helps Bolna act." /></label>
-              </details>
+              <label className="notes-field">
+                Notes
+                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Only capture what helps Bolna act." />
+              </label>
 
               <div className="submit-row">
-                <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(mode)}`}>Export CSV</a>
+                <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(AUDIT_MODE)}`}>Export CSV</a>
                 <button className="ghost" type="button" onClick={syncSheets}>Sync Sheets</button>
                 <button className="primary" type="button" onClick={submitReview}>Submit Review</button>
               </div>

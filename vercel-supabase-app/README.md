@@ -38,16 +38,14 @@ If you only use the publishable key, make sure the Supabase tables and RLS polic
 
 ## 3. Google Sheets Import And Export
 
-Create a Google Sheet with four tabs:
+The current app uses the technical audio audit flow only. Create a Google Sheet with these tabs:
 
 ```text
 Calls_Technical_Audio
-Calls_Vibe_Transcription
 Reviews_Technical_Audio
-Reviews_Vibe_Transcription
 ```
 
-Each `Calls_*` tab should have one header row. Supported headers include:
+The `Calls_Technical_Audio` tab should have one header row. Supported headers include:
 
 ```text
 execution_id
@@ -82,18 +80,15 @@ Setup:
 
 Import flow:
 
-- Click `Import technical` to read `Calls_Technical_Audio`.
-- Click `Import vibe` to read `Calls_Vibe_Transcription`.
+- Click `Import calls` to read `Calls_Technical_Audio`.
 - Base call data is upserted into `calls` by `execution_id`.
-- Queue membership and reviewer assignment are stored separately per `(execution_id, audit_mode)`, so one call can appear in both audit queues.
+- All reviewers see the same technical audio call pool. Review completion is tracked per reviewer login name.
 
 Export flow:
 
 - Every submitted review saves to Supabase first.
 - Technical audio reviews append to `Reviews_Technical_Audio`.
-- Vibe + transcription reviews append to `Reviews_Vibe_Transcription`.
-- Technical audio and vibe + transcription use different review/export schemas, so each review tab only gets the fields relevant to that audit workflow.
-- Manual CSV export downloads the currently selected audit mode in that mode's schema.
+- Manual CSV export downloads the technical audio review schema.
 - If Sheets export fails, the review stays saved in Supabase. Use `Sync Sheets` to retry pending rows.
 
 Technical audio review export columns:
@@ -120,32 +115,6 @@ interruption_consequence
 latency_reaction
 response_error_type
 issue_notes
-review_notes
-issue_payload_json
-started_at
-submitted_at
-duration_taken_sec
-```
-
-Vibe + transcription review export columns:
-
-```text
-review_id
-call_id
-org_name
-agent_name
-call_duration_sec
-call_created_at_ist
-reviewer_name
-review_mode
-vibe_score
-issue_timestamp
-issue_recording_link
-transcription_error_type
-audio_unclear
-audio_said
-transcripted
-content_tag
 review_notes
 issue_payload_json
 started_at
@@ -182,7 +151,7 @@ reviewer_name
 assignee
 ```
 
-If one of these exists, reviewers only see calls assigned to their login name.
+Assignment columns are preserved for future use, but the current alignment flow shows the same call pool to every reviewer.
 
 ## 5. Deploy To Vercel
 
@@ -196,7 +165,7 @@ vercel-supabase-app
 3. Add the environment variables from step 2.
 4. Deploy.
 
-## Review Modes
+## Review Mode
 
 - Technical audio audit:
   - Pronunciation
@@ -204,8 +173,3 @@ vercel-supabase-app
   - Interruption
   - Latency
   - Response appropriateness
-
-- Vibe + transcription:
-  - Vibe score, required before submit
-  - Transcription
-  - Notes
