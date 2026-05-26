@@ -57,7 +57,6 @@ export const TECHNICAL_REVIEW_EXPORT_COLUMNS = [
   "metric_rating_reason",
   "issue_notes",
   "review_notes",
-  "issue_payload_json",
   "started_at",
   "submitted_at",
   "duration_taken_sec"
@@ -81,7 +80,6 @@ export const VIBE_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS = [
   "transcripted",
   "content_tag",
   "review_notes",
-  "issue_payload_json",
   "started_at",
   "submitted_at",
   "duration_taken_sec"
@@ -201,7 +199,6 @@ export function exportRowsFromReviews(reviews: ReviewRow[], mode?: string | null
         transcripted: issue.transcripted || "",
         issue_notes: issue.notes || "",
         review_notes: review.notes || "",
-        issue_payload_json: JSON.stringify(issue),
         started_at: review.started_at || "",
         submitted_at: review.submitted_at || "",
         duration_taken_sec: review.duration_taken_sec || ""
