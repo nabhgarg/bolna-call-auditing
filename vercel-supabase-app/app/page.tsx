@@ -110,6 +110,8 @@ export default function Page() {
   const [llmErrorType, setLlmErrorType] = useState("");
   const [notes, setNotes] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [importStatus, setImportStatus] = useState("");
+  const [importingCalls, setImportingCalls] = useState(false);
 
   const issueTypes = modeIssues[mode] || modeIssues.technical_audio;
   const vibeMode = mode === "vibe_transcription";
@@ -264,13 +266,19 @@ export default function Page() {
   }
 
   async function importSheets() {
+    if (importingCalls) return;
     try {
-      setStatusMessage("Importing calls from Google Sheets...");
+      setImportingCalls(true);
+      setImportStatus("Importing calls from Google Sheets...");
       const result = await api("/api/import-sheets", { method: "POST", body: "{}" });
       await loadCalls();
+      setImportStatus(`Imported ${result.imported} call(s) from Google Sheets.`);
       setStatusMessage(`Imported ${result.imported} call(s) from Google Sheets.`);
     } catch (error) {
+      setImportStatus(`Sheet import failed: ${(error as Error).message}`);
       setStatusMessage(`Sheet import failed: ${(error as Error).message}`);
+    } finally {
+      setImportingCalls(false);
     }
   }
 
@@ -307,10 +315,11 @@ export default function Page() {
               <p>{reviewerName ? `${reviewerName} · ${mode === "technical_audio" ? "Technical audio audit" : "Vibe + transcription"}` : "Internal review cockpit"}</p>
             </div>
             <div className="brand-actions">
-              <button className="ghost" onClick={importSheets}>Import Calls</button>
+              <button className="ghost" onClick={importSheets} disabled={importingCalls}>{importingCalls ? "Importing..." : "Import Calls"}</button>
               <button className="ghost" onClick={() => setLoginVisible(true)}>Switch</button>
             </div>
           </div>
+          {importStatus && <div className="import-status">{importStatus}</div>}
 
           <div className="reviewer-box">
             <label>

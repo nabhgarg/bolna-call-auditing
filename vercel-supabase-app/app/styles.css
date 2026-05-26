@@ -123,6 +123,14 @@ button:hover,
   gap: 8px;
 }
 
+.import-status {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 h1,
 h2,
 h3,

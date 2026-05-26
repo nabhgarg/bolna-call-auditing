@@ -22,10 +22,11 @@ function doPost(e) {
 function readCalls() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName(CALLS_SHEET_NAME);
-  if (!sheet) return { ok: false, error: "Calls sheet not found" };
+  const sheet_names = spreadsheet.getSheets().map((item) => item.getName());
+  if (!sheet) return { ok: false, error: "Calls sheet not found", sheet_names };
 
   const values = sheet.getDataRange().getValues();
-  if (values.length < 2) return { ok: true, calls: [] };
+  if (values.length < 2) return { ok: true, calls: [], sheet_names, row_count: values.length };
 
   const headers = values[0].map((value) => String(value).trim());
   const calls = values.slice(1)
@@ -40,7 +41,7 @@ function readCalls() {
       return item;
     });
 
-  return { ok: true, calls };
+  return { ok: true, calls, sheet_names, row_count: values.length };
 }
 
 function appendReviews(payload) {
