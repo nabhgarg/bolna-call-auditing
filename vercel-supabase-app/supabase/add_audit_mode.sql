@@ -19,6 +19,28 @@ create table if not exists public.call_audit_queue (
 create index if not exists call_audit_queue_audit_mode_idx on public.call_audit_queue(audit_mode);
 create index if not exists call_audit_queue_assigned_reviewer_idx on public.call_audit_queue(assigned_reviewer);
 
+alter table public.call_audit_queue enable row level security;
+
+drop policy if exists "Allow call audit queue read" on public.call_audit_queue;
+drop policy if exists "Allow call audit queue insert" on public.call_audit_queue;
+drop policy if exists "Allow call audit queue update" on public.call_audit_queue;
+
+create policy "Allow call audit queue read"
+on public.call_audit_queue
+for select
+using (true);
+
+create policy "Allow call audit queue insert"
+on public.call_audit_queue
+for insert
+with check (true);
+
+create policy "Allow call audit queue update"
+on public.call_audit_queue
+for update
+using (true)
+with check (true);
+
 insert into public.call_audit_queue (call_id, audit_mode, assigned_reviewer, source_sheet, imported_at)
 select execution_id, audit_mode, assigned_reviewer, source_sheet, imported_at
 from public.calls
