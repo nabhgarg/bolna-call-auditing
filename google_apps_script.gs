@@ -78,6 +78,7 @@ function appendReviews(payload) {
     }
     const sheetRows = rowsBySheet[sheetName];
     if (sheetRows.length) {
+      removeExistingReviewRows(sheet, columns, sheetRows);
       const values = sheetRows.map((row) => columns.map((column) => row[column] ?? ""));
       sheet.getRange(sheet.getLastRow() + 1, 1, values.length, columns.length).setValues(values);
     }
@@ -91,6 +92,28 @@ function appendReviews(payload) {
   }
 
   return { ok: true, rows: rows.length };
+}
+
+function removeExistingReviewRows(sheet, columns, rows) {
+  const callIndex = columns.indexOf("call_id");
+  const reviewerIndex = columns.indexOf("reviewer_name");
+  const modeIndex = columns.indexOf("review_mode");
+  if (callIndex < 0 || reviewerIndex < 0 || modeIndex < 0 || sheet.getLastRow() < 2) return;
+
+  const keys = {};
+  rows.forEach((row) => {
+    const key = [row.call_id || "", row.reviewer_name || "", row.review_mode || ""].join("||");
+    keys[key] = true;
+  });
+
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, Math.max(sheet.getLastColumn(), columns.length)).getValues();
+  for (let index = values.length - 1; index >= 0; index -= 1) {
+    const row = values[index];
+    const key = [row[callIndex] || "", row[reviewerIndex] || "", row[modeIndex] || ""].join("||");
+    if (keys[key]) {
+      sheet.deleteRow(index + 2);
+    }
+  }
 }
 
 function ensureHeaders(sheet, columns) {

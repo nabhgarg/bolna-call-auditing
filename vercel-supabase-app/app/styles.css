@@ -238,7 +238,18 @@ textarea {
 }
 
 .call-card.reviewed {
-  opacity: 0.65;
+  opacity: 0.8;
+}
+
+.call-card.submitted {
+  border-color: var(--accent);
+  background: #e8f5ef;
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.call-card.submitted .call-id,
+.call-card.submitted span:last-child {
+  color: var(--accent-strong);
 }
 
 .workspace {

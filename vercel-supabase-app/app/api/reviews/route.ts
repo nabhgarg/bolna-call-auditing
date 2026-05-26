@@ -13,12 +13,22 @@ export async function POST(request: Request) {
   }
 
   const supabase = supabaseAdmin();
+  const reviewerName = payload.reviewer_name || "";
+  const reviewMode = payload.review_mode || "";
+
+  await supabase
+    .from("reviews")
+    .delete()
+    .eq("call_id", callId)
+    .eq("reviewer_name", reviewerName)
+    .eq("review_mode", reviewMode);
+
   const { data: inserted, error } = await supabase
     .from("reviews")
     .insert({
       call_id: callId,
-      reviewer_name: payload.reviewer_name || "",
-      review_mode: payload.review_mode || "",
+      reviewer_name: reviewerName,
+      review_mode: reviewMode,
       vibe_score: payload.vibe_score || "",
       flow_score: payload.flow_score || "",
       llm_rating: payload.llm_rating || "",

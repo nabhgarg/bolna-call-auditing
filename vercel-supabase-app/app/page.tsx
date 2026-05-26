@@ -110,6 +110,8 @@ export default function Page() {
   const [statusMessage, setStatusMessage] = useState("");
   const [importStatus, setImportStatus] = useState("");
   const [importingCalls, setImportingCalls] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [submittedCallId, setSubmittedCallId] = useState("");
 
   useEffect(() => {
     const storedName = window.localStorage.getItem("auditReviewer") || "";
@@ -155,6 +157,8 @@ export default function Page() {
       })
       .sort((a, b) => a.execution_id.localeCompare(b.execution_id));
   }, [agentFilter, calls, clientFilter, hideReviewed, search]);
+  const currentCallSummary = currentCall ? calls.find((call) => call.execution_id === currentCall.execution_id) : null;
+  const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentCall.execution_id));
 
   async function selectCall(id: string) {
     const call = await api(`/api/calls/${encodeURIComponent(id)}`);
@@ -166,6 +170,7 @@ export default function Page() {
     setCapturedTime("00:00");
     setStartedAt(new Date().toISOString());
     setNotes("");
+    setSubmittedCallId("");
   }
 
   function startSession(event: FormEvent) {
@@ -223,6 +228,11 @@ export default function Page() {
       alert("Select a call first.");
       return;
     }
+    if (submittingReview) return;
+    if (currentCallSubmitted) {
+      alert("This call is already submitted for your reviewer name.");
+      return;
+    }
     const missingRatings = ratingMetrics.flatMap((metric) => {
       const fields: string[] = [];
       if (!metricRatings[metric]?.rating) fields.push(`${metric}.rating`);
@@ -245,26 +255,35 @@ export default function Page() {
         rating: metricRatings[metric]?.rating || "",
         reason: metricRatings[metric]?.reason || ""
       }));
-    const result = await api("/api/reviews", {
-      method: "POST",
-      body: JSON.stringify({
-        call_id: currentCall.execution_id,
-        reviewer_name: reviewerName,
-        review_mode: AUDIT_MODE,
-        vibe_score: "",
-        flow_score: "",
-        llm_rating: "",
-        llm_error_type: "",
-        notes,
-        issues: [...issues, ...ratingIssues],
-        started_at: startedAt,
-        duration_taken_sec: durationTaken
-      })
-    });
-    setStatusMessage(result.sheets_sync?.ok ? "Saved and synced to Sheets." : "Saved locally. Sheets sync pending.");
-    await loadCalls();
-    const openCalls = filteredCalls.filter((call) => !call.reviewed && call.execution_id !== currentCall.execution_id);
-    if (openCalls[0]) await selectCall(openCalls[0].execution_id);
+    setSubmittingReview(true);
+    try {
+      const result = await api("/api/reviews", {
+        method: "POST",
+        body: JSON.stringify({
+          call_id: currentCall.execution_id,
+          reviewer_name: reviewerName,
+          review_mode: AUDIT_MODE,
+          vibe_score: "",
+          flow_score: "",
+          llm_rating: "",
+          llm_error_type: "",
+          notes,
+          issues: [...issues, ...ratingIssues],
+          started_at: startedAt,
+          duration_taken_sec: durationTaken
+        })
+      });
+      setSubmittedCallId(currentCall.execution_id);
+      setCalls((existing) => existing.map((call) => (
+        call.execution_id === currentCall.execution_id
+          ? { ...call, reviewed: true, reviewer_name: reviewerName }
+          : call
+      )));
+      setCurrentCall((existing) => existing ? { ...existing, reviewed: true, reviewer_name: reviewerName } : existing);
+      setStatusMessage(result.sheets_sync?.ok ? "Submitted and synced to Sheets." : "Submitted locally. Sheets sync pending.");
+    } finally {
+      setSubmittingReview(false);
+    }
   }
 
   async function syncSheets() {
@@ -352,11 +371,11 @@ export default function Page() {
           <div className="queue-stats">{calls.length} imported · {calls.filter((call) => call.reviewed).length} reviewed by you · {filteredCalls.length} shown</div>
           <nav className="call-list">
             {filteredCalls.map((call) => (
-              <button key={call.execution_id} className={`call-card ${call.reviewed ? "reviewed" : ""} ${currentCall?.execution_id === call.execution_id ? "active" : ""}`} onClick={() => selectCall(call.execution_id)}>
+              <button key={call.execution_id} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${currentCall?.execution_id === call.execution_id ? "active" : ""}`} onClick={() => selectCall(call.execution_id)}>
                 <span className="call-id">ID {shortCallId(call.execution_id)}</span>
                 <strong>{call.agent_name || "Unknown agent"}</strong>
                 <span>{call.org_name || ""} · {formatTime(Number(call.duration_sec || 0))} · {call.language || ""}</span>
-                <span>{call.reviewed ? "Reviewed" : "Open"} · {call.created_at_ist || ""}</span>
+                <span>{call.reviewed ? "Submitted by you" : "Open"} · {call.created_at_ist || ""}</span>
               </button>
             ))}
           </nav>
@@ -503,7 +522,9 @@ export default function Page() {
               <div className="submit-row">
                 <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(AUDIT_MODE)}`}>Export CSV</a>
                 <button className="ghost" type="button" onClick={syncSheets}>Sync Sheets</button>
-                <button className="primary" type="button" onClick={submitReview}>Submit Review</button>
+                <button className="primary" type="button" onClick={submitReview} disabled={submittingReview || currentCallSubmitted}>
+                  {submittingReview ? "Submitting..." : currentCallSubmitted ? "Submitted" : "Submit Review"}
+                </button>
               </div>
               {statusMessage && <p className="status-message">{statusMessage}</p>}
             </aside>
