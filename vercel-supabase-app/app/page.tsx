@@ -213,7 +213,9 @@ export default function Page() {
   function updateMetricRating(metric: string, key: keyof MetricRating, value: string) {
     const missingKey = `${metric}.${key}`;
     if (value.trim()) {
-      setMissingRatingFields((existing) => existing.filter((item) => item !== missingKey));
+      setMissingRatingFields((existing) => existing.filter((item) => (
+        item !== missingKey && !(key === "rating" && value !== "1" && item === `${metric}.reason`)
+      )));
     }
     setMetricRatings((existing) => ({
       ...existing,
@@ -237,12 +239,12 @@ export default function Page() {
     const missingRatings = ratingMetrics.flatMap((metric) => {
       const fields: string[] = [];
       if (!metricRatings[metric]?.rating) fields.push(`${metric}.rating`);
-      if (!metricRatings[metric]?.reason.trim()) fields.push(`${metric}.reason`);
+      if (metricRatings[metric]?.rating === "1" && !metricRatings[metric]?.reason.trim()) fields.push(`${metric}.reason`);
       return fields;
     });
     if (missingRatings.length) {
       setMissingRatingFields(missingRatings);
-      alert("Please complete all call ratings and reasons before submitting.");
+      alert("Please complete all call ratings. Reason is required when a rating is 1.");
       return;
     }
     setMissingRatingFields([]);
