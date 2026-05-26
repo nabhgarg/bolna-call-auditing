@@ -57,29 +57,32 @@ export const REVIEW_EXPORT_COLUMNS = [
 
 export function parseTurns(transcript = "") {
   const turns: Array<{ role: string; text: string }> = [];
-  let currentRole = "";
-  let currentText: string[] = [];
+  const text = transcript.replace(/\r/g, "\n").trim();
+  if (!text) return turns;
 
-  for (const rawLine of transcript.replace(/\r/g, "\n").split("\n")) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    const lower = line.toLowerCase();
+  const markerPattern = /\b(assistant|user)\s*:/gi;
+  const markers = [...text.matchAll(markerPattern)];
+  if (!markers.length) {
+    return [{ role: "assistant", text }];
+  }
 
-    if (lower.startsWith("assistant:") || lower.startsWith("user:")) {
-      if (currentRole) {
-        turns.push({ role: currentRole, text: currentText.join(" ").trim() });
-      }
-      const [role, ...rest] = line.split(":");
-      currentRole = role.toLowerCase();
-      currentText = [rest.join(":").trim()];
-    } else {
-      currentText.push(line);
+  const prefix = text.slice(0, markers[0].index).trim();
+  if (prefix) {
+    turns.push({ role: "assistant", text: prefix });
+  }
+
+  for (let index = 0; index < markers.length; index += 1) {
+    const marker = markers[index];
+    const nextMarker = markers[index + 1];
+    const role = String(marker[1]).toLowerCase();
+    const start = marker.index + marker[0].length;
+    const end = nextMarker ? nextMarker.index : text.length;
+    const turnText = text.slice(start, end).replace(/\s+/g, " ").trim();
+    if (turnText) {
+      turns.push({ role, text: turnText });
     }
   }
 
-  if (currentRole) {
-    turns.push({ role: currentRole, text: currentText.join(" ").trim() });
-  }
   return turns;
 }
 
