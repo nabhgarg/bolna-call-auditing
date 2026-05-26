@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
-const REVIEWER_QUEUE_SIZE = 30;
 
 function normalizeName(value?: string | null) {
   return String(value || "").trim().toLowerCase();
@@ -17,42 +16,11 @@ function isAssignedToReviewer(assignedReviewer: string | null | undefined, revie
   const assigned = normalizeName(assignedReviewer);
   const current = normalizeName(reviewer);
   if (!current) return true;
-  if (isSharedAssignment(assignedReviewer)) return false;
+  if (isSharedAssignment(assignedReviewer)) return true;
   return assigned
     .split(/[,;/|]+/)
     .map((name) => normalizeName(name))
     .includes(current);
-}
-
-async function claimReviewerQueue(supabase: ReturnType<typeof supabaseAdmin>, rows: any[], auditMode: string, reviewer: string) {
-  if (!reviewer) return rows;
-
-  const assignedRows = rows.filter((row) => isAssignedToReviewer(row.assigned_reviewer, reviewer));
-  const needed = REVIEWER_QUEUE_SIZE - assignedRows.length;
-  if (needed <= 0) return rows;
-
-  const claimRows = rows
-    .filter((row) => isSharedAssignment(row.assigned_reviewer))
-    .slice(0, needed);
-  const claimIds = claimRows.map((row) => row.call_id).filter(Boolean);
-  if (!claimIds.length) return rows;
-
-  await Promise.all([
-    supabase
-      .from("call_audit_queue")
-      .update({ assigned_reviewer: reviewer })
-      .eq("audit_mode", auditMode)
-      .in("call_id", claimIds),
-    supabase
-      .from("calls")
-      .update({ assigned_reviewer: reviewer })
-      .in("execution_id", claimIds)
-  ]);
-
-  const claimed = new Set(claimIds);
-  return rows.map((row) => (
-    claimed.has(row.call_id) ? { ...row, assigned_reviewer: reviewer } : row
-  ));
 }
 
 export async function GET(request: Request) {
@@ -68,8 +36,7 @@ export async function GET(request: Request) {
     .order("call_id", { ascending: true });
 
   if (!queueResult.error) {
-    const queueRows = (await claimReviewerQueue(supabase, queueResult.data || [], auditMode, reviewer))
-      .filter((row: any) => isAssignedToReviewer(row.assigned_reviewer, reviewer));
+    const queueRows = (queueResult.data || []).filter((row: any) => isAssignedToReviewer(row.assigned_reviewer, reviewer));
     const callIds = queueRows.map((row: any) => row.call_id).filter(Boolean);
     if (!callIds.length) {
       return NextResponse.json({ calls: [] }, { headers: { "Cache-Control": "no-store" } });
