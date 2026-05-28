@@ -86,6 +86,18 @@ export function normalizeCallRows(calls: Array<Record<string, unknown>>, auditMo
         if (target) row[target] = normalizeCell(value);
       }
       for (const column of CALL_IMPORT_COLUMNS) row[column] = row[column] ?? "";
+      if (String(row.duration_sec || "").trim() === "") {
+        row.duration_sec = null;
+      } else {
+        const duration = Number(row.duration_sec);
+        row.duration_sec = Number.isFinite(duration) ? duration : null;
+      }
+      if (String(row.agent_interrupted_user_count || "").trim() === "") {
+        row.agent_interrupted_user_count = null;
+      } else {
+        const interruptions = Number(row.agent_interrupted_user_count);
+        row.agent_interrupted_user_count = Number.isFinite(interruptions) ? interruptions : null;
+      }
       row.audit_mode = normalizeAuditMode(row.audit_mode || mode);
       row.imported_at = new Date().toISOString();
       return row;
