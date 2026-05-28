@@ -25,8 +25,11 @@ type CallDetail = CallSummary & {
 
 type Issue = Record<string, string>;
 type MetricRating = { rating: string; reason: string };
-const AUDIT_MODE = "technical_audio";
-const issueTypes = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness"];
+type AuditMode = "technical_audio" | "vibe_transcription";
+const TECHNICAL_MODE: AuditMode = "technical_audio";
+const VIBE_MODE: AuditMode = "vibe_transcription";
+const technicalIssueTypes = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness"];
+const vibeIssueTypes = ["transcription"];
 const ratingMetrics = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness", "overall"];
 
 const issueLabels: Record<string, string> = {
@@ -35,6 +38,7 @@ const issueLabels: Record<string, string> = {
   barge_in: "Barge-in",
   latency: "Latency",
   response_appropriateness: "Response appropriateness",
+  transcription: "Transcription",
   overall: "Overall"
 };
 
@@ -59,6 +63,13 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
   response_appropriateness: [
     ["response_error_type", "Type of error", "select", ["Irrelevant response", "Agent stuck in loop/same info captured repeatedly", "Context not carried through", "Factual Inaccuracy/Hallucination", "Rule Navigation/Instruction Conflict", "Others"]],
     ["error_explanation", "Explain the error", "text"]
+  ],
+  transcription: [
+    ["transcription_error_type", "Type of transcription error", "select", ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"]],
+    ["audio_unclear", "Audio unclear", "select", ["No", "Yes"]],
+    ["audio_said", "What was said in audio", "text"],
+    ["transcripted", "What was transcripted", "text"],
+    ["content_tag", "Type of transcription content", "select", ["General", "City", "Proper Noun"]]
   ]
 };
 
@@ -69,8 +80,17 @@ const emptyMetricRatings = () => Object.fromEntries(
 const requiredIssueFields: Record<string, string[]> = {
   pronunciation: ["word_heard"],
   tone: ["tag"],
-  response_appropriateness: ["response_error_type", "error_explanation"]
+  response_appropriateness: ["response_error_type", "error_explanation"],
+  transcription: ["transcription_error_type"]
 };
+
+function modeLabel(mode: AuditMode) {
+  return mode === VIBE_MODE ? "Vibe + transcription" : "Technical audio audit";
+}
+
+function modeIssueTypes(mode: AuditMode) {
+  return mode === VIBE_MODE ? vibeIssueTypes : technicalIssueTypes;
+}
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
@@ -95,15 +115,17 @@ export default function Page() {
   const [reviewerName, setReviewerName] = useState("");
   const [loginName, setLoginName] = useState("");
   const [loginVisible, setLoginVisible] = useState(true);
+  const [auditMode, setAuditMode] = useState<AuditMode>(TECHNICAL_MODE);
   const [search, setSearch] = useState("");
   const [clientFilter, setClientFilter] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
-  const [issueType, setIssueType] = useState("pronunciation");
+  const [issueType, setIssueType] = useState(technicalIssueTypes[0]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [metricRatings, setMetricRatings] = useState<Record<string, MetricRating>>(emptyMetricRatings);
+  const [vibeScore, setVibeScore] = useState("");
   const [missingIssueFields, setMissingIssueFields] = useState<string[]>([]);
   const [missingRatingFields, setMissingRatingFields] = useState<string[]>([]);
   const [startedAt, setStartedAt] = useState("");
@@ -116,9 +138,12 @@ export default function Page() {
 
   useEffect(() => {
     const storedName = window.localStorage.getItem("auditReviewer") || "";
+    const storedMode = window.localStorage.getItem("auditMode");
+    const initialMode = storedMode === VIBE_MODE ? VIBE_MODE : TECHNICAL_MODE;
     setLoginName(storedName);
-    setIssueType(issueTypes[0]);
-    loadCalls(storedName);
+    setAuditMode(initialMode);
+    setIssueType(modeIssueTypes(initialMode)[0]);
+    loadCalls(storedName, initialMode);
     if (storedName) {
       setReviewerName(storedName);
       setLoginVisible(false);
@@ -136,8 +161,8 @@ export default function Page() {
     return payload;
   }
 
-  async function loadCalls(reviewer = reviewerName) {
-    const params = new URLSearchParams({ mode: AUDIT_MODE });
+  async function loadCalls(reviewer = reviewerName, mode: AuditMode = auditMode) {
+    const params = new URLSearchParams({ mode });
     if (reviewer) params.set("reviewer", reviewer);
     const payload = await api(`/api/calls?${params.toString()}`);
     setCalls(payload.calls || []);
@@ -164,11 +189,28 @@ export default function Page() {
   const currentCallSummary = currentCall ? calls.find((call) => call.execution_id === currentCall.execution_id) : null;
   const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentCall.execution_id));
 
+  async function switchMode(mode: AuditMode) {
+    if (mode === auditMode) return;
+    setAuditMode(mode);
+    setIssueType(modeIssueTypes(mode)[0]);
+    setCurrentCall(null);
+    setIssues([]);
+    setMetricRatings(emptyMetricRatings());
+    setVibeScore("");
+    setMissingIssueFields([]);
+    setMissingRatingFields([]);
+    setStatusMessage("");
+    setQueueView("pending");
+    window.localStorage.setItem("auditMode", mode);
+    await loadCalls(reviewerName, mode);
+  }
+
   async function selectCall(id: string) {
     const call = await api(`/api/calls/${encodeURIComponent(id)}`);
     setCurrentCall(call);
     setIssues([]);
     setMetricRatings(emptyMetricRatings());
+    setVibeScore("");
     setMissingIssueFields([]);
     setMissingRatingFields([]);
     setCapturedTime("00:00");
@@ -184,7 +226,8 @@ export default function Page() {
     setReviewerName(name);
     setLoginVisible(false);
     window.localStorage.setItem("auditReviewer", name);
-    loadCalls(name);
+    window.localStorage.setItem("auditMode", auditMode);
+    loadCalls(name, auditMode);
   }
 
   function captureTimestamp() {
@@ -239,28 +282,38 @@ export default function Page() {
       alert("This call is already submitted for your reviewer name.");
       return;
     }
-    const missingRatings = ratingMetrics.flatMap((metric) => {
-      const fields: string[] = [];
-      if (!metricRatings[metric]?.rating) fields.push(`${metric}.rating`);
-      if (metricRatings[metric]?.rating === "1" && !metricRatings[metric]?.reason.trim()) fields.push(`${metric}.reason`);
-      return fields;
-    });
-    if (missingRatings.length) {
-      setMissingRatingFields(missingRatings);
-      alert("Please complete all call ratings. Reason is required when a rating is 1.");
-      return;
+    if (auditMode === TECHNICAL_MODE) {
+      const missingRatings = ratingMetrics.flatMap((metric) => {
+        const fields: string[] = [];
+        if (!metricRatings[metric]?.rating) fields.push(`${metric}.rating`);
+        if (metricRatings[metric]?.rating === "1" && !metricRatings[metric]?.reason.trim()) fields.push(`${metric}.reason`);
+        return fields;
+      });
+      if (missingRatings.length) {
+        setMissingRatingFields(missingRatings);
+        alert("Please complete all call ratings. Reason is required when a rating is 1.");
+        return;
+      }
+      setMissingRatingFields([]);
+    } else {
+      if (!vibeScore) {
+        alert("Please select vibe score before submitting.");
+        return;
+      }
+      setMissingRatingFields([]);
     }
-    setMissingRatingFields([]);
     const durationTaken = startedAt ? Math.floor((Date.now() - Date.parse(startedAt)) / 1000) : 0;
-    const ratingIssues = ratingMetrics
-      .filter((metric) => metricRatings[metric]?.rating || metricRatings[metric]?.reason)
-      .map((metric) => ({
-        type: "metric_rating",
-        metric,
-        metric_label: issueLabels[metric],
-        rating: metricRatings[metric]?.rating || "",
-        reason: metricRatings[metric]?.reason || ""
-      }));
+    const ratingIssues = auditMode === TECHNICAL_MODE
+      ? ratingMetrics
+          .filter((metric) => metricRatings[metric]?.rating || metricRatings[metric]?.reason)
+          .map((metric) => ({
+            type: "metric_rating",
+            metric,
+            metric_label: issueLabels[metric],
+            rating: metricRatings[metric]?.rating || "",
+            reason: metricRatings[metric]?.reason || ""
+          }))
+      : [];
     setSubmittingReview(true);
     try {
       const result = await api("/api/reviews", {
@@ -268,8 +321,8 @@ export default function Page() {
         body: JSON.stringify({
           call_id: currentCall.execution_id,
           reviewer_name: reviewerName,
-          review_mode: AUDIT_MODE,
-          vibe_score: "",
+          review_mode: auditMode,
+          vibe_score: auditMode === VIBE_MODE ? vibeScore : "",
           flow_score: "",
           llm_rating: "",
           llm_error_type: "",
@@ -295,8 +348,8 @@ export default function Page() {
 
   async function syncSheets() {
     try {
-      const result = await api("/api/sync-sheets", { method: "POST", body: JSON.stringify({ audit_mode: AUDIT_MODE }) });
-      alert(`Synced ${result.synced_reviews} technical audio review(s) to Google Sheets.`);
+      const result = await api("/api/sync-sheets", { method: "POST", body: JSON.stringify({ audit_mode: auditMode }) });
+      alert(`Synced ${result.synced_reviews} ${modeLabel(auditMode).toLowerCase()} review(s) to Google Sheets.`);
     } catch (error) {
       alert(`Sheets sync not complete: ${(error as Error).message}`);
     }
@@ -306,11 +359,11 @@ export default function Page() {
     if (importingCalls) return;
     try {
       setImportingCalls(true);
-      setImportStatus("Importing technical audio calls from Google Sheets...");
-      const result = await api("/api/import-sheets", { method: "POST", body: JSON.stringify({ audit_mode: AUDIT_MODE }) });
-      await loadCalls();
-      setImportStatus(`Imported ${result.imported} technical audio call(s) from ${result.sheet_name || "Google Sheets"}.`);
-      setStatusMessage(`Imported ${result.imported} technical audio call(s).`);
+      setImportStatus(`Importing ${modeLabel(auditMode).toLowerCase()} calls from Google Sheets...`);
+      const result = await api("/api/import-sheets", { method: "POST", body: JSON.stringify({ audit_mode: auditMode }) });
+      await loadCalls(reviewerName, auditMode);
+      setImportStatus(`Imported ${result.imported} ${modeLabel(auditMode).toLowerCase()} call(s) from ${result.sheet_name || "Google Sheets"}.`);
+      setStatusMessage(`Imported ${result.imported} ${modeLabel(auditMode).toLowerCase()} call(s).`);
     } catch (error) {
       setImportStatus(`Sheet import failed: ${(error as Error).message}`);
       setStatusMessage(`Sheet import failed: ${(error as Error).message}`);
@@ -326,11 +379,22 @@ export default function Page() {
           <form className="login-card" onSubmit={startSession}>
             <div>
               <h1>Call Audit</h1>
-              <p>Enter your name to start the technical audio audit.</p>
+              <p>Enter your name and pick an audit mode.</p>
             </div>
             <label>
               Reviewer name
               <input value={loginName} onChange={(event) => setLoginName(event.target.value)} placeholder="Type your name" required />
+            </label>
+            <label>
+              Audit mode
+              <select value={auditMode} onChange={(event) => {
+                const nextMode = event.target.value as AuditMode;
+                setAuditMode(nextMode);
+                setIssueType(modeIssueTypes(nextMode)[0]);
+              }}>
+                <option value={TECHNICAL_MODE}>Technical audio audit</option>
+                <option value={VIBE_MODE}>Vibe + transcription</option>
+              </select>
             </label>
             <button className="primary" type="submit">Start reviewing</button>
           </form>
@@ -342,11 +406,20 @@ export default function Page() {
           <div className="brand">
             <div>
               <h1>Call Audit</h1>
-              <p>{reviewerName ? `${reviewerName} · Technical audio audit` : "Internal review cockpit"}</p>
+              <p>{reviewerName ? `${reviewerName} · ${modeLabel(auditMode)}` : "Internal review cockpit"}</p>
             </div>
             <div className="brand-actions">
               <button className="ghost" onClick={() => setLoginVisible(true)}>Switch</button>
             </div>
+          </div>
+          <div className="queue-filters">
+            <label>
+              Audit mode
+              <select value={auditMode} onChange={(event) => switchMode(event.target.value as AuditMode)}>
+                <option value={TECHNICAL_MODE}>Technical audio audit</option>
+                <option value={VIBE_MODE}>Vibe + transcription</option>
+              </select>
+            </label>
           </div>
           <div className="import-actions">
             <button className="ghost" onClick={importSheets} disabled={importingCalls}>
@@ -422,7 +495,7 @@ export default function Page() {
               <label className="capture-select">
                 Issue
                 <select value={issueType} onChange={(event) => setIssueType(event.target.value)}>
-                  {issueTypes.map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
+                  {modeIssueTypes(auditMode).map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
                 </select>
               </label>
               <button className="primary" onClick={captureTimestamp}>Capture {currentTime}</button>
@@ -441,7 +514,7 @@ export default function Page() {
               </div>
 
               <div className="quick-flags">
-                {issueTypes.map((type) => (
+                {modeIssueTypes(auditMode).map((type) => (
                   <button
                     key={type}
                     className={issueType === type ? "selected" : ""}
@@ -460,7 +533,7 @@ export default function Page() {
                       setIssueType(event.target.value);
                       setMissingIssueFields([]);
                     }}>
-                      {issueTypes.map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
+                      {modeIssueTypes(auditMode).map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
                     </select>
                   </label>
                   <label>
@@ -513,19 +586,49 @@ export default function Page() {
                 <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Only capture what helps Bolna act." />
               </label>
 
-              <section className="metric-ratings">
-                <div className="panel-title small">
-                  <h3>Call ratings</h3>
-                  <span>1-4</span>
-                </div>
-                {ratingMetrics.map((metric) => (
-                  <div className={`rating-card ${issueType === metric ? "selected" : ""} ${missingRatingFields.some((field) => field.startsWith(`${metric}.`)) ? "missing" : ""}`} key={metric}>
-                    <label className={missingRatingFields.includes(`${metric}.rating`) ? "field-missing" : ""}>
-                      {issueLabels[metric]}
-                      <select
-                        value={metricRatings[metric]?.rating || ""}
-                        onChange={(event) => updateMetricRating(metric, "rating", event.target.value)}
-                      >
+              {auditMode === TECHNICAL_MODE ? (
+                <section className="metric-ratings">
+                  <div className="panel-title small">
+                    <h3>Call ratings</h3>
+                    <span>1-4</span>
+                  </div>
+                  {ratingMetrics.map((metric) => (
+                    <div className={`rating-card ${issueType === metric ? "selected" : ""} ${missingRatingFields.some((field) => field.startsWith(`${metric}.`)) ? "missing" : ""}`} key={metric}>
+                      <label className={missingRatingFields.includes(`${metric}.rating`) ? "field-missing" : ""}>
+                        {issueLabels[metric]}
+                        <select
+                          value={metricRatings[metric]?.rating || ""}
+                          onChange={(event) => updateMetricRating(metric, "rating", event.target.value)}
+                        >
+                          <option value="">Not rated</option>
+                          <option value="1">1 - Major issue</option>
+                          <option value="2">2 - Noticeable issue</option>
+                          <option value="3">3 - Minor issue</option>
+                          <option value="4">4 - Good</option>
+                        </select>
+                      </label>
+                      <label className={missingRatingFields.includes(`${metric}.reason`) ? "field-missing" : ""}>
+                        Reason
+                        <textarea
+                          value={metricRatings[metric]?.reason || ""}
+                          onChange={(event) => updateMetricRating(metric, "reason", event.target.value)}
+                          rows={2}
+                          placeholder={`Why this ${issueLabels[metric].toLowerCase()} rating?`}
+                        />
+                      </label>
+                    </div>
+                  ))}
+                </section>
+              ) : (
+                <section className="metric-ratings">
+                  <div className="panel-title small">
+                    <h3>Vibe score</h3>
+                    <span>1-4</span>
+                  </div>
+                  <div className={`rating-card ${!vibeScore ? "missing" : ""}`}>
+                    <label>
+                      Overall vibe rating
+                      <select value={vibeScore} onChange={(event) => setVibeScore(event.target.value)}>
                         <option value="">Not rated</option>
                         <option value="1">1 - Major issue</option>
                         <option value="2">2 - Noticeable issue</option>
@@ -533,21 +636,12 @@ export default function Page() {
                         <option value="4">4 - Good</option>
                       </select>
                     </label>
-                    <label className={missingRatingFields.includes(`${metric}.reason`) ? "field-missing" : ""}>
-                      Reason
-                      <textarea
-                        value={metricRatings[metric]?.reason || ""}
-                        onChange={(event) => updateMetricRating(metric, "reason", event.target.value)}
-                        rows={2}
-                        placeholder={`Why this ${issueLabels[metric].toLowerCase()} rating?`}
-                      />
-                    </label>
                   </div>
-                ))}
-              </section>
+                </section>
+              )}
 
               <div className="submit-row">
-                <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(AUDIT_MODE)}`}>Export CSV</a>
+                <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(auditMode)}`}>Export CSV</a>
                 <button className="ghost" type="button" onClick={syncSheets}>Sync Sheets</button>
                 <button className="primary" type="button" onClick={submitReview} disabled={submittingReview || currentCallSubmitted}>
                   {submittingReview ? "Submitting..." : currentCallSubmitted ? "Submitted" : "Submit Review"}
