@@ -126,6 +126,7 @@ export default function Page() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [metricRatings, setMetricRatings] = useState<Record<string, MetricRating>>(emptyMetricRatings);
   const [vibeScore, setVibeScore] = useState("");
+  const [vibeReason, setVibeReason] = useState("");
   const [missingIssueFields, setMissingIssueFields] = useState<string[]>([]);
   const [missingRatingFields, setMissingRatingFields] = useState<string[]>([]);
   const [startedAt, setStartedAt] = useState("");
@@ -197,6 +198,7 @@ export default function Page() {
     setIssues([]);
     setMetricRatings(emptyMetricRatings());
     setVibeScore("");
+    setVibeReason("");
     setMissingIssueFields([]);
     setMissingRatingFields([]);
     setStatusMessage("");
@@ -211,6 +213,7 @@ export default function Page() {
     setIssues([]);
     setMetricRatings(emptyMetricRatings());
     setVibeScore("");
+    setVibeReason("");
     setMissingIssueFields([]);
     setMissingRatingFields([]);
     setCapturedTime("00:00");
@@ -296,8 +299,8 @@ export default function Page() {
       }
       setMissingRatingFields([]);
     } else {
-      if (!vibeScore) {
-        alert("Please select vibe score before submitting.");
+      if (!vibeScore || !vibeReason.trim()) {
+        alert("Please fill vibe score and reason before submitting.");
         return;
       }
       setMissingRatingFields([]);
@@ -326,7 +329,7 @@ export default function Page() {
           flow_score: "",
           llm_rating: "",
           llm_error_type: "",
-          notes,
+          notes: auditMode === VIBE_MODE ? vibeReason : notes,
           issues: [...issues, ...ratingIssues],
           started_at: startedAt,
           duration_taken_sec: durationTaken
@@ -387,14 +390,28 @@ export default function Page() {
             </label>
             <label>
               Audit mode
-              <select value={auditMode} onChange={(event) => {
-                const nextMode = event.target.value as AuditMode;
-                setAuditMode(nextMode);
-                setIssueType(modeIssueTypes(nextMode)[0]);
-              }}>
-                <option value={TECHNICAL_MODE}>Technical audio audit</option>
-                <option value={VIBE_MODE}>Vibe + transcription</option>
-              </select>
+              <div className="queue-tabs mode-tabs">
+                <button
+                  type="button"
+                  className={auditMode === TECHNICAL_MODE ? "active" : ""}
+                  onClick={() => {
+                    setAuditMode(TECHNICAL_MODE);
+                    setIssueType(modeIssueTypes(TECHNICAL_MODE)[0]);
+                  }}
+                >
+                  Technical audio audit
+                </button>
+                <button
+                  type="button"
+                  className={auditMode === VIBE_MODE ? "active" : ""}
+                  onClick={() => {
+                    setAuditMode(VIBE_MODE);
+                    setIssueType(modeIssueTypes(VIBE_MODE)[0]);
+                  }}
+                >
+                  Vibe + transcription
+                </button>
+              </div>
             </label>
             <button className="primary" type="submit">Start reviewing</button>
           </form>
@@ -412,14 +429,21 @@ export default function Page() {
               <button className="ghost" onClick={() => setLoginVisible(true)}>Switch</button>
             </div>
           </div>
-          <div className="queue-filters">
-            <label>
-              Audit mode
-              <select value={auditMode} onChange={(event) => switchMode(event.target.value as AuditMode)}>
-                <option value={TECHNICAL_MODE}>Technical audio audit</option>
-                <option value={VIBE_MODE}>Vibe + transcription</option>
-              </select>
-            </label>
+          <div className="queue-tabs mode-tabs" role="tablist" aria-label="Audit mode">
+            <button
+              type="button"
+              className={auditMode === TECHNICAL_MODE ? "active" : ""}
+              onClick={() => switchMode(TECHNICAL_MODE)}
+            >
+              Technical audio audit
+            </button>
+            <button
+              type="button"
+              className={auditMode === VIBE_MODE ? "active" : ""}
+              onClick={() => switchMode(VIBE_MODE)}
+            >
+              Vibe + transcription
+            </button>
           </div>
           <div className="import-actions">
             <button className="ghost" onClick={importSheets} disabled={importingCalls}>
@@ -581,10 +605,12 @@ export default function Page() {
                 </div>
               </section>
 
-              <label className="notes-field">
-                Notes
-                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Only capture what helps Bolna act." />
-              </label>
+              {auditMode === TECHNICAL_MODE && (
+                <label className="notes-field">
+                  Notes
+                  <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Only capture what helps Bolna act." />
+                </label>
+              )}
 
               {auditMode === TECHNICAL_MODE ? (
                 <section className="metric-ratings">
@@ -635,6 +661,15 @@ export default function Page() {
                         <option value="3">3 - Minor issue</option>
                         <option value="4">4 - Good</option>
                       </select>
+                    </label>
+                    <label className={!vibeReason.trim() ? "field-missing" : ""}>
+                      Reason for vibe score
+                      <textarea
+                        value={vibeReason}
+                        onChange={(event) => setVibeReason(event.target.value)}
+                        rows={2}
+                        placeholder="Why this vibe score?"
+                      />
                     </label>
                   </div>
                 </section>
