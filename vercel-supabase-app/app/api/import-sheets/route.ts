@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     imported_at: row.imported_at
   }));
   const mode = String(result.audit_mode || "technical_audio");
+  const archivedMode = `${mode}__archived`;
   const importedCallIds = [...new Set(rows.map((row: any) => String(row.execution_id || "")).filter(Boolean))];
 
   const { data: existingQueueRows, error: existingQueueError } = await supabase
@@ -60,35 +61,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: queueError.message }, { status: 500 });
   }
 
+  // Archive stale queue rows for this mode so only current sheet rows appear in the UI.
+  // We use update instead of delete because RLS may not permit deletes with current key.
   for (const ids of chunk(staleCallIds)) {
-    const { error: deleteQueueError } = await supabase
+    const { error: archiveQueueError } = await supabase
       .from("call_audit_queue")
-      .delete()
+      .update({ audit_mode: archivedMode, assigned_reviewer: "", source_sheet: "Archived by import" })
       .eq("audit_mode", mode)
       .in("call_id", ids);
-    if (deleteQueueError) {
-      return NextResponse.json({ error: deleteQueueError.message }, { status: 500 });
+    if (archiveQueueError) {
+      return NextResponse.json({ error: archiveQueueError.message }, { status: 500 });
     }
-  }
 
-  // Remove call rows only when they no longer belong to any queue in any mode.
-  for (const ids of chunk(staleCallIds)) {
-    const { data: stillQueuedRows, error: stillQueuedError } = await supabase
+    const { data: activeModeRows, error: activeModeError } = await supabase
       .from("call_audit_queue")
       .select("call_id")
+      .eq("audit_mode", mode)
       .in("call_id", ids);
-    if (stillQueuedError) {
-      return NextResponse.json({ error: stillQueuedError.message }, { status: 500 });
+    if (activeModeError) {
+      return NextResponse.json({ error: activeModeError.message }, { status: 500 });
     }
-    const stillQueued = new Set((stillQueuedRows || []).map((row: any) => String(row.call_id || "")).filter(Boolean));
-    const orphanCallIds = ids.filter((id) => !stillQueued.has(id));
-    if (!orphanCallIds.length) continue;
-    const { error: deleteCallError } = await supabase
-      .from("calls")
-      .delete()
-      .in("execution_id", orphanCallIds);
-    if (deleteCallError) {
-      return NextResponse.json({ error: deleteCallError.message }, { status: 500 });
+    if ((activeModeRows || []).length) {
+      return NextResponse.json({ error: "Could not clear stale queue rows for this mode." }, { status: 500 });
     }
   }
 
