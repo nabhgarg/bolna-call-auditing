@@ -33,7 +33,7 @@ export type ReviewRow = {
   calls?: CallRow | null;
 };
 
-export const TECHNICAL_REVIEW_EXPORT_COLUMNS = [
+export const PRONUNCIATION_TONE_REVIEW_EXPORT_COLUMNS = [
   "review_id",
   "call_id",
   "org_name",
@@ -62,7 +62,35 @@ export const TECHNICAL_REVIEW_EXPORT_COLUMNS = [
   "duration_taken_sec"
 ] as const;
 
-export const VIBE_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS = [
+export const TIMING_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS = [
+  "review_id",
+  "call_id",
+  "org_name",
+  "agent_name",
+  "call_duration_sec",
+  "call_created_at_ist",
+  "reviewer_name",
+  "review_mode",
+  "issue_type",
+  "issue_timestamp",
+  "issue_recording_link",
+  "latency_reaction",
+  "metric_rating_name",
+  "metric_rating_value",
+  "metric_rating_reason",
+  "transcription_error_type",
+  "audio_unclear",
+  "audio_said",
+  "transcripted",
+  "content_tag",
+  "issue_notes",
+  "review_notes",
+  "started_at",
+  "submitted_at",
+  "duration_taken_sec"
+] as const;
+
+export const RESPONSE_VIBE_REVIEW_EXPORT_COLUMNS = [
   "review_id",
   "call_id",
   "org_name",
@@ -72,25 +100,27 @@ export const VIBE_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS = [
   "reviewer_name",
   "review_mode",
   "vibe_score",
+  "vibe_score_reason",
+  "issue_type",
   "issue_timestamp",
   "issue_recording_link",
-  "transcription_error_type",
-  "audio_unclear",
-  "audio_said",
-  "transcripted",
-  "content_tag",
-  "review_notes",
+  "response_error_type",
+  "response_error_explanation",
+  "metric_rating_name",
+  "metric_rating_value",
+  "metric_rating_reason",
   "started_at",
   "submitted_at",
   "duration_taken_sec"
 ] as const;
 
 export const REVIEW_EXPORT_COLUMNS_BY_MODE = {
-  technical_audio: TECHNICAL_REVIEW_EXPORT_COLUMNS,
-  vibe_transcription: VIBE_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS
+  pronunciation_tone: PRONUNCIATION_TONE_REVIEW_EXPORT_COLUMNS,
+  timing_transcription: TIMING_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS,
+  response_vibe: RESPONSE_VIBE_REVIEW_EXPORT_COLUMNS
 } as const;
 
-export const REVIEW_EXPORT_COLUMNS = TECHNICAL_REVIEW_EXPORT_COLUMNS;
+export const REVIEW_EXPORT_COLUMNS = PRONUNCIATION_TONE_REVIEW_EXPORT_COLUMNS;
 
 export function parseTurns(transcript = "") {
   const turns: Array<{ role: string; text: string }> = [];
@@ -153,7 +183,34 @@ function normalizeIssues(issues: unknown): Array<Record<string, unknown>> {
 }
 
 export function normalizeReviewMode(mode?: string | null) {
-  return mode === "vibe_transcription" ? "vibe_transcription" : "technical_audio";
+  const normalized = String(mode || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  if ([
+    "timing_transcription",
+    "latency_barge_in_transcription",
+    "latency_bargein_transcription",
+    "latency_barge_in",
+    "latency_bargein",
+    "timing",
+    "transcription",
+    "vibe_transcription"
+  ].includes(normalized)) {
+    return "timing_transcription";
+  }
+  if ([
+    "response_vibe",
+    "response_appropriateness_vibe",
+    "response_appropriateness",
+    "overall_vibe",
+    "vibe"
+  ].includes(normalized)) {
+    return "response_vibe";
+  }
+  return "pronunciation_tone";
 }
 
 export function exportRowsFromReviews(reviews: ReviewRow[], mode?: string | null) {
@@ -180,6 +237,7 @@ export function exportRowsFromReviews(reviews: ReviewRow[], mode?: string | null
         reviewer_name: review.reviewer_name || "",
         review_mode: review.review_mode || "",
         vibe_score: review.vibe_score || "",
+        vibe_score_reason: review.notes || "",
         issue_type: issue.type === "interruption" ? "barge_in" : issue.type || "",
         issue_timestamp: timestamp,
         issue_recording_link: recordingLinkAt(call.recording_url, timestamp),

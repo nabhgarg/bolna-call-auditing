@@ -25,12 +25,19 @@ type CallDetail = CallSummary & {
 
 type Issue = Record<string, string>;
 type MetricRating = { rating: string; reason: string };
-type AuditMode = "technical_audio" | "vibe_transcription";
-const TECHNICAL_MODE: AuditMode = "technical_audio";
-const VIBE_MODE: AuditMode = "vibe_transcription";
-const technicalIssueTypes = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness"];
-const vibeIssueTypes = ["transcription"];
-const ratingMetrics = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness", "overall"];
+type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe";
+const PRONUNCIATION_TONE_MODE: AuditMode = "pronunciation_tone";
+const TIMING_TRANSCRIPTION_MODE: AuditMode = "timing_transcription";
+const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
+const validAuditModes: AuditMode[] = [PRONUNCIATION_TONE_MODE, TIMING_TRANSCRIPTION_MODE, RESPONSE_VIBE_MODE];
+const pronunciationToneIssueTypes = ["pronunciation", "tone"];
+const timingTranscriptionIssueTypes = ["latency", "barge_in", "transcription"];
+const responseVibeIssueTypes = ["response_appropriateness"];
+const ratingMetricsByMode: Record<AuditMode, string[]> = {
+  pronunciation_tone: ["pronunciation", "tone"],
+  timing_transcription: ["barge_in", "latency"],
+  response_vibe: ["response_appropriateness"]
+};
 
 const issueLabels: Record<string, string> = {
   pronunciation: "Pronunciation",
@@ -74,7 +81,7 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
 };
 
 const emptyMetricRatings = () => Object.fromEntries(
-  ratingMetrics.map((metric) => [metric, { rating: "", reason: "" }])
+  Object.values(ratingMetricsByMode).flat().map((metric) => [metric, { rating: "", reason: "" }])
 ) as Record<string, MetricRating>;
 
 const requiredIssueFields: Record<string, string[]> = {
@@ -85,11 +92,19 @@ const requiredIssueFields: Record<string, string[]> = {
 };
 
 function modeLabel(mode: AuditMode) {
-  return mode === VIBE_MODE ? "Vibe + transcription" : "Technical audio audit";
+  if (mode === TIMING_TRANSCRIPTION_MODE) return "Latency + Barge-in + Transcription";
+  if (mode === RESPONSE_VIBE_MODE) return "Response appropriateness + Overall vibe";
+  return "Pronunciation + Tone";
 }
 
 function modeIssueTypes(mode: AuditMode) {
-  return mode === VIBE_MODE ? vibeIssueTypes : technicalIssueTypes;
+  if (mode === TIMING_TRANSCRIPTION_MODE) return timingTranscriptionIssueTypes;
+  if (mode === RESPONSE_VIBE_MODE) return responseVibeIssueTypes;
+  return pronunciationToneIssueTypes;
+}
+
+function modeRatingMetrics(mode: AuditMode) {
+  return ratingMetricsByMode[mode] || [];
 }
 
 function formatTime(seconds: number) {
@@ -115,14 +130,14 @@ export default function Page() {
   const [reviewerName, setReviewerName] = useState("");
   const [loginName, setLoginName] = useState("");
   const [loginVisible, setLoginVisible] = useState(true);
-  const [auditMode, setAuditMode] = useState<AuditMode>(TECHNICAL_MODE);
+  const [auditMode, setAuditMode] = useState<AuditMode>(PRONUNCIATION_TONE_MODE);
   const [search, setSearch] = useState("");
   const [clientFilter, setClientFilter] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
-  const [issueType, setIssueType] = useState(technicalIssueTypes[0]);
+  const [issueType, setIssueType] = useState(pronunciationToneIssueTypes[0]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [metricRatings, setMetricRatings] = useState<Record<string, MetricRating>>(emptyMetricRatings);
   const [vibeScore, setVibeScore] = useState("");
@@ -140,7 +155,7 @@ export default function Page() {
   useEffect(() => {
     const storedName = window.localStorage.getItem("auditReviewer") || "";
     const storedMode = window.localStorage.getItem("auditMode");
-    const initialMode = storedMode === VIBE_MODE ? VIBE_MODE : TECHNICAL_MODE;
+    const initialMode = validAuditModes.includes(storedMode as AuditMode) ? storedMode as AuditMode : PRONUNCIATION_TONE_MODE;
     setLoginName(storedName);
     setAuditMode(initialMode);
     setIssueType(modeIssueTypes(initialMode)[0]);
@@ -285,29 +300,28 @@ export default function Page() {
       alert("This call is already submitted for your reviewer name.");
       return;
     }
-    if (auditMode === TECHNICAL_MODE) {
-      const missingRatings = ratingMetrics.flatMap((metric) => {
+    const activeRatingMetrics = modeRatingMetrics(auditMode);
+    const missingRatings = activeRatingMetrics.flatMap((metric) => {
         const fields: string[] = [];
         if (!metricRatings[metric]?.rating) fields.push(`${metric}.rating`);
         if (metricRatings[metric]?.rating === "1" && !metricRatings[metric]?.reason.trim()) fields.push(`${metric}.reason`);
         return fields;
       });
-      if (missingRatings.length) {
-        setMissingRatingFields(missingRatings);
-        alert("Please complete all call ratings. Reason is required when a rating is 1.");
-        return;
-      }
-      setMissingRatingFields([]);
-    } else {
+    if (missingRatings.length) {
+      setMissingRatingFields(missingRatings);
+      alert("Please complete all call ratings. Reason is required when a rating is 1.");
+      return;
+    }
+    if (auditMode === RESPONSE_VIBE_MODE) {
       if (!vibeScore || !vibeReason.trim()) {
         alert("Please fill vibe score and reason before submitting.");
         return;
       }
-      setMissingRatingFields([]);
     }
+    setMissingRatingFields([]);
     const durationTaken = startedAt ? Math.floor((Date.now() - Date.parse(startedAt)) / 1000) : 0;
-    const ratingIssues = auditMode === TECHNICAL_MODE
-      ? ratingMetrics
+    const ratingIssues = activeRatingMetrics.length
+      ? activeRatingMetrics
           .filter((metric) => metricRatings[metric]?.rating || metricRatings[metric]?.reason)
           .map((metric) => ({
             type: "metric_rating",
@@ -325,11 +339,11 @@ export default function Page() {
           call_id: currentCall.execution_id,
           reviewer_name: reviewerName,
           review_mode: auditMode,
-          vibe_score: auditMode === VIBE_MODE ? vibeScore : "",
+          vibe_score: auditMode === RESPONSE_VIBE_MODE ? vibeScore : "",
           flow_score: "",
           llm_rating: "",
           llm_error_type: "",
-          notes: auditMode === VIBE_MODE ? vibeReason : notes,
+          notes: auditMode === RESPONSE_VIBE_MODE ? vibeReason : notes,
           issues: [...issues, ...ratingIssues],
           started_at: startedAt,
           duration_taken_sec: durationTaken
@@ -393,23 +407,33 @@ export default function Page() {
               <div className="queue-tabs mode-tabs">
                 <button
                   type="button"
-                  className={auditMode === TECHNICAL_MODE ? "active" : ""}
+                  className={auditMode === PRONUNCIATION_TONE_MODE ? "active" : ""}
                   onClick={() => {
-                    setAuditMode(TECHNICAL_MODE);
-                    setIssueType(modeIssueTypes(TECHNICAL_MODE)[0]);
+                    setAuditMode(PRONUNCIATION_TONE_MODE);
+                    setIssueType(modeIssueTypes(PRONUNCIATION_TONE_MODE)[0]);
                   }}
                 >
-                  Technical audio audit
+                  Pronunciation + Tone
                 </button>
                 <button
                   type="button"
-                  className={auditMode === VIBE_MODE ? "active" : ""}
+                  className={auditMode === TIMING_TRANSCRIPTION_MODE ? "active" : ""}
                   onClick={() => {
-                    setAuditMode(VIBE_MODE);
-                    setIssueType(modeIssueTypes(VIBE_MODE)[0]);
+                    setAuditMode(TIMING_TRANSCRIPTION_MODE);
+                    setIssueType(modeIssueTypes(TIMING_TRANSCRIPTION_MODE)[0]);
                   }}
                 >
-                  Vibe + transcription
+                  Latency + Barge-in + Transcription
+                </button>
+                <button
+                  type="button"
+                  className={auditMode === RESPONSE_VIBE_MODE ? "active" : ""}
+                  onClick={() => {
+                    setAuditMode(RESPONSE_VIBE_MODE);
+                    setIssueType(modeIssueTypes(RESPONSE_VIBE_MODE)[0]);
+                  }}
+                >
+                  Response appropriateness + Overall vibe
                 </button>
               </div>
             </label>
@@ -432,17 +456,24 @@ export default function Page() {
           <div className="queue-tabs mode-tabs" role="tablist" aria-label="Audit mode">
             <button
               type="button"
-              className={auditMode === TECHNICAL_MODE ? "active" : ""}
-              onClick={() => switchMode(TECHNICAL_MODE)}
+              className={auditMode === PRONUNCIATION_TONE_MODE ? "active" : ""}
+              onClick={() => switchMode(PRONUNCIATION_TONE_MODE)}
             >
-              Technical audio audit
+              Pronunciation + Tone
             </button>
             <button
               type="button"
-              className={auditMode === VIBE_MODE ? "active" : ""}
-              onClick={() => switchMode(VIBE_MODE)}
+              className={auditMode === TIMING_TRANSCRIPTION_MODE ? "active" : ""}
+              onClick={() => switchMode(TIMING_TRANSCRIPTION_MODE)}
             >
-              Vibe + transcription
+              Latency + Barge-in + Transcription
+            </button>
+            <button
+              type="button"
+              className={auditMode === RESPONSE_VIBE_MODE ? "active" : ""}
+              onClick={() => switchMode(RESPONSE_VIBE_MODE)}
+            >
+              Response appropriateness + Overall vibe
             </button>
           </div>
           <div className="import-actions">
@@ -605,20 +636,20 @@ export default function Page() {
                 </div>
               </section>
 
-              {auditMode === TECHNICAL_MODE && (
+              {auditMode !== RESPONSE_VIBE_MODE && (
                 <label className="notes-field">
                   Notes
                   <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Only capture what helps Bolna act." />
                 </label>
               )}
 
-              {auditMode === TECHNICAL_MODE ? (
+              {modeRatingMetrics(auditMode).length > 0 && (
                 <section className="metric-ratings">
                   <div className="panel-title small">
                     <h3>Call ratings</h3>
                     <span>1-4</span>
                   </div>
-                  {ratingMetrics.map((metric) => (
+                  {modeRatingMetrics(auditMode).map((metric) => (
                     <div className={`rating-card ${issueType === metric ? "selected" : ""} ${missingRatingFields.some((field) => field.startsWith(`${metric}.`)) ? "missing" : ""}`} key={metric}>
                       <label className={missingRatingFields.includes(`${metric}.rating`) ? "field-missing" : ""}>
                         {issueLabels[metric]}
@@ -645,10 +676,12 @@ export default function Page() {
                     </div>
                   ))}
                 </section>
-              ) : (
+              )}
+
+              {auditMode === RESPONSE_VIBE_MODE && (
                 <section className="metric-ratings">
                   <div className="panel-title small">
-                    <h3>Vibe score</h3>
+                    <h3>Overall vibe score</h3>
                     <span>1-4</span>
                   </div>
                   <div className={`rating-card ${!vibeScore ? "missing" : ""}`}>

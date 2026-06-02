@@ -1,12 +1,14 @@
 const CALLS_SHEET_NAME = "Calls";
 const REVIEWS_SHEET_NAME = "Reviews";
 const CALLS_SHEET_BY_MODE = {
-  technical_audio: "Calls_Technical_Audio",
-  vibe_transcription: "Calls_Vibe_Transcription"
+  pronunciation_tone: "Calls_Pronunciation_Tone",
+  timing_transcription: "Calls_Timing_Transcription",
+  response_vibe: "Calls_Response_Vibe"
 };
 const REVIEWS_SHEET_BY_MODE = {
-  technical_audio: "Reviews_Technical_Audio",
-  vibe_transcription: "Reviews_Vibe_Transcription"
+  pronunciation_tone: "Reviews_Pronunciation_Tone",
+  timing_transcription: "Reviews_Timing_Transcription",
+  response_vibe: "Reviews_Response_Vibe"
 };
 const SHARED_SECRET = "";
 
@@ -28,7 +30,34 @@ function doPost(e) {
 }
 
 function normalizeMode(value) {
-  return value === "vibe_transcription" ? "vibe_transcription" : "technical_audio";
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  if ([
+    "timing_transcription",
+    "latency_barge_in_transcription",
+    "latency_bargein_transcription",
+    "latency_barge_in",
+    "latency_bargein",
+    "timing",
+    "transcription",
+    "vibe_transcription"
+  ].indexOf(normalized) >= 0) {
+    return "timing_transcription";
+  }
+  if ([
+    "response_vibe",
+    "response_appropriateness_vibe",
+    "response_appropriateness",
+    "overall_vibe",
+    "vibe"
+  ].indexOf(normalized) >= 0) {
+    return "response_vibe";
+  }
+  return "pronunciation_tone";
 }
 
 function readCalls(payload) {

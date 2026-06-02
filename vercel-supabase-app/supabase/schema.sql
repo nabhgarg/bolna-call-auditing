@@ -14,7 +14,7 @@ create table if not exists public.calls (
   transcript text,
   recording_url text,
   agent_interrupted_user_count numeric,
-  audit_mode text not null default 'technical_audio',
+  audit_mode text not null default 'pronunciation_tone',
   source_sheet text,
   imported_at timestamptz not null default now()
 );

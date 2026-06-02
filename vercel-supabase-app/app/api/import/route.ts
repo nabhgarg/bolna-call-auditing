@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "calls array is required" }, { status: 400 });
   }
 
-  const rows = normalizeCallRows(calls, payload.audit_mode || payload.review_mode || "technical_audio");
+  const rows = normalizeCallRows(calls, payload.audit_mode || payload.review_mode || "pronunciation_tone");
 
   const supabase = supabaseAdmin();
   const callRows = rows.map(({ audit_mode, ...row }: any) => row);

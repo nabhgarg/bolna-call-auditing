@@ -42,9 +42,14 @@ async function postToSheets(payload: Record<string, unknown>) {
   return { ok: true, configured: true, data };
 }
 
-export async function importCallsFromSheets(auditMode = "technical_audio") {
+export async function importCallsFromSheets(auditMode = "pronunciation_tone") {
   const mode = normalizeAuditMode(auditMode);
-  const sheetName = mode === "vibe_transcription" ? "Calls_Vibe_Transcription" : "Calls_Technical_Audio";
+  const sheetNameByMode: Record<string, string> = {
+    pronunciation_tone: "Calls_Pronunciation_Tone",
+    timing_transcription: "Calls_Timing_Transcription",
+    response_vibe: "Calls_Response_Vibe"
+  };
+  const sheetName = sheetNameByMode[mode] || "Calls_Pronunciation_Tone";
   const result = await postToSheets({ action: "readCalls", audit_mode: mode, sheet_name: sheetName });
   if (!result.ok) {
     return { ...result, imported_rows: 0, calls: [] };
@@ -74,7 +79,7 @@ export async function syncReviewsToSheets(reviews: ReviewRow[]) {
   let configured = true;
   const syncedReviewIds = new Set<number>();
 
-  for (const mode of ["technical_audio", "vibe_transcription"] as const) {
+  for (const mode of ["pronunciation_tone", "timing_transcription", "response_vibe"] as const) {
     const modeReviews = reviews.filter((review) => normalizeReviewMode(review.review_mode) === mode);
     if (!modeReviews.length) continue;
 

@@ -69,13 +69,42 @@ function normalizeCell(value: unknown) {
 
 export function normalizeAuditMode(value?: unknown) {
   const normalized = normalizeHeader(String(value || ""));
-  if (["vibe_transcription", "vibe", "transcription", "vibe_and_transcription", "vibe_transcript"].includes(normalized)) {
-    return "vibe_transcription";
+  if ([
+    "pronunciation_tone",
+    "pronunciation_and_tone",
+    "pronunciation",
+    "tone",
+    "technical_audio"
+  ].includes(normalized)) {
+    return "pronunciation_tone";
   }
-  return "technical_audio";
+  if ([
+    "timing_transcription",
+    "latency_barge_in_transcription",
+    "latency_bargein_transcription",
+    "latency_barge_in",
+    "latency_bargein",
+    "timing",
+    "transcription",
+    "vibe_transcription",
+    "vibe_and_transcription",
+    "vibe_transcript"
+  ].includes(normalized)) {
+    return "timing_transcription";
+  }
+  if ([
+    "response_vibe",
+    "response_appropriateness_vibe",
+    "response_appropriateness",
+    "overall_vibe",
+    "vibe"
+  ].includes(normalized)) {
+    return "response_vibe";
+  }
+  return "pronunciation_tone";
 }
 
-export function normalizeCallRows(calls: Array<Record<string, unknown>>, auditMode = "technical_audio") {
+export function normalizeCallRows(calls: Array<Record<string, unknown>>, auditMode = "pronunciation_tone") {
   const mode = normalizeAuditMode(auditMode);
   return calls
     .map((call) => {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ReviewRow } from "../../../lib/audit";
+import { normalizeReviewMode, ReviewRow } from "../../../lib/audit";
 import { syncReviewsToSheets } from "../../../lib/sheetsSync";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
   const supabase = supabaseAdmin();
   const reviewerName = payload.reviewer_name || "";
-  const reviewMode = payload.review_mode || "";
+  const reviewMode = normalizeReviewMode(payload.review_mode || "");
 
   await supabase
     .from("reviews")

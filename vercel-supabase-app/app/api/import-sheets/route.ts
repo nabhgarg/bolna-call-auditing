@@ -15,7 +15,7 @@ function chunk<T>(items: T[], size = BATCH_SIZE) {
 
 export async function POST(request: Request) {
   const payload = await request.json().catch(() => ({}));
-  const result = await importCallsFromSheets(payload.audit_mode || payload.review_mode || "technical_audio");
+  const result = await importCallsFromSheets(payload.audit_mode || payload.review_mode || "pronunciation_tone");
   if (!result.ok) {
     return NextResponse.json(result, { status: result.configured === false ? 400 : 502 });
   }
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     source_sheet: row.source_sheet,
     imported_at: row.imported_at
   }));
-  const mode = String(result.audit_mode || "technical_audio");
+  const mode = String(result.audit_mode || "pronunciation_tone");
   const archivedMode = `${mode}__archived`;
   const importedCallIds = [...new Set(rows.map((row: any) => String(row.execution_id || "")).filter(Boolean))];
 

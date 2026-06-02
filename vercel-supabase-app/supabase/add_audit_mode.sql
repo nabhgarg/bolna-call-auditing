@@ -1,10 +1,10 @@
 alter table public.calls
-  add column if not exists audit_mode text not null default 'technical_audio';
+  add column if not exists audit_mode text not null default 'pronunciation_tone';
 
 create index if not exists calls_audit_mode_idx on public.calls(audit_mode);
 
 update public.calls
-set audit_mode = 'technical_audio'
+set audit_mode = 'pronunciation_tone'
 where audit_mode is null or audit_mode = '';
 
 create table if not exists public.call_audit_queue (

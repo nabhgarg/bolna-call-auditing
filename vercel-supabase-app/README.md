@@ -38,14 +38,18 @@ If you only use the publishable key, make sure the Supabase tables and RLS polic
 
 ## 3. Google Sheets Import And Export
 
-The current app uses the technical audio audit flow only. Create a Google Sheet with these tabs:
+The app has three audit buckets. Create a Google Sheet with these tabs:
 
 ```text
-Calls_Technical_Audio
-Reviews_Technical_Audio
+Calls_Pronunciation_Tone
+Calls_Timing_Transcription
+Calls_Response_Vibe
+Reviews_Pronunciation_Tone
+Reviews_Timing_Transcription
+Reviews_Response_Vibe
 ```
 
-The `Calls_Technical_Audio` tab should have one header row. Supported headers include:
+Each `Calls_*` tab should have one header row. Supported headers include:
 
 ```text
 execution_id
@@ -80,18 +84,20 @@ Setup:
 
 Import flow:
 
-- Click `Import calls` to read `Calls_Technical_Audio`.
+- Pick the audit bucket in the app.
+- Click `Import calls` to read that bucket's matching `Calls_*` tab.
 - Base call data is upserted into `calls` by `execution_id`.
-- All reviewers see the same technical audio call pool. Review completion is tracked per reviewer login name.
+- All reviewers see the same call pool for that bucket. Review completion is tracked per reviewer login name.
+- Calls that are removed from a `Calls_*` tab are archived out of that bucket on the next import.
 
 Export flow:
 
 - Every submitted review saves to Supabase first.
-- Technical audio reviews append to `Reviews_Technical_Audio`.
-- Manual CSV export downloads the technical audio review schema.
+- Reviews append to that bucket's matching `Reviews_*` tab.
+- Manual CSV export downloads the selected bucket's review schema.
 - If Sheets export fails, the review stays saved in Supabase. Use `Sync Sheets` to retry pending rows.
 
-Technical audio review export columns:
+Pronunciation + Tone review export columns:
 
 ```text
 review_id
@@ -117,7 +123,62 @@ metric_rating_value
 metric_rating_reason
 issue_notes
 review_notes
-issue_payload_json
+started_at
+submitted_at
+duration_taken_sec
+```
+
+Timing + Transcription review export columns:
+
+```text
+review_id
+call_id
+org_name
+agent_name
+call_duration_sec
+call_created_at_ist
+reviewer_name
+review_mode
+issue_type
+issue_timestamp
+issue_recording_link
+latency_reaction
+metric_rating_name
+metric_rating_value
+metric_rating_reason
+transcription_error_type
+audio_unclear
+audio_said
+transcripted
+content_tag
+issue_notes
+review_notes
+started_at
+submitted_at
+duration_taken_sec
+```
+
+Response + Vibe review export columns:
+
+```text
+review_id
+call_id
+org_name
+agent_name
+call_duration_sec
+call_created_at_ist
+reviewer_name
+review_mode
+vibe_score
+vibe_score_reason
+issue_type
+issue_timestamp
+issue_recording_link
+response_error_type
+response_error_explanation
+metric_rating_name
+metric_rating_value
+metric_rating_reason
 started_at
 submitted_at
 duration_taken_sec
@@ -168,9 +229,13 @@ vercel-supabase-app
 
 ## Review Mode
 
-- Technical audio audit:
+- Pronunciation + Tone:
   - Pronunciation
   - Tone
+- Latency + Barge-in + Transcription:
   - Barge-in
   - Latency
+  - Transcription
+- Response appropriateness + Overall vibe:
   - Response appropriateness
+  - Overall vibe score

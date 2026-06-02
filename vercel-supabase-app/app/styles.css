@@ -209,6 +209,7 @@ textarea {
 .mode-tabs {
   padding: 14px;
   border-bottom: 1px solid var(--line);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .login-card .mode-tabs {
@@ -219,11 +220,20 @@ textarea {
 .mode-tabs button {
   min-height: 40px;
   font-weight: 700;
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.2;
+  font-size: 12px;
 }
 
 .queue-tabs button {
   justify-content: space-between;
   font-weight: 750;
+}
+
+.mode-tabs button {
+  justify-content: center;
 }
 
 .queue-tabs button.active {

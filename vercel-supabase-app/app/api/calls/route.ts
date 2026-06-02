@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeAuditMode } from "../../../lib/callImport";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const supabase = supabaseAdmin();
   const url = new URL(request.url);
-  const auditMode = url.searchParams.get("audit_mode") || url.searchParams.get("mode") || "technical_audio";
+  const auditMode = normalizeAuditMode(url.searchParams.get("audit_mode") || url.searchParams.get("mode") || "pronunciation_tone");
   const reviewer = String(url.searchParams.get("reviewer") || "").trim();
 
   const queueResult = await supabase
