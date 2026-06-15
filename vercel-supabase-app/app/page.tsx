@@ -29,14 +29,13 @@ type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe"
 const PRONUNCIATION_TONE_MODE: AuditMode = "pronunciation_tone";
 const TIMING_TRANSCRIPTION_MODE: AuditMode = "timing_transcription";
 const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
-const validAuditModes: AuditMode[] = [PRONUNCIATION_TONE_MODE, TIMING_TRANSCRIPTION_MODE, RESPONSE_VIBE_MODE];
 const pronunciationToneIssueTypes = ["pronunciation", "tone"];
 const timingTranscriptionIssueTypes = ["latency", "barge_in", "transcription"];
-const responseVibeIssueTypes = ["response_appropriateness"];
+const responseVibeIssueTypes: string[] = [];
 const ratingMetricsByMode: Record<AuditMode, string[]> = {
   pronunciation_tone: ["pronunciation", "tone"],
   timing_transcription: ["barge_in", "latency"],
-  response_vibe: ["response_appropriateness"]
+  response_vibe: []
 };
 
 const issueLabels: Record<string, string> = {
@@ -91,9 +90,32 @@ const requiredIssueFields: Record<string, string[]> = {
   transcription: ["transcription_error_type"]
 };
 
+const overallVibeGuide = [
+  {
+    score: "4",
+    title: "Clean call",
+    description: "No issues."
+  },
+  {
+    score: "3",
+    title: "Mostly okay",
+    description: "Minor issues only."
+  },
+  {
+    score: "2",
+    title: "Noticeably broken",
+    description: "Clear issues hurt the call."
+  },
+  {
+    score: "1",
+    title: "Major failure",
+    description: "Call is unusable or badly handled."
+  }
+];
+
 function modeLabel(mode: AuditMode) {
   if (mode === TIMING_TRANSCRIPTION_MODE) return "Latency + Barge-in + Transcription";
-  if (mode === RESPONSE_VIBE_MODE) return "Response appropriateness + Overall vibe";
+  if (mode === RESPONSE_VIBE_MODE) return "Overall vibe";
   return "Pronunciation + Tone";
 }
 
@@ -105,6 +127,10 @@ function modeIssueTypes(mode: AuditMode) {
 
 function modeRatingMetrics(mode: AuditMode) {
   return ratingMetricsByMode[mode] || [];
+}
+
+function modeDisabled(mode: AuditMode) {
+  return mode !== RESPONSE_VIBE_MODE;
 }
 
 function formatTime(seconds: number) {
@@ -154,11 +180,10 @@ export default function Page() {
 
   useEffect(() => {
     const storedName = window.localStorage.getItem("auditReviewer") || "";
-    const storedMode = window.localStorage.getItem("auditMode");
-    const initialMode = validAuditModes.includes(storedMode as AuditMode) ? storedMode as AuditMode : PRONUNCIATION_TONE_MODE;
+    const initialMode = RESPONSE_VIBE_MODE;
     setLoginName(storedName);
     setAuditMode(initialMode);
-    setIssueType(modeIssueTypes(initialMode)[0]);
+    setIssueType(modeIssueTypes(initialMode)[0] || "");
     loadCalls(storedName, initialMode);
     if (storedName) {
       setReviewerName(storedName);
@@ -207,8 +232,9 @@ export default function Page() {
 
   async function switchMode(mode: AuditMode) {
     if (mode === auditMode) return;
+    if (modeDisabled(mode)) return;
     setAuditMode(mode);
-    setIssueType(modeIssueTypes(mode)[0]);
+    setIssueType(modeIssueTypes(mode)[0] || "");
     setCurrentCall(null);
     setIssues([]);
     setMetricRatings(emptyMetricRatings());
@@ -407,7 +433,18 @@ export default function Page() {
               <div className="queue-tabs mode-tabs">
                 <button
                   type="button"
+                  className={auditMode === RESPONSE_VIBE_MODE ? "active" : ""}
+                  onClick={() => {
+                    setAuditMode(RESPONSE_VIBE_MODE);
+                    setIssueType(modeIssueTypes(RESPONSE_VIBE_MODE)[0] || "");
+                  }}
+                >
+                  Overall vibe
+                </button>
+                <button
+                  type="button"
                   className={auditMode === PRONUNCIATION_TONE_MODE ? "active" : ""}
+                  disabled={modeDisabled(PRONUNCIATION_TONE_MODE)}
                   onClick={() => {
                     setAuditMode(PRONUNCIATION_TONE_MODE);
                     setIssueType(modeIssueTypes(PRONUNCIATION_TONE_MODE)[0]);
@@ -418,22 +455,13 @@ export default function Page() {
                 <button
                   type="button"
                   className={auditMode === TIMING_TRANSCRIPTION_MODE ? "active" : ""}
+                  disabled={modeDisabled(TIMING_TRANSCRIPTION_MODE)}
                   onClick={() => {
                     setAuditMode(TIMING_TRANSCRIPTION_MODE);
                     setIssueType(modeIssueTypes(TIMING_TRANSCRIPTION_MODE)[0]);
                   }}
                 >
                   Latency + Barge-in + Transcription
-                </button>
-                <button
-                  type="button"
-                  className={auditMode === RESPONSE_VIBE_MODE ? "active" : ""}
-                  onClick={() => {
-                    setAuditMode(RESPONSE_VIBE_MODE);
-                    setIssueType(modeIssueTypes(RESPONSE_VIBE_MODE)[0]);
-                  }}
-                >
-                  Response appropriateness + Overall vibe
                 </button>
               </div>
             </label>
@@ -456,7 +484,15 @@ export default function Page() {
           <div className="queue-tabs mode-tabs" role="tablist" aria-label="Audit mode">
             <button
               type="button"
+              className={auditMode === RESPONSE_VIBE_MODE ? "active" : ""}
+              onClick={() => switchMode(RESPONSE_VIBE_MODE)}
+            >
+              Overall vibe
+            </button>
+            <button
+              type="button"
               className={auditMode === PRONUNCIATION_TONE_MODE ? "active" : ""}
+              disabled={modeDisabled(PRONUNCIATION_TONE_MODE)}
               onClick={() => switchMode(PRONUNCIATION_TONE_MODE)}
             >
               Pronunciation + Tone
@@ -464,16 +500,10 @@ export default function Page() {
             <button
               type="button"
               className={auditMode === TIMING_TRANSCRIPTION_MODE ? "active" : ""}
+              disabled={modeDisabled(TIMING_TRANSCRIPTION_MODE)}
               onClick={() => switchMode(TIMING_TRANSCRIPTION_MODE)}
             >
               Latency + Barge-in + Transcription
-            </button>
-            <button
-              type="button"
-              className={auditMode === RESPONSE_VIBE_MODE ? "active" : ""}
-              onClick={() => switchMode(RESPONSE_VIBE_MODE)}
-            >
-              Response appropriateness + Overall vibe
             </button>
           </div>
           <div className="import-actions">
@@ -547,14 +577,18 @@ export default function Page() {
             <div className="audio-actions">
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 5); }}>-5s</button>
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime += 5; }}>+5s</button>
-              <label className="capture-select">
-                Issue
-                <select value={issueType} onChange={(event) => setIssueType(event.target.value)}>
-                  {modeIssueTypes(auditMode).map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
-                </select>
-              </label>
-              <button className="primary" onClick={captureTimestamp}>Capture {currentTime}</button>
-              <span className="captured">Captured: {capturedTime}</span>
+              {modeIssueTypes(auditMode).length > 0 && (
+                <>
+                  <label className="capture-select">
+                    Issue
+                    <select value={issueType} onChange={(event) => setIssueType(event.target.value)}>
+                      {modeIssueTypes(auditMode).map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
+                    </select>
+                  </label>
+                  <button className="primary" onClick={captureTimestamp}>Capture {currentTime}</button>
+                  <span className="captured">Captured: {capturedTime}</span>
+                </>
+              )}
             </div>
           </section>
 
@@ -568,73 +602,119 @@ export default function Page() {
                 }}>Next</button>
               </div>
 
-              <div className="quick-flags">
-                {modeIssueTypes(auditMode).map((type) => (
-                  <button
-                    key={type}
-                    className={issueType === type ? "selected" : ""}
-                    onClick={() => setIssueType(type)}
-                  >
-                    {issueLabels[type]}
-                  </button>
-                ))}
-              </div>
-
-              <form className="issue-form issue-form-active" onSubmit={addIssue} noValidate>
-                <div className="form-row">
-                  <label>
-                    Issue type
-                    <select value={issueType} onChange={(event) => {
-                      setIssueType(event.target.value);
-                      setMissingIssueFields([]);
-                    }}>
-                      {modeIssueTypes(auditMode).map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    Timestamp
-                    <input name="timestamp" defaultValue={capturedTime} key={capturedTime} />
-                  </label>
-                </div>
-
-                <div className="dynamic-fields">
-                  {(issueConfigs[issueType] || []).map(([name, label, kind, options]) => {
-                    const required = (requiredIssueFields[issueType] || []).includes(name);
-                    const missing = missingIssueFields.includes(name);
-                    return (
-                    <label key={name} className={missing ? "field-missing" : ""}>
-                      {label}
-                      {kind === "select" ? (
-                        <select name={name} required={required} defaultValue={required ? "" : options?.[0]}>
-                          {required && <option value="">Select {label.toLowerCase()}</option>}
-                          {(options || []).map((option) => <option key={option} value={option}>{option}</option>)}
-                        </select>
-                      ) : (
-                        <input name={name} required={required} />
-                      )}
+              {auditMode === RESPONSE_VIBE_MODE && (
+                <section className="vibe-calibration">
+                  <div className="panel-title small">
+                    <h3>Overall vibe score</h3>
+                    <span>Score first</span>
+                  </div>
+                  <p className="helper-copy">
+                    Give one overall rating for the call, then add a short remark explaining what drove the score.
+                  </p>
+                  <div className={`rating-card vibe-card ${!vibeScore || !vibeReason.trim() ? "missing" : ""}`}>
+                    <label className={!vibeScore ? "field-missing" : ""}>
+                      Overall rating
+                      <select value={vibeScore} onChange={(event) => setVibeScore(event.target.value)}>
+                        <option value="">Not rated</option>
+                        <option value="1">1 - Major failure</option>
+                        <option value="2">2 - Noticeably broken</option>
+                        <option value="3">3 - Mostly okay</option>
+                        <option value="4">4 - Clean call</option>
+                      </select>
                     </label>
-                    );
-                  })}
-                </div>
-                {missingIssueFields.length > 0 && <p className="validation-message">Fill the highlighted required field before adding the issue.</p>}
-                <button className="primary" type="submit">Add Issue</button>
-              </form>
+                    <label className={!vibeReason.trim() ? "field-missing" : ""}>
+                      Remark
+                      <textarea
+                        value={vibeReason}
+                        onChange={(event) => setVibeReason(event.target.value)}
+                        rows={3}
+                        placeholder="One line: what drove this score?"
+                      />
+                    </label>
+                  </div>
+                  <div className="score-guide" aria-label="Overall vibe scoring guide">
+                    {overallVibeGuide.map((item) => (
+                      <div className="guide-card" key={item.score}>
+                        <strong>{item.score}</strong>
+                        <span>{item.title}</span>
+                        <p>{item.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
-              <section className="issue-list-wrap">
-                <div className="panel-title small">
-                  <h3>Logged issues</h3>
-                  <span>{issues.length}</span>
-                </div>
-                <div className={`issue-list ${issues.length ? "" : "empty-state"}`}>
-                  {issues.length ? issues.map((issue, index) => (
-                    <div className="issue-item" key={`${issue.type}-${issue.timestamp}-${index}`}>
-                      <header><span>{issueLabels[issue.type] || issue.type} · {issue.timestamp}</span></header>
-                      <p>{Object.entries(issue).filter(([key]) => !["type", "timestamp"].includes(key)).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · ")}</p>
-                      <button type="button" onClick={() => setIssues((existing) => existing.filter((_, itemIndex) => itemIndex !== index))}>Remove</button>
+              {modeIssueTypes(auditMode).length > 0 && (
+                <>
+                  <div className="quick-flags">
+                    {modeIssueTypes(auditMode).map((type) => (
+                      <button
+                        key={type}
+                        className={issueType === type ? "selected" : ""}
+                        onClick={() => setIssueType(type)}
+                      >
+                        {issueLabels[type]}
+                      </button>
+                    ))}
+                  </div>
+
+                  <form className="issue-form issue-form-active" onSubmit={addIssue} noValidate>
+                    <div className="form-row">
+                      <label>
+                        Issue type
+                        <select value={issueType} onChange={(event) => {
+                          setIssueType(event.target.value);
+                          setMissingIssueFields([]);
+                        }}>
+                          {modeIssueTypes(auditMode).map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        Timestamp
+                        <input name="timestamp" defaultValue={capturedTime} key={capturedTime} />
+                      </label>
                     </div>
-                  )) : "No issues yet."}
-                </div>
-              </section>
+
+                    <div className="dynamic-fields">
+                      {(issueConfigs[issueType] || []).map(([name, label, kind, options]) => {
+                        const required = (requiredIssueFields[issueType] || []).includes(name);
+                        const missing = missingIssueFields.includes(name);
+                        return (
+                        <label key={name} className={missing ? "field-missing" : ""}>
+                          {label}
+                          {kind === "select" ? (
+                            <select name={name} required={required} defaultValue={required ? "" : options?.[0]}>
+                              {required && <option value="">Select {label.toLowerCase()}</option>}
+                              {(options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+                            </select>
+                          ) : (
+                            <input name={name} required={required} />
+                          )}
+                        </label>
+                        );
+                      })}
+                    </div>
+                    {missingIssueFields.length > 0 && <p className="validation-message">Fill the highlighted required field before adding the issue.</p>}
+                    <button className="primary" type="submit">Add Issue</button>
+                  </form>
+
+                  <section className="issue-list-wrap">
+                    <div className="panel-title small">
+                      <h3>Logged issues</h3>
+                      <span>{issues.length}</span>
+                    </div>
+                    <div className={`issue-list ${issues.length ? "" : "empty-state"}`}>
+                      {issues.length ? issues.map((issue, index) => (
+                        <div className="issue-item" key={`${issue.type}-${issue.timestamp}-${index}`}>
+                          <header><span>{issueLabels[issue.type] || issue.type} · {issue.timestamp}</span></header>
+                          <p>{Object.entries(issue).filter(([key]) => !["type", "timestamp"].includes(key)).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · ")}</p>
+                          <button type="button" onClick={() => setIssues((existing) => existing.filter((_, itemIndex) => itemIndex !== index))}>Remove</button>
+                        </div>
+                      )) : "No issues yet."}
+                    </div>
+                  </section>
+                </>
+              )}
 
               {auditMode !== RESPONSE_VIBE_MODE && (
                 <label className="notes-field">
@@ -675,36 +755,6 @@ export default function Page() {
                       </label>
                     </div>
                   ))}
-                </section>
-              )}
-
-              {auditMode === RESPONSE_VIBE_MODE && (
-                <section className="metric-ratings">
-                  <div className="panel-title small">
-                    <h3>Overall vibe score</h3>
-                    <span>1-4</span>
-                  </div>
-                  <div className={`rating-card ${!vibeScore ? "missing" : ""}`}>
-                    <label>
-                      Overall vibe rating
-                      <select value={vibeScore} onChange={(event) => setVibeScore(event.target.value)}>
-                        <option value="">Not rated</option>
-                        <option value="1">1 - Major issue</option>
-                        <option value="2">2 - Noticeable issue</option>
-                        <option value="3">3 - Minor issue</option>
-                        <option value="4">4 - Good</option>
-                      </select>
-                    </label>
-                    <label className={!vibeReason.trim() ? "field-missing" : ""}>
-                      Reason for vibe score
-                      <textarea
-                        value={vibeReason}
-                        onChange={(event) => setVibeReason(event.target.value)}
-                        rows={2}
-                        placeholder="Why this vibe score?"
-                      />
-                    </label>
-                  </div>
                 </section>
               )}
 

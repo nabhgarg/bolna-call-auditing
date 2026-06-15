@@ -49,6 +49,15 @@ button:hover,
   border-color: #a8b2c0;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+button:disabled:hover {
+  border-color: var(--line);
+}
+
 .primary {
   background: var(--accent);
   color: white;
@@ -454,11 +463,75 @@ audio {
   gap: 8px;
 }
 
+.vibe-calibration,
 .vibe-primary {
   border: 1px solid var(--accent);
   border-radius: 8px;
   background: var(--soft);
   padding: 12px;
+}
+
+.vibe-calibration {
+  display: grid;
+  gap: 10px;
+}
+
+.helper-copy,
+.workflow-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.workflow-note {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  background: #fbfcfd;
+  padding: 10px;
+}
+
+.vibe-card {
+  background: white;
+}
+
+.score-guide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.guide-card {
+  border: 1px solid rgba(23, 107, 93, 0.22);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.76);
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+}
+
+.guide-card strong {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 999px;
+  color: white;
+  display: inline-flex;
+  font-size: 12px;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.guide-card span {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.guide-card p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .quick-flags button {
