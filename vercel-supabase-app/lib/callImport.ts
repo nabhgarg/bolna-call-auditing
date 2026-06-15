@@ -17,6 +17,7 @@ export const CALL_IMPORT_COLUMNS = [
 ] as const;
 
 const headerAliases: Record<string, string> = {
+  id: "execution_id",
   call_id: "execution_id",
   executionid: "execution_id",
   execution_id: "execution_id",
@@ -32,6 +33,7 @@ const headerAliases: Record<string, string> = {
   organization: "org_name",
   agent: "agent_name",
   agent_name: "agent_name",
+  agend_id: "agent_id",
   agent_id: "agent_id",
   duration: "duration_sec",
   duration_sec: "duration_sec",
@@ -44,6 +46,7 @@ const headerAliases: Record<string, string> = {
   transcriber_language: "transcriber_language",
   transcript: "transcript",
   recording: "recording_url",
+  recording_ur: "recording_url",
   recording_url: "recording_url",
   audio_url: "recording_url",
   agent_interrupted_user_count: "agent_interrupted_user_count",
