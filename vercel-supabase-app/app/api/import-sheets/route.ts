@@ -13,6 +13,16 @@ function chunk<T>(items: T[], size = BATCH_SIZE) {
   return out;
 }
 
+function dedupeByCallId(rows: any[]) {
+  const byCallId = new Map<string, any>();
+  for (const row of rows) {
+    const callId = String(row.execution_id || "").trim();
+    if (!callId) continue;
+    byCallId.set(callId, row);
+  }
+  return [...byCallId.values()];
+}
+
 export async function POST(request: Request) {
   const payload = await request.json().catch(() => ({}));
   const result = await importCallsFromSheets(payload.audit_mode || payload.review_mode || "pronunciation_tone");
@@ -26,8 +36,10 @@ export async function POST(request: Request) {
   }
 
   const supabase = supabaseAdmin();
-  const callRows = rows.map(({ audit_mode, ...row }: any) => row);
-  const queueRows = rows.map((row: any) => ({
+  const dedupedRows = dedupeByCallId(rows);
+  const duplicateRows = rows.length - dedupedRows.length;
+  const callRows = dedupedRows.map(({ audit_mode, ...row }: any) => row);
+  const queueRows = dedupedRows.map((row: any) => ({
     call_id: row.execution_id,
     audit_mode: row.audit_mode,
     assigned_reviewer: row.assigned_reviewer,
@@ -36,7 +48,7 @@ export async function POST(request: Request) {
   }));
   const mode = String(result.audit_mode || "pronunciation_tone");
   const archivedMode = `${mode}__archived`;
-  const importedCallIds = [...new Set(rows.map((row: any) => String(row.execution_id || "")).filter(Boolean))];
+  const importedCallIds = dedupedRows.map((row: any) => String(row.execution_id || "")).filter(Boolean);
 
   const { data: existingQueueRows, error: existingQueueError } = await supabase
     .from("call_audit_queue")
@@ -89,7 +101,8 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     audit_mode: result.audit_mode,
-    imported: rows.length,
+    imported: dedupedRows.length,
+    skipped_duplicate_rows: duplicateRows,
     sheet_name: result.sheet_name,
     sheet_rows: result.imported_rows
   });
