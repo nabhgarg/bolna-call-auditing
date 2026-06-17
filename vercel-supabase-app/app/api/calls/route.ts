@@ -4,6 +4,16 @@ import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
+function queueModeMatches(mode: string) {
+  return `audit_mode.eq.${mode},audit_mode.like.${mode}::%`;
+}
+
+function queueIdFromMode(callId: string, queueMode: string) {
+  const marker = "::";
+  if (!queueMode.includes(marker)) return `${callId}::${queueMode}`;
+  return queueMode.slice(queueMode.indexOf(marker) + marker.length);
+}
+
 export async function GET(request: Request) {
   const supabase = supabaseAdmin();
   const url = new URL(request.url);
@@ -13,8 +23,8 @@ export async function GET(request: Request) {
   const queueResult = await supabase
     .from("call_audit_queue")
     .select("call_id,assigned_reviewer,audit_mode,source_sheet")
-    .eq("audit_mode", auditMode)
-    .order("call_id", { ascending: true });
+    .or(queueModeMatches(auditMode))
+    .order("audit_mode", { ascending: true });
 
   if (!queueResult.error) {
     const queueRows = queueResult.data || [];
@@ -54,7 +64,9 @@ export async function GET(request: Request) {
       calls: queueRows.map((queue: any) => {
         const call = callsById.get(queue.call_id) || {};
         const review = reviewsById.get(queue.call_id) || null;
+        const queueId = queueIdFromMode(queue.call_id, queue.audit_mode);
         return {
+          queue_id: queueId,
           execution_id: queue.call_id,
           assigned_reviewer: queue.assigned_reviewer,
           org_name: call.org_name,
@@ -63,7 +75,7 @@ export async function GET(request: Request) {
           created_at_ist: call.created_at_ist,
           status: call.status,
           language: call.transcriber_language,
-          audit_mode: queue.audit_mode,
+          audit_mode: auditMode,
           source_sheet: queue.source_sheet || call.source_sheet,
           reviewed: Boolean(review),
           reviewer_name: review?.reviewer_name || null

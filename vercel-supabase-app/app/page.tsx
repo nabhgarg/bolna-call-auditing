@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type CallSummary = {
+  queue_id?: string | null;
   execution_id: string;
   assigned_reviewer?: string | null;
   org_name?: string | null;
@@ -153,6 +154,7 @@ export default function Page() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [calls, setCalls] = useState<CallSummary[]>([]);
   const [currentCall, setCurrentCall] = useState<CallDetail | null>(null);
+  const [currentQueueId, setCurrentQueueId] = useState("");
   const [reviewerName, setReviewerName] = useState("");
   const [loginName, setLoginName] = useState("");
   const [loginVisible, setLoginVisible] = useState(true);
@@ -227,8 +229,10 @@ export default function Page() {
   }, [agentFilter, calls, clientFilter, queueView, search]);
   const reviewedCount = calls.filter((call) => call.reviewed).length;
   const pendingCount = calls.length - reviewedCount;
-  const currentCallSummary = currentCall ? calls.find((call) => call.execution_id === currentCall.execution_id) : null;
-  const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentCall.execution_id));
+  const currentCallSummary = currentCall
+    ? calls.find((call) => (call.queue_id || call.execution_id) === currentQueueId) || null
+    : null;
+  const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentQueueId));
 
   async function switchMode(mode: AuditMode) {
     if (mode === auditMode) return;
@@ -236,6 +240,7 @@ export default function Page() {
     setAuditMode(mode);
     setIssueType(modeIssueTypes(mode)[0] || "");
     setCurrentCall(null);
+    setCurrentQueueId("");
     setIssues([]);
     setMetricRatings(emptyMetricRatings());
     setVibeScore("");
@@ -248,9 +253,10 @@ export default function Page() {
     await loadCalls(reviewerName, mode);
   }
 
-  async function selectCall(id: string) {
+  async function selectCall(id: string, queueId = id) {
     const call = await api(`/api/calls/${encodeURIComponent(id)}`);
     setCurrentCall(call);
+    setCurrentQueueId(queueId);
     setIssues([]);
     setMetricRatings(emptyMetricRatings());
     setVibeScore("");
@@ -375,9 +381,9 @@ export default function Page() {
           duration_taken_sec: durationTaken
         })
       });
-      setSubmittedCallId(currentCall.execution_id);
+      setSubmittedCallId(currentQueueId);
       setCalls((existing) => existing.map((call) => (
-        call.execution_id === currentCall.execution_id
+        (call.queue_id || call.execution_id) === currentQueueId
           ? { ...call, reviewed: true, reviewer_name: reviewerName }
           : call
       )));
@@ -551,7 +557,7 @@ export default function Page() {
           <div className="queue-stats">{pendingCount} pending · {reviewedCount} submitted · {calls.length} assigned</div>
           <nav className="call-list">
             {filteredCalls.map((call) => (
-              <button key={call.execution_id} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${currentCall?.execution_id === call.execution_id ? "active" : ""}`} onClick={() => selectCall(call.execution_id)}>
+              <button key={call.queue_id || call.execution_id} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${(currentQueueId || currentCall?.execution_id) === (call.queue_id || call.execution_id) ? "active" : ""}`} onClick={() => selectCall(call.execution_id, call.queue_id || call.execution_id)}>
                 <span className="call-id">ID {shortCallId(call.execution_id)}</span>
                 <strong>{call.agent_name || "Unknown agent"}</strong>
                 <span>{call.org_name || ""} · {formatTime(Number(call.duration_sec || 0))} · {call.language || ""}</span>
@@ -597,8 +603,8 @@ export default function Page() {
               <div className="panel-title">
                 <h2>Review</h2>
                 <button className="ghost" onClick={() => {
-                  const next = filteredCalls.find((call) => !call.reviewed && call.execution_id !== currentCall?.execution_id);
-                  if (next) selectCall(next.execution_id);
+                  const next = filteredCalls.find((call) => !call.reviewed && (call.queue_id || call.execution_id) !== currentQueueId);
+                  if (next) selectCall(next.execution_id, next.queue_id || next.execution_id);
                 }}>Next</button>
               </div>
 

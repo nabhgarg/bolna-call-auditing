@@ -3,15 +3,6 @@ import { importCallsFromSheets } from "../../../lib/sheetsSync";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
-const BATCH_SIZE = 200;
-
-function chunk<T>(items: T[], size = BATCH_SIZE) {
-  const out: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    out.push(items.slice(index, index + size));
-  }
-  return out;
-}
 
 function dedupeByCallId(rows: any[]) {
   const byCallId = new Map<string, any>();
@@ -21,6 +12,30 @@ function dedupeByCallId(rows: any[]) {
     byCallId.set(callId, row);
   }
   return [...byCallId.values()];
+}
+
+function queueIdForRow(row: any) {
+  return String(row.queue_id || row.row_id || row.execution_id || "").trim();
+}
+
+function queueModeForRow(row: any, mode: string) {
+  const queueId = queueIdForRow(row);
+  return queueId ? `${mode}::${queueId}` : mode;
+}
+
+function queueModeMatches(mode: string) {
+  return `audit_mode.eq.${mode},audit_mode.like.${mode}::%`;
+}
+
+function dedupeByQueueKey(rows: any[]) {
+  const byQueueKey = new Map<string, any>();
+  for (const row of rows) {
+    const queueId = queueIdForRow(row);
+    const mode = String(row.audit_mode || "").trim();
+    if (!queueId || !mode) continue;
+    byQueueKey.set(`${queueId}||${mode}`, row);
+  }
+  return [...byQueueKey.values()];
 }
 
 export async function POST(request: Request) {
@@ -36,30 +51,29 @@ export async function POST(request: Request) {
   }
 
   const supabase = supabaseAdmin();
-  const dedupedRows = dedupeByCallId(rows);
-  const duplicateRows = rows.length - dedupedRows.length;
-  const callRows = dedupedRows.map(({ audit_mode, ...row }: any) => row);
-  const queueRows = dedupedRows.map((row: any) => ({
+  const mode = String(result.audit_mode || "pronunciation_tone");
+  const archivedMode = `${mode}__archived`;
+  const callRows = dedupeByCallId(rows).map(({ audit_mode, queue_id, ...row }: any) => row);
+  const queueRows = dedupeByQueueKey(rows).map((row: any) => ({
     call_id: row.execution_id,
-    audit_mode: row.audit_mode,
+    audit_mode: queueModeForRow(row, mode),
     assigned_reviewer: row.assigned_reviewer,
     source_sheet: row.source_sheet,
     imported_at: row.imported_at
   }));
-  const mode = String(result.audit_mode || "pronunciation_tone");
-  const archivedMode = `${mode}__archived`;
-  const importedCallIds = dedupedRows.map((row: any) => String(row.execution_id || "")).filter(Boolean);
+  const duplicateRows = rows.length - queueRows.length;
+  const importedQueueKeys = new Set(queueRows.map((row: any) => `${row.call_id}||${row.audit_mode}`));
 
   const { data: existingQueueRows, error: existingQueueError } = await supabase
     .from("call_audit_queue")
-    .select("call_id")
-    .eq("audit_mode", mode);
+    .select("call_id,audit_mode")
+    .or(queueModeMatches(mode));
   if (existingQueueError) {
     return NextResponse.json({ error: existingQueueError.message }, { status: 500 });
   }
-  const existingCallIds = (existingQueueRows || []).map((row: any) => String(row.call_id || "")).filter(Boolean);
-  const importedSet = new Set(importedCallIds);
-  const staleCallIds = existingCallIds.filter((id) => !importedSet.has(id));
+  const staleQueueRows = (existingQueueRows || []).filter((row: any) => (
+    !importedQueueKeys.has(`${row.call_id}||${row.audit_mode}`)
+  ));
 
   const { error } = await supabase.from("calls").upsert(callRows, { onConflict: "execution_id" });
   if (error) {
@@ -75,12 +89,12 @@ export async function POST(request: Request) {
 
   // Archive stale queue rows for this mode so only current sheet rows appear in the UI.
   // We use update instead of delete because RLS may not permit deletes with current key.
-  for (const ids of chunk(staleCallIds)) {
+  for (const staleRow of staleQueueRows) {
     const { error: archiveQueueError } = await supabase
       .from("call_audit_queue")
-      .update({ audit_mode: archivedMode, assigned_reviewer: "", source_sheet: "Archived by import" })
-      .eq("audit_mode", mode)
-      .in("call_id", ids);
+      .update({ audit_mode: `${archivedMode}::${staleRow.audit_mode}`, assigned_reviewer: "", source_sheet: "Archived by import" })
+      .eq("call_id", staleRow.call_id)
+      .eq("audit_mode", staleRow.audit_mode);
     if (archiveQueueError) {
       return NextResponse.json({ error: archiveQueueError.message }, { status: 500 });
     }
@@ -88,8 +102,8 @@ export async function POST(request: Request) {
     const { data: activeModeRows, error: activeModeError } = await supabase
       .from("call_audit_queue")
       .select("call_id")
-      .eq("audit_mode", mode)
-      .in("call_id", ids);
+      .eq("call_id", staleRow.call_id)
+      .eq("audit_mode", staleRow.audit_mode);
     if (activeModeError) {
       return NextResponse.json({ error: activeModeError.message }, { status: 500 });
     }
@@ -101,7 +115,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     audit_mode: result.audit_mode,
-    imported: dedupedRows.length,
+    imported: queueRows.length,
     skipped_duplicate_rows: duplicateRows,
     sheet_name: result.sheet_name,
     sheet_rows: result.imported_rows
