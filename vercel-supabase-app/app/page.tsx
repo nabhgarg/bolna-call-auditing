@@ -143,8 +143,11 @@ export default function Page() {
   const [calls, setCalls] = useState<CallSummary[]>([]);
   const [currentCall, setCurrentCall] = useState<CallDetail | null>(null);
   const [currentQueueId, setCurrentQueueId] = useState("");
-  const [reviewerName, setReviewerName] = useState("");
-  const [loginName, setLoginName] = useState("");
+  const [reviewerEmail, setReviewerEmail] = useState("");
+  const [reviewerDisplay, setReviewerDisplay] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
   const [loginVisible, setLoginVisible] = useState(true);
   const [auditMode, setAuditMode] = useState<AuditMode>(RESPONSE_VIBE_MODE);
   const [search, setSearch] = useState("");
@@ -169,15 +172,17 @@ export default function Page() {
   const [submittedCallId, setSubmittedCallId] = useState("");
 
   useEffect(() => {
-    const storedName = window.localStorage.getItem("auditReviewer") || "";
+    const storedEmail = (window.localStorage.getItem("auditReviewerEmail") || "").trim().toLowerCase();
+    const storedDisplay = window.localStorage.getItem("auditReviewerDisplay") || "";
     const initialMode = RESPONSE_VIBE_MODE;
-    setLoginName(storedName);
+    setLoginEmail(storedEmail);
     setAuditMode(initialMode);
     setIssueType(modeIssueTypes(initialMode)[0] || "");
-    loadCalls(storedName, initialMode);
-    if (storedName) {
-      setReviewerName(storedName);
+    if (storedEmail) {
+      setReviewerEmail(storedEmail);
+      setReviewerDisplay(storedDisplay || storedEmail);
       setLoginVisible(false);
+      loadCalls(storedEmail, initialMode);
     }
   }, []);
 
@@ -192,7 +197,7 @@ export default function Page() {
     return payload;
   }
 
-  async function loadCalls(reviewer = reviewerName, mode: AuditMode = auditMode) {
+  async function loadCalls(reviewer = reviewerEmail, mode: AuditMode = auditMode) {
     const params = new URLSearchParams({ mode });
     if (reviewer) params.set("reviewer", reviewer);
     const payload = await api(`/api/calls?${params.toString()}`);
@@ -237,7 +242,7 @@ export default function Page() {
     setStatusMessage("");
     setQueueView("pending");
     window.localStorage.setItem("auditMode", mode);
-    await loadCalls(reviewerName, mode);
+    await loadCalls(reviewerEmail, mode);
   }
 
   async function selectCall(id: string, queueId = id) {
@@ -256,15 +261,42 @@ export default function Page() {
     setSubmittedCallId("");
   }
 
-  function startSession(event: FormEvent) {
+  async function startSession(event: FormEvent) {
     event.preventDefault();
-    const name = loginName.trim();
-    if (!name) return;
-    setReviewerName(name);
-    setLoginVisible(false);
-    window.localStorage.setItem("auditReviewer", name);
-    window.localStorage.setItem("auditMode", auditMode);
-    loadCalls(name, auditMode);
+    const email = loginEmail.trim().toLowerCase();
+    if (!email || loggingIn) return;
+    setLoggingIn(true);
+    setLoginError("");
+    try {
+      const profile = await api("/api/login", {
+        method: "POST",
+        body: JSON.stringify({ email })
+      });
+      setReviewerEmail(profile.email);
+      setReviewerDisplay(profile.display_name || profile.email);
+      setLoginVisible(false);
+      window.localStorage.setItem("auditReviewerEmail", profile.email);
+      window.localStorage.setItem("auditReviewerDisplay", profile.display_name || profile.email);
+      window.localStorage.setItem("auditMode", auditMode);
+      await loadCalls(profile.email, auditMode);
+    } catch (error) {
+      setLoginError((error as Error).message);
+    } finally {
+      setLoggingIn(false);
+    }
+  }
+
+  function logout() {
+    window.localStorage.removeItem("auditReviewerEmail");
+    window.localStorage.removeItem("auditReviewerDisplay");
+    setReviewerEmail("");
+    setReviewerDisplay("");
+    setLoginEmail("");
+    setLoginError("");
+    setCalls([]);
+    setCurrentCall(null);
+    setCurrentQueueId("");
+    setLoginVisible(true);
   }
 
   function captureTimestamp() {
@@ -356,7 +388,8 @@ export default function Page() {
         method: "POST",
         body: JSON.stringify({
           call_id: currentCall.execution_id,
-          reviewer_name: reviewerName,
+          reviewer_name: reviewerDisplay,
+          reviewer_email: reviewerEmail,
           review_mode: auditMode,
           vibe_score: auditMode === RESPONSE_VIBE_MODE ? vibeScore : "",
           flow_score: "",
@@ -371,10 +404,10 @@ export default function Page() {
       setSubmittedCallId(currentQueueId);
       setCalls((existing) => existing.map((call) => (
         (call.queue_id || call.execution_id) === currentQueueId
-          ? { ...call, reviewed: true, reviewer_name: reviewerName }
+          ? { ...call, reviewed: true, reviewer_name: reviewerDisplay }
           : call
       )));
-      setCurrentCall((existing) => existing ? { ...existing, reviewed: true, reviewer_name: reviewerName } : existing);
+      setCurrentCall((existing) => existing ? { ...existing, reviewed: true, reviewer_name: reviewerDisplay } : existing);
       setStatusMessage(result.sheets_sync?.ok ? "Submitted and synced to Sheets." : "Submitted locally. Sheets sync pending.");
       setQueueView("pending");
     } finally {
@@ -397,7 +430,7 @@ export default function Page() {
       setImportingCalls(true);
       setImportStatus(`Importing ${modeLabel(auditMode).toLowerCase()} calls from Google Sheets...`);
       const result = await api("/api/import-sheets", { method: "POST", body: JSON.stringify({ audit_mode: auditMode }) });
-      await loadCalls(reviewerName, auditMode);
+      await loadCalls(reviewerEmail, auditMode);
       setImportStatus(`Imported ${result.imported} ${modeLabel(auditMode).toLowerCase()} call(s) from ${result.sheet_name || "Google Sheets"}.`);
       setStatusMessage(`Imported ${result.imported} ${modeLabel(auditMode).toLowerCase()} call(s).`);
     } catch (error) {
@@ -415,14 +448,24 @@ export default function Page() {
           <form className="login-card" onSubmit={startSession}>
             <div>
               <h1>Call Audit</h1>
-              <p>Enter your name to start the combined audit.</p>
+              <p>Sign in with your email to see your assigned calls.</p>
             </div>
             <label>
-              Reviewer name
-              <input value={loginName} onChange={(event) => setLoginName(event.target.value)} placeholder="Type your name" required />
+              Email
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(event) => { setLoginEmail(event.target.value); setLoginError(""); }}
+                placeholder="you@company.com"
+                autoComplete="email"
+                required
+              />
             </label>
+            {loginError && <p className="validation-message">{loginError}</p>}
             <div className="single-mode-pill">Combined audit</div>
-            <button className="primary" type="submit">Start reviewing</button>
+            <button className="primary" type="submit" disabled={loggingIn}>
+              {loggingIn ? "Checking..." : "Start reviewing"}
+            </button>
           </form>
         </section>
       )}
@@ -432,10 +475,10 @@ export default function Page() {
           <div className="brand">
             <div>
               <h1>Call Audit</h1>
-              <p>{reviewerName ? `${reviewerName} · ${modeLabel(auditMode)}` : "Internal review cockpit"}</p>
+              <p>{reviewerEmail ? `${reviewerDisplay} · ${modeLabel(auditMode)}` : "Internal review cockpit"}</p>
             </div>
             <div className="brand-actions">
-              <button className="ghost" onClick={() => setLoginVisible(true)}>Switch</button>
+              <button className="ghost" onClick={logout}>Switch</button>
             </div>
           </div>
           <div className="single-mode-pill sidebar-mode">Combined audit</div>

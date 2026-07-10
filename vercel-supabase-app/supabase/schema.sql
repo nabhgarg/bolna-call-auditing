@@ -76,3 +76,16 @@ on public.call_audit_queue
 for update
 using (true)
 with check (true);
+
+create table if not exists public.reviewers (
+  email text primary key,
+  display_name text not null,
+  role text not null default 'scorer',
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.reviews
+  add column if not exists reviewer_email text;
+
+create index if not exists reviews_reviewer_email_idx on public.reviews(reviewer_email);
