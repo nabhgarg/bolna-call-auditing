@@ -18,15 +18,37 @@ function normalizeReviewerName(value: unknown) {
   return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function reviewerMatches(assignedReviewer: unknown, reviewer: string) {
-  return Boolean(reviewer) && normalizeReviewerName(assignedReviewer) === normalizeReviewerName(reviewer);
+// Maps reviewer display names -> emails so sheets that still carry names keep working.
+async function loadReviewerEmailMap(supabase: ReturnType<typeof supabaseAdmin>) {
+  const map = new Map<string, string>();
+  const { data } = await supabase.from("reviewers").select("email,display_name");
+  for (const row of data || []) {
+    const email = normalizeReviewerName(row.email);
+    if (!email) continue;
+    map.set(email, email);
+    const name = normalizeReviewerName(row.display_name);
+    if (name) map.set(name, email);
+  }
+  return map;
+}
+
+function resolveReviewerEmail(value: unknown, emailMap: Map<string, string>) {
+  const normalized = normalizeReviewerName(value);
+  if (!normalized) return "";
+  if (normalized.includes("@")) return normalized;
+  return emailMap.get(normalized) || normalized;
+}
+
+function reviewerMatches(assignedReviewer: unknown, reviewerEmail: string, emailMap: Map<string, string>) {
+  return Boolean(reviewerEmail) && resolveReviewerEmail(assignedReviewer, emailMap) === reviewerEmail;
 }
 
 export async function GET(request: Request) {
   const supabase = supabaseAdmin();
   const url = new URL(request.url);
   const auditMode = normalizeAuditMode(url.searchParams.get("audit_mode") || url.searchParams.get("mode") || "pronunciation_tone");
-  const reviewer = String(url.searchParams.get("reviewer") || "").trim();
+  const reviewer = normalizeReviewerName(url.searchParams.get("reviewer") || "");
+  const emailMap = reviewer ? await loadReviewerEmailMap(supabase) : new Map<string, string>();
 
   const queueResult = await supabase
     .from("call_audit_queue")
@@ -36,24 +58,20 @@ export async function GET(request: Request) {
 
   if (!queueResult.error) {
     const queueRows = reviewer
-      ? (queueResult.data || []).filter((row: any) => reviewerMatches(row.assigned_reviewer, reviewer))
+      ? (queueResult.data || []).filter((row: any) => reviewerMatches(row.assigned_reviewer, reviewer, emailMap))
       : queueResult.data || [];
     const callIds = queueRows.map((row: any) => row.call_id).filter(Boolean);
     if (!callIds.length) {
       return NextResponse.json({ calls: [] }, { headers: { "Cache-Control": "no-store" } });
     }
 
-    let reviewsQuery = supabase
+    const reviewsQuery = supabase
       .from("reviews")
-      .select("call_id,reviewer_name,review_mode")
+      .select("call_id,reviewer_name,reviewer_email,review_mode")
       .in("call_id", callIds)
       .eq("review_mode", auditMode);
 
-    if (reviewer) {
-      reviewsQuery = reviewsQuery.eq("reviewer_name", reviewer);
-    }
-
-    const [{ data: calls, error: callsError }, { data: reviews, error: reviewsError }] = await Promise.all([
+    const [{ data: calls, error: callsError }, { data: allReviews, error: reviewsError }] = await Promise.all([
       supabase
         .from("calls")
         .select(
@@ -67,6 +85,13 @@ export async function GET(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Reviews count as "yours" if stamped with your email, or with a legacy display name that maps to it.
+    const reviews = reviewer
+      ? (allReviews || []).filter((review: any) =>
+          normalizeReviewerName(review.reviewer_email) === reviewer ||
+          resolveReviewerEmail(review.reviewer_name, emailMap) === reviewer)
+      : allReviews || [];
 
     const callsById = new Map((calls || []).map((call: any) => [call.execution_id, call]));
     const reviewsById = new Map((reviews || []).map((review: any) => [review.call_id, review]));
@@ -99,7 +124,7 @@ export async function GET(request: Request) {
   const primary = await supabase
     .from("calls")
     .select(
-      "execution_id,assigned_reviewer,org_name,agent_name,duration_sec,created_at_ist,status,transcriber_language,audit_mode,source_sheet,reviews(id,reviewer_name,review_mode)"
+      "execution_id,assigned_reviewer,org_name,agent_name,duration_sec,created_at_ist,status,transcriber_language,audit_mode,source_sheet,reviews(id,reviewer_name,reviewer_email,review_mode)"
     )
     .eq("audit_mode", auditMode)
     .order("execution_id", { ascending: true });
@@ -111,7 +136,7 @@ export async function GET(request: Request) {
     const fallback = await supabase
       .from("calls")
       .select(
-        "execution_id,assigned_reviewer,org_name,agent_name,duration_sec,created_at_ist,status,transcriber_language,source_sheet,reviews(id,reviewer_name,review_mode)"
+        "execution_id,assigned_reviewer,org_name,agent_name,duration_sec,created_at_ist,status,transcriber_language,source_sheet,reviews(id,reviewer_name,reviewer_email,review_mode)"
       )
       .order("execution_id", { ascending: true });
     calls = fallback.data;
@@ -123,13 +148,16 @@ export async function GET(request: Request) {
   }
 
   const assignedCalls = reviewer
-    ? (calls || []).filter((call: any) => reviewerMatches(call.assigned_reviewer, reviewer))
+    ? (calls || []).filter((call: any) => reviewerMatches(call.assigned_reviewer, reviewer, emailMap))
     : calls || [];
 
   const response = NextResponse.json({
     calls: assignedCalls.map((call: any) => {
       const review = Array.isArray(call.reviews)
-        ? call.reviews.find((item: any) => item.review_mode === auditMode && (!reviewer || item.reviewer_name === reviewer)) || null
+        ? call.reviews.find((item: any) => item.review_mode === auditMode &&
+            (!reviewer ||
+              normalizeReviewerName(item.reviewer_email) === reviewer ||
+              resolveReviewerEmail(item.reviewer_name, emailMap) === reviewer)) || null
         : null;
       return {
         execution_id: call.execution_id,

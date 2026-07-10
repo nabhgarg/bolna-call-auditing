@@ -14,8 +14,18 @@ export async function POST(request: Request) {
 
   const supabase = supabaseAdmin();
   const reviewerName = payload.reviewer_name || "";
+  const reviewerEmail = String(payload.reviewer_email || "").trim().toLowerCase();
   const reviewMode = normalizeReviewMode(payload.review_mode || "");
 
+  // Replace any prior submission by this reviewer (matched by email or legacy name) for this call+mode.
+  if (reviewerEmail) {
+    await supabase
+      .from("reviews")
+      .delete()
+      .eq("call_id", callId)
+      .eq("reviewer_email", reviewerEmail)
+      .eq("review_mode", reviewMode);
+  }
   await supabase
     .from("reviews")
     .delete()
@@ -28,6 +38,7 @@ export async function POST(request: Request) {
     .insert({
       call_id: callId,
       reviewer_name: reviewerName,
+      reviewer_email: reviewerEmail,
       review_mode: reviewMode,
       vibe_score: payload.vibe_score || "",
       flow_score: payload.flow_score || "",
