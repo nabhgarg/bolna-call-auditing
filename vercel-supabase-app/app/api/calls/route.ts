@@ -14,6 +14,14 @@ function queueIdFromMode(callId: string, queueMode: string) {
   return queueMode.slice(queueMode.indexOf(marker) + marker.length);
 }
 
+function normalizeReviewerName(value: unknown) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function reviewerMatches(assignedReviewer: unknown, reviewer: string) {
+  return Boolean(reviewer) && normalizeReviewerName(assignedReviewer) === normalizeReviewerName(reviewer);
+}
+
 export async function GET(request: Request) {
   const supabase = supabaseAdmin();
   const url = new URL(request.url);
@@ -27,7 +35,9 @@ export async function GET(request: Request) {
     .order("audit_mode", { ascending: true });
 
   if (!queueResult.error) {
-    const queueRows = queueResult.data || [];
+    const queueRows = reviewer
+      ? (queueResult.data || []).filter((row: any) => reviewerMatches(row.assigned_reviewer, reviewer))
+      : queueResult.data || [];
     const callIds = queueRows.map((row: any) => row.call_id).filter(Boolean);
     if (!callIds.length) {
       return NextResponse.json({ calls: [] }, { headers: { "Cache-Control": "no-store" } });
@@ -112,8 +122,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const assignedCalls = reviewer
+    ? (calls || []).filter((call: any) => reviewerMatches(call.assigned_reviewer, reviewer))
+    : calls || [];
+
   const response = NextResponse.json({
-    calls: (calls || []).map((call: any) => {
+    calls: assignedCalls.map((call: any) => {
       const review = Array.isArray(call.reviews)
         ? call.reviews.find((item: any) => item.review_mode === auditMode && (!reviewer || item.reviewer_name === reviewer)) || null
         : null;
