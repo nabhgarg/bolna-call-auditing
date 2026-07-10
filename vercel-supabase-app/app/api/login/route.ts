@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
   if (!data || data.is_active === false) {
     return NextResponse.json(
-      { error: "Email not recognized. Ask Smriti or Manavi to add you as a reviewer." },
+      { error: "Email not recognised. Ask Nabh or Manavi to add you as a reviewer." },
       { status: 401 }
     );
   }
