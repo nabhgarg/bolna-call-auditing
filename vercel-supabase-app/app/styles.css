@@ -97,6 +97,27 @@ button:disabled:hover {
   margin-top: 4px;
 }
 
+.single-mode-pill {
+  align-items: center;
+  background: var(--soft);
+  border: 1px solid rgba(23, 107, 93, 0.24);
+  border-radius: 6px;
+  color: var(--accent-strong);
+  display: flex;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 10px 12px;
+}
+
+.sidebar-mode {
+  border-bottom: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0;
+  border-right: 0;
+  padding: 14px;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);

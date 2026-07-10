@@ -27,16 +27,12 @@ type CallDetail = CallSummary & {
 type Issue = Record<string, string>;
 type MetricRating = { rating: string; reason: string };
 type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe";
-const PRONUNCIATION_TONE_MODE: AuditMode = "pronunciation_tone";
-const TIMING_TRANSCRIPTION_MODE: AuditMode = "timing_transcription";
 const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
-const pronunciationToneIssueTypes = ["pronunciation", "tone"];
-const timingTranscriptionIssueTypes = ["latency", "barge_in", "transcription"];
-const responseVibeIssueTypes: string[] = [];
+const combinedIssueTypes = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness", "transcription"];
 const ratingMetricsByMode: Record<AuditMode, string[]> = {
   pronunciation_tone: ["pronunciation", "tone"],
   timing_transcription: ["barge_in", "latency"],
-  response_vibe: []
+  response_vibe: ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness", "overall"]
 };
 
 const issueLabels: Record<string, string> = {
@@ -115,23 +111,15 @@ const overallVibeGuide = [
 ];
 
 function modeLabel(mode: AuditMode) {
-  if (mode === TIMING_TRANSCRIPTION_MODE) return "Latency + Barge-in + Transcription";
-  if (mode === RESPONSE_VIBE_MODE) return "Overall vibe";
-  return "Pronunciation + Tone";
+  return mode === RESPONSE_VIBE_MODE ? "Combined audit" : "Combined audit";
 }
 
-function modeIssueTypes(mode: AuditMode) {
-  if (mode === TIMING_TRANSCRIPTION_MODE) return timingTranscriptionIssueTypes;
-  if (mode === RESPONSE_VIBE_MODE) return responseVibeIssueTypes;
-  return pronunciationToneIssueTypes;
+function modeIssueTypes(_mode: AuditMode) {
+  return combinedIssueTypes;
 }
 
 function modeRatingMetrics(mode: AuditMode) {
   return ratingMetricsByMode[mode] || [];
-}
-
-function modeDisabled(mode: AuditMode) {
-  return mode !== RESPONSE_VIBE_MODE;
 }
 
 function formatTime(seconds: number) {
@@ -158,14 +146,14 @@ export default function Page() {
   const [reviewerName, setReviewerName] = useState("");
   const [loginName, setLoginName] = useState("");
   const [loginVisible, setLoginVisible] = useState(true);
-  const [auditMode, setAuditMode] = useState<AuditMode>(PRONUNCIATION_TONE_MODE);
+  const [auditMode, setAuditMode] = useState<AuditMode>(RESPONSE_VIBE_MODE);
   const [search, setSearch] = useState("");
   const [clientFilter, setClientFilter] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
-  const [issueType, setIssueType] = useState(pronunciationToneIssueTypes[0]);
+  const [issueType, setIssueType] = useState(combinedIssueTypes[0]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [metricRatings, setMetricRatings] = useState<Record<string, MetricRating>>(emptyMetricRatings);
   const [vibeScore, setVibeScore] = useState("");
@@ -236,7 +224,6 @@ export default function Page() {
 
   async function switchMode(mode: AuditMode) {
     if (mode === auditMode) return;
-    if (modeDisabled(mode)) return;
     setAuditMode(mode);
     setIssueType(modeIssueTypes(mode)[0] || "");
     setCurrentCall(null);
@@ -428,49 +415,13 @@ export default function Page() {
           <form className="login-card" onSubmit={startSession}>
             <div>
               <h1>Call Audit</h1>
-              <p>Enter your name and pick an audit mode.</p>
+              <p>Enter your name to start the combined audit.</p>
             </div>
             <label>
               Reviewer name
               <input value={loginName} onChange={(event) => setLoginName(event.target.value)} placeholder="Type your name" required />
             </label>
-            <label>
-              Audit mode
-              <div className="queue-tabs mode-tabs">
-                <button
-                  type="button"
-                  className={auditMode === RESPONSE_VIBE_MODE ? "active" : ""}
-                  onClick={() => {
-                    setAuditMode(RESPONSE_VIBE_MODE);
-                    setIssueType(modeIssueTypes(RESPONSE_VIBE_MODE)[0] || "");
-                  }}
-                >
-                  Overall vibe
-                </button>
-                <button
-                  type="button"
-                  className={auditMode === PRONUNCIATION_TONE_MODE ? "active" : ""}
-                  disabled={modeDisabled(PRONUNCIATION_TONE_MODE)}
-                  onClick={() => {
-                    setAuditMode(PRONUNCIATION_TONE_MODE);
-                    setIssueType(modeIssueTypes(PRONUNCIATION_TONE_MODE)[0]);
-                  }}
-                >
-                  Pronunciation + Tone
-                </button>
-                <button
-                  type="button"
-                  className={auditMode === TIMING_TRANSCRIPTION_MODE ? "active" : ""}
-                  disabled={modeDisabled(TIMING_TRANSCRIPTION_MODE)}
-                  onClick={() => {
-                    setAuditMode(TIMING_TRANSCRIPTION_MODE);
-                    setIssueType(modeIssueTypes(TIMING_TRANSCRIPTION_MODE)[0]);
-                  }}
-                >
-                  Latency + Barge-in + Transcription
-                </button>
-              </div>
-            </label>
+            <div className="single-mode-pill">Combined audit</div>
             <button className="primary" type="submit">Start reviewing</button>
           </form>
         </section>
@@ -487,31 +438,7 @@ export default function Page() {
               <button className="ghost" onClick={() => setLoginVisible(true)}>Switch</button>
             </div>
           </div>
-          <div className="queue-tabs mode-tabs" role="tablist" aria-label="Audit mode">
-            <button
-              type="button"
-              className={auditMode === RESPONSE_VIBE_MODE ? "active" : ""}
-              onClick={() => switchMode(RESPONSE_VIBE_MODE)}
-            >
-              Overall vibe
-            </button>
-            <button
-              type="button"
-              className={auditMode === PRONUNCIATION_TONE_MODE ? "active" : ""}
-              disabled={modeDisabled(PRONUNCIATION_TONE_MODE)}
-              onClick={() => switchMode(PRONUNCIATION_TONE_MODE)}
-            >
-              Pronunciation + Tone
-            </button>
-            <button
-              type="button"
-              className={auditMode === TIMING_TRANSCRIPTION_MODE ? "active" : ""}
-              disabled={modeDisabled(TIMING_TRANSCRIPTION_MODE)}
-              onClick={() => switchMode(TIMING_TRANSCRIPTION_MODE)}
-            >
-              Latency + Barge-in + Transcription
-            </button>
-          </div>
+          <div className="single-mode-pill sidebar-mode">Combined audit</div>
           <div className="import-actions">
             <button className="ghost" onClick={importSheets} disabled={importingCalls}>
               {importingCalls ? "Importing..." : "Import calls"}
