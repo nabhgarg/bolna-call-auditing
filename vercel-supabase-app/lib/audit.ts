@@ -20,6 +20,7 @@ export type ReviewRow = {
   id: number;
   call_id: string;
   reviewer_name?: string | null;
+  reviewer_email?: string | null;
   review_mode?: string | null;
   vibe_score?: string | null;
   flow_score?: string | null;
@@ -41,6 +42,7 @@ export const PRONUNCIATION_TONE_REVIEW_EXPORT_COLUMNS = [
   "call_duration_sec",
   "call_created_at_ist",
   "reviewer_name",
+  "reviewer_email",
   "review_mode",
   "issue_type",
   "issue_timestamp",
@@ -70,6 +72,7 @@ export const TIMING_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS = [
   "call_duration_sec",
   "call_created_at_ist",
   "reviewer_name",
+  "reviewer_email",
   "review_mode",
   "issue_type",
   "issue_timestamp",
@@ -98,6 +101,7 @@ export const RESPONSE_VIBE_REVIEW_EXPORT_COLUMNS = [
   "call_duration_sec",
   "call_created_at_ist",
   "reviewer_name",
+  "reviewer_email",
   "review_mode",
   "vibe_score",
   "vibe_score_reason",
@@ -246,6 +250,7 @@ export function exportRowsFromReviews(reviews: ReviewRow[], mode?: string | null
         call_duration_sec: call.duration_sec || "",
         call_created_at_ist: call.created_at_ist || "",
         reviewer_name: review.reviewer_name || "",
+        reviewer_email: review.reviewer_email || "",
         review_mode: review.review_mode || "",
         vibe_score: review.vibe_score || "",
         vibe_score_reason: review.notes || "",
