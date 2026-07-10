@@ -70,6 +70,43 @@ export async function importCallsFromSheets(auditMode = "pronunciation_tone") {
   };
 }
 
+// Reads the optional "Reviewers" tab (columns: email, name, role, active) so the
+// login allowlist can be managed from the spreadsheet instead of SQL.
+export async function importReviewersFromSheets() {
+  const result = await postToSheets({ action: "readCalls", sheet_name: "Reviewers" });
+  if (!result.ok) {
+    return { ok: false as const, found: false, error: result.error, reviewers: [] };
+  }
+  // The Apps Script falls back to the default Calls sheet when the requested tab
+  // is missing; only trust the payload if the Reviewers tab itself came back.
+  const sheetName = String((result.data as Record<string, unknown>)?.sheet_name || "");
+  if (sheetName !== "Reviewers") {
+    return { ok: true as const, found: false, reviewers: [] };
+  }
+
+  const rows = Array.isArray((result.data as Record<string, unknown>)?.calls)
+    ? ((result.data as Record<string, unknown>).calls as Array<Record<string, unknown>>)
+    : [];
+  const reviewers = rows
+    .map((row) => {
+      const normalized: Record<string, string> = {};
+      for (const [key, value] of Object.entries(row)) {
+        const header = key.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+        normalized[header] = String(value ?? "").trim();
+      }
+      const email = (normalized.email || normalized.email_id || normalized.reviewer_email || "").toLowerCase();
+      if (!email || !email.includes("@")) return null;
+      const displayName = normalized.display_name || normalized.name || normalized.reviewer_name || email;
+      const role = (normalized.role || "scorer").toLowerCase();
+      const activeRaw = (normalized.active || normalized.is_active || "yes").toLowerCase();
+      const isActive = !["no", "false", "0", "inactive"].includes(activeRaw);
+      return { email, display_name: displayName, role, is_active: isActive };
+    })
+    .filter((row): row is NonNullable<typeof row> => Boolean(row));
+
+  return { ok: true as const, found: true, reviewers };
+}
+
 export async function syncReviewsToSheets(reviews: ReviewRow[]) {
   if (!reviews.length) {
     return { ok: true, configured: true, synced_reviews: 0, rows: 0 };
