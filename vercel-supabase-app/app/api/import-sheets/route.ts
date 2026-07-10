@@ -1,6 +1,24 @@
 import { NextResponse } from "next/server";
-import { importCallsFromSheets } from "../../../lib/sheetsSync";
+import { importCallsFromSheets, importReviewersFromSheets } from "../../../lib/sheetsSync";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+
+async function syncReviewersFromSheet(supabase: ReturnType<typeof supabaseAdmin>) {
+  try {
+    const result = await importReviewersFromSheets();
+    if (!result.ok || !result.found || !result.reviewers.length) {
+      return { synced: 0, found: result.found ?? false };
+    }
+    const { error } = await supabase
+      .from("reviewers")
+      .upsert(result.reviewers, { onConflict: "email" });
+    if (error) {
+      return { synced: 0, found: true, error: error.message };
+    }
+    return { synced: result.reviewers.length, found: true };
+  } catch (error) {
+    return { synced: 0, found: false, error: (error as Error).message };
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -45,12 +63,13 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: result.configured === false ? 400 : 502 });
   }
 
+  const supabase = supabaseAdmin();
+  const reviewerSync = await syncReviewersFromSheet(supabase);
+
   const rows = result.calls || [];
   if (!rows.length) {
-    return NextResponse.json({ ok: true, imported: 0, sheet_rows: result.imported_rows });
+    return NextResponse.json({ ok: true, imported: 0, sheet_rows: result.imported_rows, reviewers_synced: reviewerSync.synced });
   }
-
-  const supabase = supabaseAdmin();
   const mode = String(result.audit_mode || "pronunciation_tone");
   const archivedMode = `${mode}__archived`;
   const callRows = dedupeByCallId(rows).map(({ audit_mode, queue_id, ...row }: any) => row);
@@ -118,6 +137,8 @@ export async function POST(request: Request) {
     imported: queueRows.length,
     skipped_duplicate_rows: duplicateRows,
     sheet_name: result.sheet_name,
-    sheet_rows: result.imported_rows
+    sheet_rows: result.imported_rows,
+    reviewers_synced: reviewerSync.synced,
+    reviewers_sync_error: reviewerSync.error || null
   });
 }
