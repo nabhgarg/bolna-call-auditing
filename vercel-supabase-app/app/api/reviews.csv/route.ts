@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const supabase = supabaseAdmin();
   const url = new URL(request.url);
   const mode = url.searchParams.get("mode") || url.searchParams.get("review_mode");
+  const reviewer = String(url.searchParams.get("reviewer") || "").trim().toLowerCase();
   let query = supabase
     .from("reviews")
     .select("*, calls(*)")
@@ -17,6 +18,9 @@ export async function GET(request: Request) {
   if (mode) {
     query = query.eq("review_mode", normalizeReviewMode(mode));
   }
+  if (reviewer) {
+    query = query.eq("reviewer_email", reviewer);
+  }
 
   const { data, error } = await query;
 
@@ -25,7 +29,8 @@ export async function GET(request: Request) {
   }
 
   const exportMode = normalizeReviewMode(mode);
-  const suffix = mode ? `_${exportMode}` : "";
+  const reviewerSlug = reviewer ? `_${reviewer.split("@")[0].replace(/[^a-z0-9]+/g, "_")}` : "";
+  const suffix = `${mode ? `_${exportMode}` : ""}${reviewerSlug}`;
   const csv = toCsv(
     exportRowsFromReviews((data || []) as ReviewRow[], exportMode),
     REVIEW_EXPORT_COLUMNS_BY_MODE[exportMode]
