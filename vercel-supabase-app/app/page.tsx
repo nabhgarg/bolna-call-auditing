@@ -83,29 +83,6 @@ const requiredIssueFields: Record<string, string[]> = {
   transcription: ["transcription_error_type"]
 };
 
-const overallVibeGuide = [
-  {
-    score: "4",
-    title: "Clean call",
-    description: "No issues."
-  },
-  {
-    score: "3",
-    title: "Mostly okay",
-    description: "Minor issues only."
-  },
-  {
-    score: "2",
-    title: "Noticeably broken",
-    description: "Clear issues hurt the call."
-  },
-  {
-    score: "1",
-    title: "Major failure",
-    description: "Call is unusable or badly handled."
-  }
-];
-
 function modeLabel(mode: AuditMode) {
   return mode === RESPONSE_VIBE_MODE ? "Combined audit" : "Combined audit";
 }
@@ -574,48 +551,6 @@ export default function Page() {
                 }}>Next</button>
               </div>
 
-              {auditMode === RESPONSE_VIBE_MODE && (
-                <section className="vibe-calibration">
-                  <div className="panel-title small">
-                    <h3>Overall vibe score</h3>
-                    <span>Score first</span>
-                  </div>
-                  <p className="helper-copy">
-                    Give one overall rating for the call, then add a short remark explaining what drove the score.
-                  </p>
-                  <div className={`rating-card vibe-card ${!vibeScore || !vibeReason.trim() ? "missing" : ""}`}>
-                    <label className={!vibeScore ? "field-missing" : ""}>
-                      Overall rating
-                      <select value={vibeScore} onChange={(event) => setVibeScore(event.target.value)}>
-                        <option value="">Not rated</option>
-                        <option value="1">1 - Major failure</option>
-                        <option value="2">2 - Noticeably broken</option>
-                        <option value="3">3 - Mostly okay</option>
-                        <option value="4">4 - Clean call</option>
-                      </select>
-                    </label>
-                    <label className={!vibeReason.trim() ? "field-missing" : ""}>
-                      Remark
-                      <textarea
-                        value={vibeReason}
-                        onChange={(event) => setVibeReason(event.target.value)}
-                        rows={3}
-                        placeholder="One line: what drove this score?"
-                      />
-                    </label>
-                  </div>
-                  <div className="score-guide" aria-label="Overall vibe scoring guide">
-                    {overallVibeGuide.map((item) => (
-                      <div className="guide-card" key={item.score}>
-                        <strong>{item.score}</strong>
-                        <span>{item.title}</span>
-                        <p>{item.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
               {modeIssueTypes(auditMode).length > 0 && (
                 <>
                   <div className="quick-flags">
@@ -686,6 +621,39 @@ export default function Page() {
                     </div>
                   </section>
                 </>
+              )}
+
+              {auditMode === RESPONSE_VIBE_MODE && (
+                <section className="vibe-calibration">
+                  <div className="panel-title small">
+                    <h3>Overall vibe score</h3>
+                    <span>1-4</span>
+                  </div>
+                  <p className="helper-copy">
+                    Give one overall rating for the call, then add a short remark explaining what drove the score.
+                  </p>
+                  <div className={`rating-card vibe-card ${!vibeScore || !vibeReason.trim() ? "missing" : ""}`}>
+                    <label className={!vibeScore ? "field-missing" : ""}>
+                      Overall rating
+                      <select value={vibeScore} onChange={(event) => setVibeScore(event.target.value)}>
+                        <option value="">Not rated</option>
+                        <option value="1">1 - Major failure</option>
+                        <option value="2">2 - Noticeably broken</option>
+                        <option value="3">3 - Mostly okay</option>
+                        <option value="4">4 - Clean call</option>
+                      </select>
+                    </label>
+                    <label className={!vibeReason.trim() ? "field-missing" : ""}>
+                      Remark
+                      <textarea
+                        value={vibeReason}
+                        onChange={(event) => setVibeReason(event.target.value)}
+                        rows={3}
+                        placeholder="One line: what drove this score?"
+                      />
+                    </label>
+                  </div>
+                </section>
               )}
 
               {auditMode !== RESPONSE_VIBE_MODE && (
