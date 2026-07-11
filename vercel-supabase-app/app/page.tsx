@@ -28,11 +28,11 @@ type Issue = Record<string, string>;
 type MetricRating = { rating: string; reason: string };
 type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe";
 const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
-const combinedIssueTypes = ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness", "transcription"];
+const combinedIssueTypes = ["pronunciation", "latency", "response_appropriateness", "transcription"];
 const ratingMetricsByMode: Record<AuditMode, string[]> = {
   pronunciation_tone: ["pronunciation", "tone"],
   timing_transcription: ["barge_in", "latency"],
-  response_vibe: ["pronunciation", "tone", "barge_in", "latency", "response_appropriateness", "overall"]
+  response_vibe: []
 };
 
 const issueLabels: Record<string, string> = {
@@ -47,8 +47,6 @@ const issueLabels: Record<string, string> = {
 
 const issueConfigs: Record<string, Array<[string, string, "text" | "select", string[]?]>> = {
   pronunciation: [
-    ["correct_form", "Correct form", "text"],
-    ["word_heard", "Word heard", "text"],
     ["content_tag", "Content tag", "select", ["General", "City", "Proper Noun"]],
     ["notes", "Notes", "text"]
   ],
@@ -81,8 +79,6 @@ const emptyMetricRatings = () => Object.fromEntries(
 ) as Record<string, MetricRating>;
 
 const requiredIssueFields: Record<string, string[]> = {
-  pronunciation: ["word_heard"],
-  tone: ["tag"],
   response_appropriateness: ["response_error_type", "error_explanation"],
   transcription: ["transcription_error_type"]
 };
