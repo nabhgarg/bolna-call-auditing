@@ -699,7 +699,7 @@ export default function Page() {
               )}
 
               <div className="submit-row">
-                <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(auditMode)}`}>Export CSV</a>
+                <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(auditMode)}&reviewer=${encodeURIComponent(reviewerEmail)}`}>Download my reviews</a>
                 <button className="ghost" type="button" onClick={syncSheets}>Sync Sheets</button>
                 <button className="primary" type="button" onClick={submitReview} disabled={submittingReview || currentCallSubmitted}>
                   {submittingReview ? "Submitting..." : currentCallSubmitted ? "Submitted" : "Submit Review"}
