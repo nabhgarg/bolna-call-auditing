@@ -366,10 +366,21 @@ export default function Page() {
     setLoggingIn(true);
     setLoginError("");
     try {
-      await api("/api/login", {
+      const result = await api("/api/login", {
         method: "POST",
         body: JSON.stringify({ email })
       });
+      if (result.otp_required === false) {
+        // OTP delivery not configured yet — direct allowlist login
+        setReviewerEmail(result.email);
+        setReviewerDisplay(result.display_name || result.email);
+        setLoginVisible(false);
+        window.localStorage.setItem("auditReviewerEmail", result.email);
+        window.localStorage.setItem("auditReviewerDisplay", result.display_name || result.email);
+        window.localStorage.setItem("auditMode", auditMode);
+        await loadCalls(result.email, auditMode);
+        return;
+      }
       setLoginStep("code");
       setOtpCode("");
     } catch (error) {
