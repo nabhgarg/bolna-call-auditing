@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { currentOtp } from "../../../lib/otp";
 import { sendOtpEmail } from "../../../lib/sheetsSync";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
@@ -28,41 +29,16 @@ export async function POST(request: Request) {
     );
   }
 
-  // Fallback profile response used while OTP infra (table / email sender) is not ready:
-  // behaves like the pre-OTP allowlist login so reviewers are never locked out.
-  const directLogin = () => NextResponse.json({
-    otp_required: false,
-    email: data.email,
-    display_name: data.display_name,
-    role: data.role || "reviewer"
-  });
-
-  // simple resend throttle: refuse if a code was created in the last 60s
-  const { data: recent, error: recentError } = await supabase
-    .from("login_otps")
-    .select("created_at")
-    .eq("email", email)
-    .gt("created_at", new Date(Date.now() - 60_000).toISOString())
-    .limit(1);
-  if (recentError) {
-    return directLogin(); // table missing — OTP not set up yet
-  }
-  if (recent && recent.length) {
-    return NextResponse.json({ ok: true, otp_required: true, note: "Code already sent — check your inbox." });
-  }
-
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
-  const { error: insertError } = await supabase
-    .from("login_otps")
-    .insert({ email, code, expires_at: expiresAt });
-  if (insertError) {
-    return directLogin();
-  }
-
-  const sent = await sendOtpEmail(email, code);
+  const sent = await sendOtpEmail(email, currentOtp(email));
   if (!sent.ok) {
-    return directLogin(); // Apps Script sendOtp not deployed yet
+    // Email delivery unavailable — fall back to direct allowlist login so
+    // reviewers are never locked out by an email outage.
+    return NextResponse.json({
+      otp_required: false,
+      email: data.email,
+      display_name: data.display_name,
+      role: data.role || "reviewer"
+    });
   }
 
   return NextResponse.json({ ok: true, otp_required: true });
