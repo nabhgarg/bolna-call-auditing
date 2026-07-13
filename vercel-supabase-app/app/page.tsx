@@ -327,33 +327,71 @@ export default function Page() {
       const seg1 = segs(tracks[1]);
       const talk = (ss: Array<[number, number]>) => ss.reduce((a, s) => a + (s[1] - s[0]), 0);
       const agentFirst = talk(seg0) >= talk(seg1);
-      const bySpeaker: Record<string, Array<[number, number]>> = {
-        assistant: (agentFirst ? seg0 : seg1).slice(),
-        user: (agentFirst ? seg1 : seg0).slice()
-      };
 
-      // align transcript turn order with segment order
-      const ptr: Record<string, number> = { assistant: 0, user: 0 };
-      const times: Record<number, number> = {};
-      let lastEnd = 0;
-      for (const turn of call.turns) {
-        const role = turn.role === "assistant" ? "assistant" : "user";
-        const s = bySpeaker[role];
-        let i = ptr[role];
-        while (i < s.length && s[i][1] <= lastEnd - 1.0) i += 1;
-        if (i >= s.length) continue;
-        const start = s[i][0];
-        let end = s[i][1];
-        const otherRole = role === "assistant" ? "user" : "assistant";
-        const other = bySpeaker[otherRole];
-        const nextOther = ptr[otherRole] < other.length ? other[ptr[otherRole]][0] : Infinity;
-        let j = i + 1;
-        while (j < s.length && s[j][0] < nextOther) { end = s[j][1]; j += 1; }
-        ptr[role] = j;
-        times[(turn as any).i ?? call.turns.indexOf(turn)] = start;
-        lastEnd = end;
+      // one chronological list of speech segments with speaker labels
+      type Seg = { start: number; end: number; role: string };
+      const allSegs: Seg[] = [
+        ...(agentFirst ? seg0 : seg1).map(([s, e]) => ({ start: s, end: e, role: "assistant" })),
+        ...(agentFirst ? seg1 : seg0).map(([s, e]) => ({ start: s, end: e, role: "user" }))
+      ].sort((a, b) => a.start - b.start);
+
+      // DP sequence alignment: turns (by role) vs segments (by speaker).
+      // Moves: match turn↔segment, extend a turn across another same-role segment,
+      // skip a noise segment, or skip an unalignable turn.
+      const roles = call.turns.map((t) => (t.role === "assistant" ? "assistant" : "user"));
+      const T = roles.length, S = allSegs.length;
+      const SKIP_SEG = 0.6, SKIP_TURN = 1.0;
+      const INF = 1e9;
+      const dp: number[][] = Array.from({ length: T + 1 }, () => Array(S + 1).fill(INF));
+      const back: number[][] = Array.from({ length: T + 1 }, () => Array(S + 1).fill(0)); // 1=match,2=extend,3=skipSeg,4=skipTurn
+      dp[0][0] = 0;
+      for (let i = 0; i <= T; i++) {
+        for (let j = 0; j <= S; j++) {
+          const cur = dp[i][j];
+          if (cur >= INF) continue;
+          if (i < T && j < S && roles[i] === allSegs[j].role && cur < dp[i + 1][j + 1]) {
+            dp[i + 1][j + 1] = cur; back[i + 1][j + 1] = 1;
+          }
+          if (i > 0 && j < S && roles[i - 1] === allSegs[j].role && cur < dp[i][j + 1]) {
+            dp[i][j + 1] = cur; back[i][j + 1] = 2;
+          }
+          if (j < S && cur + SKIP_SEG < dp[i][j + 1] ) {
+            if (back[i][j + 1] !== 2 || cur + SKIP_SEG < dp[i][j + 1]) {
+              dp[i][j + 1] = cur + SKIP_SEG; back[i][j + 1] = 3;
+            }
+          }
+          if (i < T && cur + SKIP_TURN < dp[i + 1][j]) {
+            dp[i + 1][j] = cur + SKIP_TURN; back[i + 1][j] = 4;
+          }
+        }
       }
-      setTurnTimes(times);
+      // backtrack: record the FIRST segment matched to each turn
+      const times: Record<number, number> = {};
+      let bi = T, bj = S;
+      while (bi > 0 || bj > 0) {
+        const move = back[bi][bj];
+        if (move === 1) { times[bi - 1] = allSegs[bj - 1].start; bi -= 1; bj -= 1; }
+        else if (move === 2 || move === 3) { bj -= 1; }
+        else if (move === 4) { bi -= 1; }
+        else break;
+      }
+
+      // fill unmatched turns by interpolation, then enforce monotonic order
+      const filled: number[] = new Array(T).fill(-1);
+      for (let i = 0; i < T; i++) if (times[i] !== undefined) filled[i] = times[i];
+      for (let i = 0; i < T; i++) {
+        if (filled[i] >= 0) continue;
+        let prev = i - 1; while (prev >= 0 && filled[prev] < 0) prev -= 1;
+        let next = i + 1; while (next < T && filled[next] < 0) next += 1;
+        const pv = prev >= 0 ? filled[prev] : 0;
+        const nv = next < T ? filled[next] : duration;
+        const span = Math.max(next - prev, 1);
+        filled[i] = pv + ((i - prev) / span) * (nv - pv);
+      }
+      for (let i = 1; i < T; i++) if (filled[i] < filled[i - 1]) filled[i] = filled[i - 1];
+      const finalTimes: Record<number, number> = {};
+      for (let i = 0; i < T; i++) finalTimes[i] = Math.max(0, Math.min(filled[i], duration));
+      setTurnTimes(finalTimes);
     } catch {
       // analysis is best-effort; player still works without it
     }
