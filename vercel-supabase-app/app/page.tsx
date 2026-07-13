@@ -28,7 +28,7 @@ type Issue = Record<string, string>;
 type MetricRating = { rating: string; reason: string };
 type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe";
 const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
-const combinedIssueTypes = ["pronunciation", "latency", "response_appropriateness", "transcription"];
+const combinedIssueTypes = ["transcription", "response_appropriateness", "pronunciation"];
 const ratingMetricsByMode: Record<AuditMode, string[]> = {
   pronunciation_tone: ["pronunciation", "tone"],
   timing_transcription: ["barge_in", "latency"],
@@ -48,29 +48,15 @@ const issueLabels: Record<string, string> = {
 const issueConfigs: Record<string, Array<[string, string, "text" | "select", string[]?]>> = {
   pronunciation: [
     ["content_tag", "Content tag", "select", ["General", "City", "Proper Noun"]],
-    ["notes", "Notes", "text"]
-  ],
-  tone: [
-    ["tag", "Tag", "select", ["Too robotic", "Wrong emotion", "Too fast", "Too slow", "Other"]],
-    ["notes", "Notes", "text"]
-  ],
-  barge_in: [
-    ["notes", "Notes", "text"]
-  ],
-  latency: [
-    ["reaction", "User reaction", "select", ["None - call continued", "Spoke again unprompted", "Said hello / are you there", "Expressed frustration", "Call ended"]],
-    ["notes", "Notes", "text"]
+    ["word_heard", "Word mispronounced", "text"]
   ],
   response_appropriateness: [
-    ["response_error_type", "Type of error", "select", ["Irrelevant response", "Agent stuck in loop/same info captured repeatedly", "Context not carried through", "Factual Inaccuracy/Hallucination", "Rule Navigation/Instruction Conflict", "Others"]],
+    ["response_error_type", "Type of error", "select", ["Irrelevant response", "Agent repeating same thing / stuck in loop", "Context not carried through", "Language switch", "Others"]],
     ["error_explanation", "Explain the error", "text"]
   ],
   transcription: [
     ["transcription_error_type", "Type of transcription error", "select", ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"]],
-    ["audio_unclear", "Audio unclear", "select", ["No", "Yes"]],
-    ["audio_said", "What was said in audio", "text"],
-    ["transcripted", "What was transcripted", "text"],
-    ["content_tag", "Type of transcription content", "select", ["General", "City", "Proper Noun"]]
+    ["audio_unclear", "Audio unclear", "select", ["No", "Yes"]]
   ]
 };
 
@@ -79,6 +65,7 @@ const emptyMetricRatings = () => Object.fromEntries(
 ) as Record<string, MetricRating>;
 
 const requiredIssueFields: Record<string, string[]> = {
+  pronunciation: ["word_heard"],
   response_appropriateness: ["response_error_type", "error_explanation"],
   transcription: ["transcription_error_type"]
 };
@@ -122,11 +109,16 @@ export default function Page() {
   const [loginError, setLoginError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
   const [loginVisible, setLoginVisible] = useState(true);
+  const [loginStep, setLoginStep] = useState<"email" | "code">("email");
+  const [otpCode, setOtpCode] = useState("");
   const [auditMode, setAuditMode] = useState<AuditMode>(RESPONSE_VIBE_MODE);
-  const [search, setSearch] = useState("");
-  const [clientFilter, setClientFilter] = useState("");
-  const [agentFilter, setAgentFilter] = useState("");
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
+  const waveCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [waveform, setWaveform] = useState<{ peaks: number[][]; duration: number } | null>(null);
+  const [turnTimes, setTurnTimes] = useState<Record<number, number> | null>(null);
+  const [playheadSec, setPlayheadSec] = useState(0);
+  const [transcriptionTurn, setTranscriptionTurn] = useState("");
+  const [audioSaid, setAudioSaid] = useState("");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
   const [issueType, setIssueType] = useState(combinedIssueTypes[0]);
@@ -159,6 +151,34 @@ export default function Page() {
     }
   }, []);
 
+  // Draw waveform: agent channel up (green), user channel down (blue), playhead line
+  useEffect(() => {
+    const canvas = waveCanvasRef.current;
+    if (!canvas || !waveform) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const { peaks, duration } = waveform;
+    const W = canvas.width, H = canvas.height, mid = H / 2;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#e6ebe9";
+    ctx.fillRect(0, mid - 0.5, W, 1);
+    const bars = peaks[0].length;
+    const bw = W / bars;
+    for (let i = 0; i < bars; i++) {
+      const up = (peaks[0][i] || 0) * (mid - 2);
+      const down = (peaks[1]?.[i] || 0) * (mid - 2);
+      ctx.fillStyle = "#1f7a5c";
+      ctx.fillRect(i * bw, mid - up, Math.max(bw - 0.5, 0.5), up);
+      ctx.fillStyle = "#5b8def";
+      ctx.fillRect(i * bw, mid, Math.max(bw - 0.5, 0.5), down);
+    }
+    if (duration > 0) {
+      const x = (playheadSec / duration) * W;
+      ctx.fillStyle = "#d64545";
+      ctx.fillRect(x - 1, 0, 2, H);
+    }
+  }, [waveform, playheadSec]);
+
   async function api(path: string, options?: RequestInit) {
     const response = await fetch(path, {
       cache: "no-store",
@@ -177,22 +197,15 @@ export default function Page() {
     setCalls(payload.calls || []);
   }
 
-  const clients = useMemo(() => [...new Set(calls.map((call) => call.org_name).filter(Boolean))].sort() as string[], [calls]);
-  const agents = useMemo(() => [...new Set(calls.map((call) => call.agent_name).filter(Boolean))].sort() as string[], [calls]);
-
   const filteredCalls = useMemo(() => {
-    const query = search.trim().toLowerCase();
     return calls
       .filter((call) => {
         if (queueView === "pending" && call.reviewed) return false;
         if (queueView === "submitted" && !call.reviewed) return false;
-        if (clientFilter && call.org_name !== clientFilter) return false;
-        if (agentFilter && call.agent_name !== agentFilter) return false;
-        if (!query) return true;
-        return call.execution_id.toLowerCase().includes(query);
+        return true;
       })
       .sort((a, b) => a.execution_id.localeCompare(b.execution_id));
-  }, [agentFilter, calls, clientFilter, queueView, search]);
+  }, [calls, queueView]);
   const reviewedCount = calls.filter((call) => call.reviewed).length;
   const pendingCount = calls.length - reviewedCount;
   const currentCallSummary = currentCall
@@ -232,18 +245,151 @@ export default function Page() {
     setStartedAt(new Date().toISOString());
     setNotes("");
     setSubmittedCallId("");
+    setTranscriptionTurn("");
+    setAudioSaid("");
+    setWaveform(null);
+    setTurnTimes(null);
+    setPlayheadSec(0);
+    void analyzeAudio(call);
   }
 
-  async function startSession(event: FormEvent) {
+  // Decode the recording in-browser: waveform peaks per channel + exact turn timestamps
+  // (Bolna recordings are stereo with agent/user on separate channels).
+  async function analyzeAudio(call: CallDetail) {
+    try {
+      if (!call.recording_url || !call.turns?.length) return;
+      const res = await fetch(`/api/audio?url=${encodeURIComponent(call.recording_url)}`);
+      if (!res.ok) return;
+      const buf = await res.arrayBuffer();
+      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new Ctx();
+      const decoded = await ctx.decodeAudioData(buf);
+      void ctx.close();
+      const duration = decoded.duration;
+      const chs = decoded.numberOfChannels;
+      const data = [decoded.getChannelData(0), chs > 1 ? decoded.getChannelData(1) : decoded.getChannelData(0)];
+
+      // 100ms RMS activity tracks per channel
+      const win = Math.max(1, Math.floor(decoded.sampleRate * 0.1));
+      const n = Math.floor(data[0].length / win);
+      const rms = (ch: Float32Array) => {
+        const out = new Float32Array(n);
+        let max = 0;
+        for (let i = 0; i < n; i++) {
+          let s = 0;
+          for (let j = i * win; j < (i + 1) * win; j++) s += ch[j] * ch[j];
+          out[i] = Math.sqrt(s / win);
+          if (out[i] > max) max = out[i];
+        }
+        if (max > 0) for (let i = 0; i < n; i++) out[i] /= max;
+        return out;
+      };
+      const tracks = [rms(data[0]), rms(data[1])];
+
+      // waveform peaks for drawing: ~700 buckets per channel
+      const buckets = 700;
+      const per = Math.max(1, Math.floor(n / buckets));
+      const peaks = tracks.map((t) => {
+        const p: number[] = [];
+        for (let i = 0; i + per <= n; i += per) {
+          let m = 0;
+          for (let j = i; j < i + per; j++) if (t[j] > m) m = t[j];
+          p.push(Math.round(m * 100) / 100);
+        }
+        return p;
+      });
+      setWaveform({ peaks, duration });
+
+      // channels split? if correlated, skip turn alignment (mono/duplicated mix)
+      let dot = 0, m0 = 0, m1 = 0;
+      for (let i = 0; i < n; i++) { dot += tracks[0][i] * tracks[1][i]; m0 += tracks[0][i] ** 2; m1 += tracks[1][i] ** 2; }
+      const corr = dot / (Math.sqrt(m0 * m1) || 1);
+      if (chs < 2 || corr > 0.7) return;
+
+      // speech segments per channel
+      const segs = (t: Float32Array) => {
+        const out: Array<[number, number]> = [];
+        let start = -1;
+        for (let i = 0; i < n; i++) {
+          const v = t[i] > 0.05;
+          if (v && start < 0) start = i;
+          if (!v && start >= 0) { out.push([start * 0.1, i * 0.1]); start = -1; }
+        }
+        if (start >= 0) out.push([start * 0.1, n * 0.1]);
+        const merged: Array<[number, number]> = [];
+        for (const s of out) {
+          if (merged.length && s[0] - merged[merged.length - 1][1] < 0.5) merged[merged.length - 1][1] = s[1];
+          else merged.push([s[0], s[1]]);
+        }
+        return merged.filter((s) => s[1] - s[0] >= 0.25);
+      };
+      const seg0 = segs(tracks[0]);
+      const seg1 = segs(tracks[1]);
+      const talk = (ss: Array<[number, number]>) => ss.reduce((a, s) => a + (s[1] - s[0]), 0);
+      const agentFirst = talk(seg0) >= talk(seg1);
+      const bySpeaker: Record<string, Array<[number, number]>> = {
+        assistant: (agentFirst ? seg0 : seg1).slice(),
+        user: (agentFirst ? seg1 : seg0).slice()
+      };
+
+      // align transcript turn order with segment order
+      const ptr: Record<string, number> = { assistant: 0, user: 0 };
+      const times: Record<number, number> = {};
+      let lastEnd = 0;
+      for (const turn of call.turns) {
+        const role = turn.role === "assistant" ? "assistant" : "user";
+        const s = bySpeaker[role];
+        let i = ptr[role];
+        while (i < s.length && s[i][1] <= lastEnd - 1.0) i += 1;
+        if (i >= s.length) continue;
+        const start = s[i][0];
+        let end = s[i][1];
+        const otherRole = role === "assistant" ? "user" : "assistant";
+        const other = bySpeaker[otherRole];
+        const nextOther = ptr[otherRole] < other.length ? other[ptr[otherRole]][0] : Infinity;
+        let j = i + 1;
+        while (j < s.length && s[j][0] < nextOther) { end = s[j][1]; j += 1; }
+        ptr[role] = j;
+        times[(turn as any).i ?? call.turns.indexOf(turn)] = start;
+        lastEnd = end;
+      }
+      setTurnTimes(times);
+    } catch {
+      // analysis is best-effort; player still works without it
+    }
+  }
+
+  async function requestOtp(event: FormEvent) {
     event.preventDefault();
     const email = loginEmail.trim().toLowerCase();
     if (!email || loggingIn) return;
     setLoggingIn(true);
     setLoginError("");
     try {
-      const profile = await api("/api/login", {
+      await api("/api/login", {
         method: "POST",
         body: JSON.stringify({ email })
+      });
+      setLoginStep("code");
+      setOtpCode("");
+    } catch (error) {
+      setLoginError((error as Error).message);
+    } finally {
+      setLoggingIn(false);
+    }
+  }
+
+  async function verifyOtp(event: FormEvent) {
+    event.preventDefault();
+    const email = loginEmail.trim().toLowerCase();
+    const code = otpCode.trim();
+    if (!email || !code || loggingIn) return;
+    setLoggingIn(true);
+    setLoginError("");
+    try {
+      const profile = await api("/api/verify", {
+        method: "POST",
+        body: JSON.stringify({ email, code })
       });
       setReviewerEmail(profile.email);
       setReviewerDisplay(profile.display_name || profile.email);
@@ -266,6 +412,8 @@ export default function Page() {
     setReviewerDisplay("");
     setLoginEmail("");
     setLoginError("");
+    setLoginStep("email");
+    setOtpCode("");
     setCalls([]);
     setCurrentCall(null);
     setCurrentQueueId("");
@@ -273,6 +421,7 @@ export default function Page() {
   }
 
   function captureTimestamp() {
+    audioRef.current?.pause();
     const value = formatTime(audioRef.current?.currentTime || 0);
     setCapturedTime(value);
     setCurrentTime(value);
@@ -289,6 +438,21 @@ export default function Page() {
     for (const [key, value] of formData.entries()) {
       if (key !== "timestamp") issue[key] = String(value);
     }
+    if (issueType === "transcription") {
+      const turnIndex = Number(transcriptionTurn);
+      const turn = Number.isInteger(turnIndex) ? currentCall.turns?.[turnIndex] : undefined;
+      if (!turn) {
+        setMissingIssueFields(["turn"]);
+        return;
+      }
+      issue.turn_number = String(turnIndex + 1);
+      issue.transcripted = turn.text;
+      issue.audio_said = audioSaid;
+      if (!audioSaid.trim()) {
+        setMissingIssueFields(["audio_said"]);
+        return;
+      }
+    }
     const missing = (requiredIssueFields[issueType] || []).filter((field) => !String(issue[field] || "").trim());
     if (missing.length) {
       setMissingIssueFields(missing);
@@ -296,6 +460,10 @@ export default function Page() {
     }
     setMissingIssueFields([]);
     setIssues((existing) => [...existing, issue]);
+    if (issueType === "transcription") {
+      setTranscriptionTurn("");
+      setAudioSaid("");
+    }
   }
 
   function updateMetricRating(metric: string, key: keyof MetricRating, value: string) {
@@ -418,27 +586,56 @@ export default function Page() {
     <>
       {loginVisible && (
         <section className="login-screen">
-          <form className="login-card" onSubmit={startSession}>
+          <form className="login-card" onSubmit={loginStep === "email" ? requestOtp : verifyOtp}>
             <div>
               <h1>Call Audit</h1>
-              <p>Sign in with your email to see your assigned calls.</p>
+              <p>
+                {loginStep === "email"
+                  ? "Sign in with your email — we'll send you a one-time code."
+                  : `Enter the 6-digit code sent to ${loginEmail.trim().toLowerCase()}.`}
+              </p>
             </div>
-            <label>
-              Email
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={(event) => { setLoginEmail(event.target.value); setLoginError(""); }}
-                placeholder="you@company.com"
-                autoComplete="email"
-                required
-              />
-            </label>
+            {loginStep === "email" ? (
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(event) => { setLoginEmail(event.target.value); setLoginError(""); }}
+                  placeholder="you@company.com"
+                  autoComplete="email"
+                  required
+                />
+              </label>
+            ) : (
+              <label>
+                Verification code
+                <input
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(event) => { setOtpCode(event.target.value.replace(/\D/g, "")); setLoginError(""); }}
+                  placeholder="6-digit code"
+                  autoFocus
+                  required
+                />
+              </label>
+            )}
             {loginError && <p className="validation-message">{loginError}</p>}
-            <div className="single-mode-pill">Combined audit</div>
             <button className="primary" type="submit" disabled={loggingIn}>
-              {loggingIn ? "Checking..." : "Start reviewing"}
+              {loggingIn ? "Please wait..." : loginStep === "email" ? "Send code" : "Verify & start reviewing"}
             </button>
+            {loginStep === "code" && (
+              <button
+                className="ghost"
+                type="button"
+                disabled={loggingIn}
+                onClick={(event) => { setLoginStep("email"); setLoginError(""); }}
+              >
+                Use a different email / resend code
+              </button>
+            )}
           </form>
         </section>
       )}
@@ -462,9 +659,6 @@ export default function Page() {
           </div>
           {importStatus && <div className="import-status">{importStatus}</div>}
 
-          <div className="queue-toolbar">
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search call ID" />
-          </div>
           <div className="queue-tabs" role="tablist" aria-label="Review queue status">
             <button
               type="button"
@@ -480,22 +674,6 @@ export default function Page() {
             >
               Submitted <span>{reviewedCount}</span>
             </button>
-          </div>
-          <div className="queue-filters">
-            <label>
-              Client
-              <select value={clientFilter} onChange={(event) => setClientFilter(event.target.value)}>
-                <option value="">All clients</option>
-                {clients.map((client) => <option key={client} value={client}>{client}</option>)}
-              </select>
-            </label>
-            <label>
-              Agent
-              <select value={agentFilter} onChange={(event) => setAgentFilter(event.target.value)}>
-                <option value="">All agents</option>
-                {agents.map((agent) => <option key={agent} value={agent}>{agent}</option>)}
-              </select>
-            </label>
           </div>
           <div className="queue-stats">{pendingCount} pending · {reviewedCount} submitted · {calls.length} assigned</div>
           <nav className="call-list">
@@ -522,7 +700,32 @@ export default function Page() {
               <strong>{currentCall?.agent_name || "Select a call to start"}</strong>
               <span>{currentCall ? `Call ID ${currentCall.execution_id}` : ""}</span>
             </div>
-            <audio ref={audioRef} controls preload="metadata" src={currentCall?.recording_url || ""} onTimeUpdate={() => setCurrentTime(formatTime(audioRef.current?.currentTime || 0))} />
+            <audio
+              ref={audioRef}
+              controls
+              preload="metadata"
+              src={currentCall?.recording_url || ""}
+              onTimeUpdate={() => {
+                const t = audioRef.current?.currentTime || 0;
+                setCurrentTime(formatTime(t));
+                setPlayheadSec(t);
+              }}
+            />
+            {waveform && (
+              <canvas
+                ref={waveCanvasRef}
+                className="waveform"
+                width={1400}
+                height={96}
+                style={{ width: "100%", height: 48, cursor: "pointer", display: "block", borderRadius: 8, background: "#f2f5f4" }}
+                onClick={(event) => {
+                  if (!audioRef.current || !waveform) return;
+                  const rect = (event.target as HTMLCanvasElement).getBoundingClientRect();
+                  const frac = (event.clientX - rect.left) / rect.width;
+                  audioRef.current.currentTime = frac * waveform.duration;
+                }}
+              />
+            )}
             <div className="audio-actions">
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 5); }}>-5s</button>
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime += 5; }}>+5s</button>
@@ -601,6 +804,47 @@ export default function Page() {
                         );
                       })}
                     </div>
+
+                    {issueType === "transcription" && (
+                      <div className="dynamic-fields">
+                        <label className={missingIssueFields.includes("turn") ? "field-missing" : ""}>
+                          Turn with the error
+                          <select
+                            value={transcriptionTurn}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setTranscriptionTurn(value);
+                              const turn = currentCall?.turns?.[Number(value)];
+                              setAudioSaid(turn ? turn.text : "");
+                              setMissingIssueFields([]);
+                            }}
+                          >
+                            <option value="">Select the transcript turn</option>
+                            {(currentCall?.turns || []).map((turn, index) => (
+                              <option key={index} value={index}>
+                                {index + 1}. {turn.role}: {turn.text.slice(0, 60)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        {transcriptionTurn !== "" && (
+                          <>
+                            <label>
+                              What was transcripted (from transcript)
+                              <textarea value={currentCall?.turns?.[Number(transcriptionTurn)]?.text || ""} readOnly rows={2} />
+                            </label>
+                            <label className={missingIssueFields.includes("audio_said") ? "field-missing" : ""}>
+                              What was said in audio (edit to correct)
+                              <textarea
+                                value={audioSaid}
+                                onChange={(event) => setAudioSaid(event.target.value)}
+                                rows={2}
+                              />
+                            </label>
+                          </>
+                        )}
+                      </div>
+                    )}
                     {missingIssueFields.length > 0 && <p className="validation-message">Fill the highlighted required field before adding the issue.</p>}
                     <button className="primary" type="submit">Add Issue</button>
                   </form>
@@ -711,7 +955,10 @@ export default function Page() {
             <article className="transcript-panel">
               <div className="panel-title">
                 <h2>Transcript</h2>
-                <span>{currentCall?.turns?.length || 0} turns · click a turn to jump approximately</span>
+                <span>
+                  {currentCall?.turns?.length || 0} turns · click a turn to jump
+                  {turnTimes ? " (exact)" : " (approx)"}
+                </span>
               </div>
               <div className={`transcript ${currentCall ? "" : "empty-state"}`}>
                 {currentCall?.turns?.length ? (() => {
@@ -721,11 +968,16 @@ export default function Page() {
                   let cumulativeWords = 0;
 
                   return currentCall.turns.map((turn, index) => {
-                    const jumpTime = Math.floor((cumulativeWords / totalWords) * duration);
+                    const estimate = Math.floor((cumulativeWords / totalWords) * duration);
                     cumulativeWords += turnWordCounts[index] || 1;
+                    const exact = turnTimes?.[index];
+                    const jumpTime = exact !== undefined ? exact : estimate;
                     return (
                       <div className={`turn ${turn.role}`} key={`${turn.role}-${index}`} onClick={() => { if (audioRef.current) audioRef.current.currentTime = jumpTime; }}>
-                        <div className="turn-role"><span>{index + 1}. {turn.role}</span><span className="turn-time">~{formatTime(jumpTime)}</span></div>
+                        <div className="turn-role">
+                          <span>{index + 1}. {turn.role}</span>
+                          <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
+                        </div>
                         <div>{turn.text}</div>
                       </div>
                     );

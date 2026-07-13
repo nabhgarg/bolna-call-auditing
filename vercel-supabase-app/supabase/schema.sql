@@ -89,3 +89,13 @@ alter table public.reviews
   add column if not exists reviewer_email text;
 
 create index if not exists reviews_reviewer_email_idx on public.reviews(reviewer_email);
+
+create table if not exists public.login_otps (
+  id bigserial primary key,
+  email text not null,
+  code text not null,
+  expires_at timestamptz not null,
+  used boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists login_otps_email_idx on public.login_otps(email, created_at desc);

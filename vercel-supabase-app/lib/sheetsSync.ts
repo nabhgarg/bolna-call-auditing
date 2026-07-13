@@ -70,6 +70,16 @@ export async function importCallsFromSheets(auditMode = "pronunciation_tone") {
   };
 }
 
+// Sends a login OTP through the Apps Script webhook (MailApp on the sheet owner's
+// Gmail) so no separate email service is needed.
+export async function sendOtpEmail(email: string, code: string) {
+  const result = await postToSheets({ action: "sendOtp", email, code });
+  if (!result.ok) {
+    return { ok: false as const, error: result.error };
+  }
+  return { ok: true as const };
+}
+
 // Reads the optional "Reviewers" tab (columns: email, name, role, active) so the
 // login allowlist can be managed from the spreadsheet instead of SQL.
 export async function importReviewersFromSheets() {

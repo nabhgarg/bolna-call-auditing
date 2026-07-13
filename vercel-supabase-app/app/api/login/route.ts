@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sendOtpEmail } from "../../../lib/sheetsSync";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +28,33 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({
-    email: data.email,
-    display_name: data.display_name,
-    role: data.role || "scorer"
-  });
+  // simple resend throttle: refuse if a code was created in the last 60s
+  const { data: recent } = await supabase
+    .from("login_otps")
+    .select("created_at")
+    .eq("email", email)
+    .gt("created_at", new Date(Date.now() - 60_000).toISOString())
+    .limit(1);
+  if (recent && recent.length) {
+    return NextResponse.json({ ok: true, otp_sent: true, note: "Code already sent — check your inbox." });
+  }
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
+  const { error: insertError } = await supabase
+    .from("login_otps")
+    .insert({ email, code, expires_at: expiresAt });
+  if (insertError) {
+    return NextResponse.json({ error: insertError.message }, { status: 500 });
+  }
+
+  const sent = await sendOtpEmail(email, code);
+  if (!sent.ok) {
+    return NextResponse.json(
+      { error: `Could not send the code: ${sent.error || "email service unavailable"}` },
+      { status: 502 }
+    );
+  }
+
+  return NextResponse.json({ ok: true, otp_sent: true });
 }
