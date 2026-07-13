@@ -286,6 +286,21 @@ export default function Page() {
       };
       const tracks = [rms(data[0]), rms(data[1])];
 
+      // crosstalk suppression: where both channels are "active" simultaneously,
+      // the much quieter one is usually bleed from the other — mute it there
+      const TH = 0.05, DOM = 0.45;
+      const active: boolean[][] = [new Array(n), new Array(n)];
+      for (let i = 0; i < n; i++) {
+        let a0 = tracks[0][i] > TH;
+        let a1 = tracks[1][i] > TH;
+        if (a0 && a1) {
+          if (tracks[0][i] < DOM * tracks[1][i]) a0 = false;
+          else if (tracks[1][i] < DOM * tracks[0][i]) a1 = false;
+        }
+        active[0][i] = a0;
+        active[1][i] = a1;
+      }
+
       // waveform peaks for drawing: ~700 buckets per channel
       const buckets = 700;
       const per = Math.max(1, Math.floor(n / buckets));
@@ -306,12 +321,12 @@ export default function Page() {
       const corr = dot / (Math.sqrt(m0 * m1) || 1);
       if (chs < 2 || corr > 0.7) return;
 
-      // speech segments per channel
-      const segs = (t: Float32Array) => {
+      // speech segments per channel (from crosstalk-suppressed activity)
+      const segs = (act: boolean[]) => {
         const out: Array<[number, number]> = [];
         let start = -1;
         for (let i = 0; i < n; i++) {
-          const v = t[i] > 0.05;
+          const v = act[i];
           if (v && start < 0) start = i;
           if (!v && start >= 0) { out.push([start * 0.1, i * 0.1]); start = -1; }
         }
@@ -323,8 +338,8 @@ export default function Page() {
         }
         return merged.filter((s) => s[1] - s[0] >= 0.25);
       };
-      const seg0 = segs(tracks[0]);
-      const seg1 = segs(tracks[1]);
+      const seg0 = segs(active[0]);
+      const seg1 = segs(active[1]);
       const talk = (ss: Array<[number, number]>) => ss.reduce((a, s) => a + (s[1] - s[0]), 0);
       const agentFirst = talk(seg0) >= talk(seg1);
 
