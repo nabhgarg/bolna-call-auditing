@@ -1,8 +1,14 @@
 import { exportRowsFromReviews, normalizeReviewMode, REVIEW_EXPORT_COLUMNS_BY_MODE, ReviewRow } from "./audit";
 import { normalizeAuditMode, normalizeCallRows } from "./callImport";
 
+// Current sheet webhook (experts phase). Not a secret - it's a public Apps Script
+// endpoint. GOOGLE_SHEETS_WEBHOOK_OVERRIDE env var wins if set, so the sheet can be
+// swapped without a code change when needed.
+const SHEETS_WEBHOOK_URL =
+  "https://script.google.com/macros/s/AKfycbwPwK8GBClvQbI7vawfXFdfZBwyRumgfWx5Z6BLlbq1YJfXCc8OrnEP-if4qsvA-hEMQg/exec";
+
 function sheetsConfig() {
-  const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+  const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_OVERRIDE || SHEETS_WEBHOOK_URL;
   const secret = process.env.GOOGLE_SHEETS_WEBHOOK_SECRET || "";
   return { webhookUrl, secret };
 }
