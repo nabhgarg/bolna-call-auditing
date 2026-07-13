@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { verifyOtp } from "../../../lib/otp";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -11,27 +12,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Enter the 6-digit code from your email." }, { status: 400 });
   }
 
-  const supabase = supabaseAdmin();
-  const { data: otp, error } = await supabase
-    .from("login_otps")
-    .select("id,code,expires_at,used")
-    .eq("email", email)
-    .eq("code", code)
-    .eq("used", false)
-    .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  if (!otp) {
+  if (!verifyOtp(email, code)) {
     return NextResponse.json({ error: "Invalid or expired code. Try again or resend." }, { status: 401 });
   }
 
-  await supabase.from("login_otps").update({ used: true }).eq("id", otp.id);
-
+  const supabase = supabaseAdmin();
   const { data: reviewer } = await supabase
     .from("reviewers")
     .select("email,display_name,role,is_active")
