@@ -376,17 +376,48 @@ export default function Page() {
         else break;
       }
 
-      // fill unmatched turns by interpolation, then enforce monotonic order
-      const filled: number[] = new Array(T).fill(-1);
-      for (let i = 0; i < T; i++) if (times[i] !== undefined) filled[i] = times[i];
+      // Alignment is only trustworthy at speaker-change boundaries. Within a run of
+      // consecutive same-role turns, spread the turns across the run's time span in
+      // proportion to their text length (choppy audio segments make per-turn matches
+      // inside a run unreliable).
+      const words = (s: string) => Math.max(s.trim().split(/\s+/).filter(Boolean).length, 1);
+      type Run = { start: number; end: number };
+      const runs: Run[] = [];
       for (let i = 0; i < T; i++) {
-        if (filled[i] >= 0) continue;
-        let prev = i - 1; while (prev >= 0 && filled[prev] < 0) prev -= 1;
-        let next = i + 1; while (next < T && filled[next] < 0) next += 1;
-        const pv = prev >= 0 ? filled[prev] : 0;
-        const nv = next < T ? filled[next] : duration;
+        if (!runs.length || roles[i] !== roles[runs[runs.length - 1].start]) runs.push({ start: i, end: i });
+        else runs[runs.length - 1].end = i;
+      }
+      // anchor = earliest matched time within each run
+      const anchors: number[] = runs.map((r) => {
+        let a = -1;
+        for (let i = r.start; i <= r.end; i++) {
+          if (times[i] !== undefined && (a < 0 || times[i] < a)) a = times[i];
+        }
+        return a;
+      });
+      // interpolate missing anchors across run index
+      for (let r = 0; r < runs.length; r++) {
+        if (anchors[r] >= 0) continue;
+        let prev = r - 1; while (prev >= 0 && anchors[prev] < 0) prev -= 1;
+        let next = r + 1; while (next < runs.length && anchors[next] < 0) next += 1;
+        const pv = prev >= 0 ? anchors[prev] : 0;
+        const nv = next < runs.length ? anchors[next] : duration;
         const span = Math.max(next - prev, 1);
-        filled[i] = pv + ((i - prev) / span) * (nv - pv);
+        anchors[r] = pv + ((r - prev) / span) * (nv - pv);
+      }
+      for (let r = 1; r < runs.length; r++) if (anchors[r] < anchors[r - 1]) anchors[r] = anchors[r - 1];
+      // distribute turns inside each run by cumulative word share
+      const filled: number[] = new Array(T).fill(0);
+      for (let r = 0; r < runs.length; r++) {
+        const { start, end } = runs[r];
+        const runStart = anchors[r];
+        const runEnd = r + 1 < runs.length ? anchors[r + 1] : duration;
+        const total = call.turns.slice(start, end + 1).reduce((a, t) => a + words(t.text), 0);
+        let cum = 0;
+        for (let i = start; i <= end; i++) {
+          filled[i] = runStart + (cum / total) * Math.max(runEnd - runStart, 0);
+          cum += words(call.turns[i].text);
+        }
       }
       for (let i = 1; i < T; i++) if (filled[i] < filled[i - 1]) filled[i] = filled[i - 1];
       const finalTimes: Record<number, number> = {};
