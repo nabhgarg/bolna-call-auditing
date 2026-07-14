@@ -17,18 +17,19 @@ export async function POST(request: Request) {
   const reviewerEmail = String(payload.reviewer_email || "").trim().toLowerCase();
   const reviewMode = normalizeReviewMode(payload.review_mode || "");
 
-  // Replace any prior submission by this reviewer (matched by email or legacy name) for this call+mode.
+  // Replace any prior submission by this reviewer for this call+mode. RLS blocks
+  // deletes, so prior rows are voided by setting review_mode to "cleared".
   if (reviewerEmail) {
     await supabase
       .from("reviews")
-      .delete()
+      .update({ review_mode: "cleared" })
       .eq("call_id", callId)
       .eq("reviewer_email", reviewerEmail)
       .eq("review_mode", reviewMode);
   }
   await supabase
     .from("reviews")
-    .delete()
+    .update({ review_mode: "cleared" })
     .eq("call_id", callId)
     .eq("reviewer_name", reviewerName)
     .eq("review_mode", reviewMode);
