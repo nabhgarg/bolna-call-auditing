@@ -62,8 +62,7 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
   ],
   transcription: [
     ["transcription_error_type", "Type of transcription error", "select", ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"]],
-    ["audio_unclear", "Audio unclear", "select", ["No", "Yes"]],
-    ["audio_said", "What was said / missed in audio", "text"]
+    ["audio_unclear", "Audio unclear", "select", ["No", "Yes"]]
   ]
 };
 
@@ -74,7 +73,7 @@ const emptyMetricRatings = () => Object.fromEntries(
 const requiredIssueFields: Record<string, string[]> = {
   pronunciation: ["word_heard"],
   response_appropriateness: ["response_error_type", "error_explanation"],
-  transcription: ["transcription_error_type", "audio_said"]
+  transcription: ["transcription_error_type"]
 };
 
 function modeLabel(mode: AuditMode) {
