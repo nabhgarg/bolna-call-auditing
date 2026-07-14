@@ -1146,6 +1146,7 @@ export default function Page() {
                       <div key={`ins-${pos}`} style={{ textAlign: "center", margin: "-2px 0" }}>
                         <button
                           type="button"
+                          className="add-missing-btn"
                           onClick={() => { setInsertAt(pos); setInsertText(""); setInsertRole("user"); }}
                           title="Add speech missing from the transcript here"
                           style={{ border: "none", background: "transparent", color: "#9ab0a8", cursor: "pointer", fontSize: 12, padding: "0 6px", lineHeight: "16px" }}
@@ -1196,6 +1197,7 @@ export default function Page() {
                               {showIssues && (
                                 <button
                                   type="button"
+                                  className="turn-edit-btn"
                                   title="Correct this turn's transcription"
                                   onClick={(e) => { e.stopPropagation(); startEditTurn(index); }}
                                   style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 14, padding: 0 }}
