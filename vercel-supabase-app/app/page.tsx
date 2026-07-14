@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import React, { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type CallSummary = {
   queue_id?: string | null;
@@ -30,6 +30,10 @@ type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe"
 const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
 const combinedIssueTypes = ["transcription", "response_appropriateness", "pronunciation"];
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
+const RESPONSE_ERROR_SUBTYPES: Record<string, string[]> = {
+  "Repetition": ["Same info asked again", "Same response repeated"],
+  "Language issues": ["Switched language unprompted", "Responded in wrong language"]
+};
 const ratingMetricsByMode: Record<AuditMode, string[]> = {
   pronunciation_tone: ["pronunciation", "tone"],
   timing_transcription: ["barge_in", "latency"],
@@ -52,7 +56,7 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
     ["word_heard", "Word mispronounced", "text"]
   ],
   response_appropriateness: [
-    ["response_error_type", "Type of error", "select", ["Irrelevant response", "Agent repeating same thing / stuck in loop", "Context not carried through", "Language switch", "Others"]],
+    ["response_error_type", "Type of error", "select", ["Repetition", "Language issues", "User input capture issues", "Irrelevant response / others"]],
     ["error_explanation", "Explain the error", "text"]
   ],
   transcription: [
@@ -127,6 +131,7 @@ export default function Page() {
   const [editUnclear, setEditUnclear] = useState("No");
   const [insertAt, setInsertAt] = useState<number | null>(null); // insert AFTER this turn number (0 = before first)
   const [insertText, setInsertText] = useState("");
+  const [respErrorType, setRespErrorType] = useState("");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
   const [issueType, setIssueType] = useState(combinedIssueTypes[0]);
@@ -270,6 +275,7 @@ export default function Page() {
     setStartedAt(new Date().toISOString());
     setNotes("");
     setSubmittedCallId("");
+    setRespErrorType("");
     setEditingTurn(null);
     setInsertAt(null);
     setWaveform(null);
@@ -564,12 +570,16 @@ export default function Page() {
       if (key !== "timestamp") issue[key] = String(value);
     }
     const missing = (requiredIssueFields[issueType] || []).filter((field) => !String(issue[field] || "").trim());
+    if (issueType === "response_appropriateness" && RESPONSE_ERROR_SUBTYPES[String(issue.response_error_type || "")] && !String(issue.response_error_subtype || "").trim()) {
+      missing.push("response_error_subtype");
+    }
     if (missing.length) {
       setMissingIssueFields(missing);
       return;
     }
     setMissingIssueFields([]);
     setIssues((existing) => [...existing, issue]);
+    setRespErrorType("");
   }
 
   // ---- inline transcription logging ----
@@ -961,17 +971,40 @@ export default function Page() {
                         const required = (requiredIssueFields[issueType] || []).includes(name);
                         const missing = missingIssueFields.includes(name);
                         return (
-                        <label key={name} className={missing ? "field-missing" : ""}>
+                        <React.Fragment key={name}>
+                        <label className={missing ? "field-missing" : ""}>
                           {label}
                           {kind === "select" ? (
-                            <select name={name} required={required} defaultValue={required ? "" : options?.[0]}>
-                              {required && <option value="">Select {label.toLowerCase()}</option>}
-                              {(options || []).map((option) => <option key={option} value={option}>{option}</option>)}
-                            </select>
+                            name === "response_error_type" && issueType === "response_appropriateness" ? (
+                              <select
+                                name={name}
+                                required={required}
+                                value={respErrorType}
+                                onChange={(event) => { setRespErrorType(event.target.value); setMissingIssueFields([]); }}
+                              >
+                                <option value="">Select {label.toLowerCase()}</option>
+                                {(options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+                              </select>
+                            ) : (
+                              <select name={name} required={required} defaultValue={required ? "" : options?.[0]}>
+                                {required && <option value="">Select {label.toLowerCase()}</option>}
+                                {(options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+                              </select>
+                            )
                           ) : (
                             <input name={name} required={required} />
                           )}
                         </label>
+                        {name === "response_error_type" && issueType === "response_appropriateness" && RESPONSE_ERROR_SUBTYPES[respErrorType] && (
+                          <label className={missingIssueFields.includes("response_error_subtype") ? "field-missing" : ""}>
+                            {respErrorType} — which kind?
+                            <select name="response_error_subtype" defaultValue="" key={respErrorType}>
+                              <option value="">Select</option>
+                              {RESPONSE_ERROR_SUBTYPES[respErrorType].map((o) => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </label>
+                        )}
+                        </React.Fragment>
                         );
                       })}
                     </div>
