@@ -151,6 +151,18 @@ export default function Page() {
       setReviewerRole(storedRole);
       setLoginVisible(false);
       loadCalls(storedEmail, initialMode);
+      // Refresh role/display from the server so a cached session (e.g. from before
+      // roles existed) self-heals instead of defaulting to the reviewer screen.
+      fetch(`/api/profile?email=${encodeURIComponent(storedEmail)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((p) => {
+          if (!p) return;
+          setReviewerRole(p.role || "reviewer");
+          setReviewerDisplay(p.display_name || storedEmail);
+          window.localStorage.setItem("auditReviewerRole", p.role || "reviewer");
+          window.localStorage.setItem("auditReviewerDisplay", p.display_name || storedEmail);
+        })
+        .catch(() => {});
     }
   }, []);
 
