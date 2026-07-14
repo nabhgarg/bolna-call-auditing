@@ -32,7 +32,7 @@ const combinedIssueTypes = ["transcription", "response_appropriateness", "pronun
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
 const RESPONSE_ERROR_SUBTYPES: Record<string, string[]> = {
   "Repetition": ["Same info asked again", "Same response repeated"],
-  "Language issues": ["Switched language unprompted", "Responded in wrong language"]
+  "Language errors": ["Switched language unprompted", "Responded in wrong language"]
 };
 const ratingMetricsByMode: Record<AuditMode, string[]> = {
   pronunciation_tone: ["pronunciation", "tone"],
@@ -57,7 +57,7 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
     ["word_heard", "Word mispronounced", "text"]
   ],
   response_appropriateness: [
-    ["response_error_type", "Type of error", "select", ["Repetition", "Language issues", "User input capture issues", "Irrelevant response / others"]],
+    ["response_error_type", "Type of error", "select", ["Repetition", "Language errors", "User input capture errors", "Irrelevant response / others"]],
     ["error_explanation", "Explain the error", "text"]
   ],
   transcription: [
