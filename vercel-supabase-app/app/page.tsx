@@ -1018,8 +1018,8 @@ export default function Page() {
 
                     {issueType === "transcription" && (
                       <p className="helper-copy">
-                        Tip: you can also fix it in the transcript directly — press ✎ on a user turn to
-                        correct it, or ＋ between turns to add missing user speech.
+                        Mark the correction in the transcript: press ✎ on the user turn to fix its
+                        text, or ＋ between turns to add the missing user speech.
                       </p>
                     )}
                     {missingIssueFields.length > 0 && <p className="validation-message">Fill the highlighted required field before adding the issue.</p>}
