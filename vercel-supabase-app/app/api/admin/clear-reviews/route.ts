@@ -17,14 +17,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "call_ids required" }, { status: 400 });
   }
 
+  // RLS permits update but not delete, so "clearing" a review means voiding its
+  // review_mode; every reader filters by the active mode and won't see it.
   const supabase = supabaseAdmin();
   const { data, error } = await supabase
     .from("reviews")
-    .delete()
+    .update({ review_mode: "cleared" })
     .in("call_id", callIds)
+    .neq("review_mode", "cleared")
     .select("id");
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, deleted: (data || []).length });
+  return NextResponse.json({ ok: true, cleared: (data || []).length });
 }
