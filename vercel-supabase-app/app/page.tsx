@@ -28,9 +28,7 @@ type Issue = Record<string, string>;
 type MetricRating = { rating: string; reason: string };
 type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe";
 const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
-// transcription is logged directly in the transcript (edit a turn / add a missing one),
-// so the issue form only offers the other two
-const combinedIssueTypes = ["response_appropriateness", "pronunciation"];
+const combinedIssueTypes = ["transcription", "response_appropriateness", "pronunciation"];
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
 const ratingMetricsByMode: Record<AuditMode, string[]> = {
   pronunciation_tone: ["pronunciation", "tone"],
@@ -56,6 +54,11 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
   response_appropriateness: [
     ["response_error_type", "Type of error", "select", ["Irrelevant response", "Agent repeating same thing / stuck in loop", "Context not carried through", "Language switch", "Others"]],
     ["error_explanation", "Explain the error", "text"]
+  ],
+  transcription: [
+    ["transcription_error_type", "Type of transcription error", "select", ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"]],
+    ["audio_unclear", "Audio unclear", "select", ["No", "Yes"]],
+    ["audio_said", "What was said / missed in audio", "text"]
   ]
 };
 
@@ -65,7 +68,8 @@ const emptyMetricRatings = () => Object.fromEntries(
 
 const requiredIssueFields: Record<string, string[]> = {
   pronunciation: ["word_heard"],
-  response_appropriateness: ["response_error_type", "error_explanation"]
+  response_appropriateness: ["response_error_type", "error_explanation"],
+  transcription: ["transcription_error_type", "audio_said"]
 };
 
 function modeLabel(mode: AuditMode) {
@@ -123,7 +127,6 @@ export default function Page() {
   const [editUnclear, setEditUnclear] = useState("No");
   const [insertAt, setInsertAt] = useState<number | null>(null); // insert AFTER this turn number (0 = before first)
   const [insertText, setInsertText] = useState("");
-  const [insertRole, setInsertRole] = useState("user");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
   const [issueType, setIssueType] = useState(combinedIssueTypes[0]);
@@ -622,7 +625,7 @@ export default function Page() {
       after_turn: String(insertAt),
       turn_number: `missing after turn ${insertAt}`,
       transcripted: "(missing from transcript)",
-      audio_said: `${insertRole}: ${text}`,
+      audio_said: `user: ${text}`,
       transcription_error_type: "Missing",
       audio_unclear: "No"
     };
@@ -973,10 +976,12 @@ export default function Page() {
                       })}
                     </div>
 
-                    <p className="helper-copy">
-                      Transcription errors are logged in the transcript itself: press ✎ on a turn to
-                      correct it, or + between turns to add missing speech.
-                    </p>
+                    {issueType === "transcription" && (
+                      <p className="helper-copy">
+                        Tip: you can also fix it in the transcript directly — press ✎ on a user turn to
+                        correct it, or ＋ between turns to add missing user speech.
+                      </p>
+                    )}
                     {missingIssueFields.length > 0 && <p className="validation-message">Fill the highlighted required field before adding the issue.</p>}
                     <button className="primary" type="submit">Add Issue</button>
                   </form>
@@ -1120,11 +1125,7 @@ export default function Page() {
                       return (
                         <div key={`ins-${pos}`} style={{ border: "1px dashed #1f7a5c", borderRadius: 8, padding: 10, margin: "6px 0", background: "#f2faf7" }}>
                           <div style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>
-                            <strong style={{ fontSize: 12 }}>Missing speech</strong>
-                            <select value={insertRole} onChange={(e) => setInsertRole(e.target.value)} style={{ fontSize: 12 }}>
-                              <option value="user">user</option>
-                              <option value="assistant">assistant</option>
-                            </select>
+                            <strong style={{ fontSize: 12 }}>Missing user speech</strong>
                           </div>
                           <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder="What was said in the audio but missing from the transcript" style={{ width: "100%" }} />
                           <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
@@ -1147,7 +1148,7 @@ export default function Page() {
                         <button
                           type="button"
                           className="add-missing-btn"
-                          onClick={() => { setInsertAt(pos); setInsertText(""); setInsertRole("user"); }}
+                          onClick={() => { setInsertAt(pos); setInsertText(""); }}
                           title="Add speech missing from the transcript here"
                           style={{ border: "none", background: "transparent", color: "#9ab0a8", cursor: "pointer", fontSize: 12, padding: "0 6px", lineHeight: "16px" }}
                         >＋ add missing</button>
@@ -1194,7 +1195,7 @@ export default function Page() {
                             <span>{index + 1}. {turn.role}{edit ? " · corrected" : ""}</span>
                             <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                               <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
-                              {showIssues && (
+                              {showIssues && turn.role === "user" && (
                                 <button
                                   type="button"
                                   className="turn-edit-btn"
