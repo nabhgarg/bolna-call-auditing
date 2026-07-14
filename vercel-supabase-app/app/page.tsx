@@ -28,7 +28,10 @@ type Issue = Record<string, string>;
 type MetricRating = { rating: string; reason: string };
 type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe";
 const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
-const combinedIssueTypes = ["transcription", "response_appropriateness", "pronunciation"];
+// transcription is logged directly in the transcript (edit a turn / add a missing one),
+// so the issue form only offers the other two
+const combinedIssueTypes = ["response_appropriateness", "pronunciation"];
+const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
 const ratingMetricsByMode: Record<AuditMode, string[]> = {
   pronunciation_tone: ["pronunciation", "tone"],
   timing_transcription: ["barge_in", "latency"],
@@ -53,10 +56,6 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
   response_appropriateness: [
     ["response_error_type", "Type of error", "select", ["Irrelevant response", "Agent repeating same thing / stuck in loop", "Context not carried through", "Language switch", "Others"]],
     ["error_explanation", "Explain the error", "text"]
-  ],
-  transcription: [
-    ["transcription_error_type", "Type of transcription error", "select", ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"]],
-    ["audio_unclear", "Audio unclear", "select", ["No", "Yes"]]
   ]
 };
 
@@ -66,8 +65,7 @@ const emptyMetricRatings = () => Object.fromEntries(
 
 const requiredIssueFields: Record<string, string[]> = {
   pronunciation: ["word_heard"],
-  response_appropriateness: ["response_error_type", "error_explanation"],
-  transcription: ["transcription_error_type"]
+  response_appropriateness: ["response_error_type", "error_explanation"]
 };
 
 function modeLabel(mode: AuditMode) {
@@ -118,8 +116,14 @@ export default function Page() {
   const [waveform, setWaveform] = useState<{ peaks: number[][]; duration: number } | null>(null);
   const [turnTimes, setTurnTimes] = useState<Record<number, number> | null>(null);
   const [playheadSec, setPlayheadSec] = useState(0);
-  const [transcriptionTurn, setTranscriptionTurn] = useState("");
-  const [audioSaid, setAudioSaid] = useState("");
+  // inline transcription logging (in the transcript panel)
+  const [editingTurn, setEditingTurn] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editErrorType, setEditErrorType] = useState(TRANSCRIPTION_ERROR_TYPES[0]);
+  const [editUnclear, setEditUnclear] = useState("No");
+  const [insertAt, setInsertAt] = useState<number | null>(null); // insert AFTER this turn number (0 = before first)
+  const [insertText, setInsertText] = useState("");
+  const [insertRole, setInsertRole] = useState("user");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
   const [issueType, setIssueType] = useState(combinedIssueTypes[0]);
@@ -263,8 +267,8 @@ export default function Page() {
     setStartedAt(new Date().toISOString());
     setNotes("");
     setSubmittedCallId("");
-    setTranscriptionTurn("");
-    setAudioSaid("");
+    setEditingTurn(null);
+    setInsertAt(null);
     setWaveform(null);
     setTurnTimes(null);
     setPlayheadSec(0);
@@ -556,21 +560,6 @@ export default function Page() {
     for (const [key, value] of formData.entries()) {
       if (key !== "timestamp") issue[key] = String(value);
     }
-    if (issueType === "transcription") {
-      const turnIndex = Number(transcriptionTurn);
-      const turn = Number.isInteger(turnIndex) ? currentCall.turns?.[turnIndex] : undefined;
-      if (!turn) {
-        setMissingIssueFields(["turn"]);
-        return;
-      }
-      issue.turn_number = String(turnIndex + 1);
-      issue.transcripted = turn.text;
-      issue.audio_said = audioSaid;
-      if (!audioSaid.trim()) {
-        setMissingIssueFields(["audio_said"]);
-        return;
-      }
-    }
     const missing = (requiredIssueFields[issueType] || []).filter((field) => !String(issue[field] || "").trim());
     if (missing.length) {
       setMissingIssueFields(missing);
@@ -578,10 +567,71 @@ export default function Page() {
     }
     setMissingIssueFields([]);
     setIssues((existing) => [...existing, issue]);
-    if (issueType === "transcription") {
-      setTranscriptionTurn("");
-      setAudioSaid("");
-    }
+  }
+
+  // ---- inline transcription logging ----
+  function turnTimestamp(index: number) {
+    const exact = turnTimes?.[index];
+    if (exact !== undefined) return formatTime(exact);
+    const duration = Number(currentCall?.duration_sec || 0);
+    const turns = currentCall?.turns || [];
+    const counts = turns.map((t) => wordCount(t.text));
+    const total = counts.reduce((a, b) => a + b, 0) || turns.length || 1;
+    const before = counts.slice(0, index).reduce((a, b) => a + b, 0);
+    return formatTime(Math.floor((before / total) * duration));
+  }
+
+  function startEditTurn(index: number) {
+    const existing = issues.find((i) => i.type === "transcription" && i.turn_number === String(index + 1) && i.after_turn === undefined);
+    setInsertAt(null);
+    setEditingTurn(index);
+    setEditText(existing ? existing.audio_said : (currentCall?.turns?.[index]?.text || ""));
+    setEditErrorType(existing ? existing.transcription_error_type : TRANSCRIPTION_ERROR_TYPES[0]);
+    setEditUnclear(existing ? existing.audio_unclear : "No");
+  }
+
+  function saveEditTurn() {
+    if (editingTurn === null || !currentCall) return;
+    const original = currentCall.turns?.[editingTurn]?.text || "";
+    const corrected = editText.trim();
+    if (!corrected || corrected === original.trim()) { setEditingTurn(null); return; }
+    const issue: Issue = {
+      type: "transcription",
+      timestamp: turnTimestamp(editingTurn),
+      turn_number: String(editingTurn + 1),
+      transcripted: original,
+      audio_said: corrected,
+      transcription_error_type: editErrorType,
+      audio_unclear: editUnclear
+    };
+    setIssues((existing) => [
+      ...existing.filter((i) => !(i.type === "transcription" && i.turn_number === issue.turn_number && i.after_turn === undefined)),
+      issue
+    ]);
+    setEditingTurn(null);
+  }
+
+  function saveInsertTurn() {
+    if (insertAt === null || !currentCall) return;
+    const text = insertText.trim();
+    if (!text) { setInsertAt(null); return; }
+    const anchorIndex = Math.max(insertAt - 1, 0);
+    const issue: Issue = {
+      type: "transcription",
+      timestamp: turnTimestamp(insertAt === 0 ? 0 : anchorIndex),
+      after_turn: String(insertAt),
+      turn_number: `missing after turn ${insertAt}`,
+      transcripted: "(missing from transcript)",
+      audio_said: `${insertRole}: ${text}`,
+      transcription_error_type: "Missing",
+      audio_unclear: "No"
+    };
+    setIssues((existing) => [
+      ...existing.filter((i) => !(i.type === "transcription" && i.after_turn === issue.after_turn)),
+      issue
+    ]);
+    setInsertAt(null);
+    setInsertText("");
   }
 
   function updateMetricRating(metric: string, key: keyof MetricRating, value: string) {
@@ -923,46 +973,10 @@ export default function Page() {
                       })}
                     </div>
 
-                    {issueType === "transcription" && (
-                      <div className="dynamic-fields">
-                        <label className={missingIssueFields.includes("turn") ? "field-missing" : ""}>
-                          Turn with the error
-                          <select
-                            value={transcriptionTurn}
-                            onChange={(event) => {
-                              const value = event.target.value;
-                              setTranscriptionTurn(value);
-                              const turn = currentCall?.turns?.[Number(value)];
-                              setAudioSaid(turn ? turn.text : "");
-                              setMissingIssueFields([]);
-                            }}
-                          >
-                            <option value="">Select the transcript turn</option>
-                            {(currentCall?.turns || []).map((turn, index) => (
-                              <option key={index} value={index}>
-                                {index + 1}. {turn.role}: {turn.text.slice(0, 60)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        {transcriptionTurn !== "" && (
-                          <>
-                            <label>
-                              What was transcripted (from transcript)
-                              <textarea value={currentCall?.turns?.[Number(transcriptionTurn)]?.text || ""} readOnly rows={2} />
-                            </label>
-                            <label className={missingIssueFields.includes("audio_said") ? "field-missing" : ""}>
-                              What was said in audio (edit to correct)
-                              <textarea
-                                value={audioSaid}
-                                onChange={(event) => setAudioSaid(event.target.value)}
-                                rows={2}
-                              />
-                            </label>
-                          </>
-                        )}
-                      </div>
-                    )}
+                    <p className="helper-copy">
+                      Transcription errors are logged in the transcript itself: press ✎ on a turn to
+                      correct it, or + between turns to add missing speech.
+                    </p>
                     {missingIssueFields.length > 0 && <p className="validation-message">Fill the highlighted required field before adding the issue.</p>}
                     <button className="primary" type="submit">Add Issue</button>
                   </form>
@@ -1096,22 +1110,113 @@ export default function Page() {
                   const turnWordCounts = currentCall.turns.map((turn) => wordCount(turn.text));
                   const totalWords = turnWordCounts.reduce((sum, count) => sum + count, 0) || currentCall.turns.length;
                   let cumulativeWords = 0;
+                  const editByTurn = new Map(issues.filter((i) => i.type === "transcription" && i.after_turn === undefined).map((i) => [Number(i.turn_number) - 1, i]));
+                  const insertByPos = new Map(issues.filter((i) => i.type === "transcription" && i.after_turn !== undefined).map((i) => [Number(i.after_turn), i]));
 
-                  return currentCall.turns.map((turn, index) => {
+                  const insertUi = (pos: number) => {
+                    if (!showIssues) return null;
+                    const existing = insertByPos.get(pos);
+                    if (insertAt === pos) {
+                      return (
+                        <div key={`ins-${pos}`} style={{ border: "1px dashed #1f7a5c", borderRadius: 8, padding: 10, margin: "6px 0", background: "#f2faf7" }}>
+                          <div style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>
+                            <strong style={{ fontSize: 12 }}>Missing speech</strong>
+                            <select value={insertRole} onChange={(e) => setInsertRole(e.target.value)} style={{ fontSize: 12 }}>
+                              <option value="user">user</option>
+                              <option value="assistant">assistant</option>
+                            </select>
+                          </div>
+                          <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder="What was said in the audio but missing from the transcript" style={{ width: "100%" }} />
+                          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                            <button className="primary" type="button" onClick={saveInsertTurn}>Save missing turn</button>
+                            <button className="ghost" type="button" onClick={() => { setInsertAt(null); setInsertText(""); }}>Cancel</button>
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (existing) {
+                      return (
+                        <div key={`ins-${pos}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
+                          <strong>＋ missing (added by you):</strong> {existing.audio_said}
+                          <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => setIssues((ex) => ex.filter((i) => i !== existing))}>Remove</button>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={`ins-${pos}`} style={{ textAlign: "center", margin: "-2px 0" }}>
+                        <button
+                          type="button"
+                          onClick={() => { setInsertAt(pos); setInsertText(""); setInsertRole("user"); }}
+                          title="Add speech missing from the transcript here"
+                          style={{ border: "none", background: "transparent", color: "#9ab0a8", cursor: "pointer", fontSize: 12, padding: "0 6px", lineHeight: "16px" }}
+                        >＋ add missing</button>
+                      </div>
+                    );
+                  };
+
+                  const nodes: React.ReactNode[] = [insertUi(0)];
+                  currentCall.turns.forEach((turn, index) => {
                     const estimate = Math.floor((cumulativeWords / totalWords) * duration);
                     cumulativeWords += turnWordCounts[index] || 1;
                     const exact = turnTimes?.[index];
                     const jumpTime = exact !== undefined ? exact : estimate;
-                    return (
-                      <div className={`turn ${turn.role}`} key={`${turn.role}-${index}`} onClick={() => { if (audioRef.current) audioRef.current.currentTime = jumpTime; }}>
-                        <div className="turn-role">
-                          <span>{index + 1}. {turn.role}</span>
-                          <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
+                    const edit = editByTurn.get(index);
+
+                    if (editingTurn === index) {
+                      nodes.push(
+                        <div className={`turn ${turn.role}`} key={`e-${index}`} style={{ border: "1px solid #1f7a5c", background: "#f2faf7" }}>
+                          <div className="turn-role"><span>{index + 1}. {turn.role} — correcting</span></div>
+                          <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} />
+                          <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center", fontSize: 12 }}>
+                            <select value={editErrorType} onChange={(e) => setEditErrorType(e.target.value)}>
+                              {TRANSCRIPTION_ERROR_TYPES.filter((t) => t !== "Missing").map((t) => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                            <label style={{ display: "flex", gap: 4, alignItems: "center" }}>Audio unclear
+                              <select value={editUnclear} onChange={(e) => setEditUnclear(e.target.value)}>
+                                <option>No</option><option>Yes</option>
+                              </select>
+                            </label>
+                            <button className="primary" type="button" onClick={saveEditTurn}>Save correction</button>
+                            <button className="ghost" type="button" onClick={() => setEditingTurn(null)}>Cancel</button>
+                          </div>
                         </div>
-                        <div>{turn.text}</div>
-                      </div>
-                    );
+                      );
+                    } else {
+                      nodes.push(
+                        <div
+                          className={`turn ${turn.role}`}
+                          key={`${turn.role}-${index}`}
+                          style={edit ? { background: "#fffaf0", borderLeft: "3px solid #b7791f" } : undefined}
+                          onClick={() => { if (audioRef.current) audioRef.current.currentTime = jumpTime; }}
+                        >
+                          <div className="turn-role">
+                            <span>{index + 1}. {turn.role}{edit ? " · corrected" : ""}</span>
+                            <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                              <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
+                              {showIssues && (
+                                <button
+                                  type="button"
+                                  title="Correct this turn's transcription"
+                                  onClick={(e) => { e.stopPropagation(); startEditTurn(index); }}
+                                  style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 14, padding: 0 }}
+                                >✎</button>
+                              )}
+                            </span>
+                          </div>
+                          {edit ? (
+                            <div>
+                              <div style={{ textDecoration: "line-through", color: "#b0784a" }}>{turn.text}</div>
+                              <div>{edit.audio_said}</div>
+                            </div>
+                          ) : (
+                            <div>{turn.text}</div>
+                          )}
+                        </div>
+                      );
+                    }
+                    nodes.push(insertUi(index + 1));
                   });
+                  return nodes;
                 })() : "Select a call from the queue."}
               </div>
             </article>
