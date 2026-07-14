@@ -105,6 +105,7 @@ export default function Page() {
   const [currentQueueId, setCurrentQueueId] = useState("");
   const [reviewerEmail, setReviewerEmail] = useState("");
   const [reviewerDisplay, setReviewerDisplay] = useState("");
+  const [reviewerRole, setReviewerRole] = useState("reviewer");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
@@ -139,6 +140,7 @@ export default function Page() {
   useEffect(() => {
     const storedEmail = (window.localStorage.getItem("auditReviewerEmail") || "").trim().toLowerCase();
     const storedDisplay = window.localStorage.getItem("auditReviewerDisplay") || "";
+    const storedRole = window.localStorage.getItem("auditReviewerRole") || "reviewer";
     const initialMode = RESPONSE_VIBE_MODE;
     setLoginEmail(storedEmail);
     setAuditMode(initialMode);
@@ -146,6 +148,7 @@ export default function Page() {
     if (storedEmail) {
       setReviewerEmail(storedEmail);
       setReviewerDisplay(storedDisplay || storedEmail);
+      setReviewerRole(storedRole);
       setLoginVisible(false);
       loadCalls(storedEmail, initialMode);
     }
@@ -212,6 +215,9 @@ export default function Page() {
     ? calls.find((call) => (call.queue_id || call.execution_id) === currentQueueId) || null
     : null;
   const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentQueueId));
+  // Role decides the screen: vibe reviewers score only, issue loggers log only, experts do both.
+  const showVibe = reviewerRole !== "issue_logger";
+  const showIssues = reviewerRole !== "reviewer";
 
   async function switchMode(mode: AuditMode) {
     if (mode === auditMode) return;
@@ -458,9 +464,11 @@ export default function Page() {
         // OTP delivery not configured yet — direct allowlist login
         setReviewerEmail(result.email);
         setReviewerDisplay(result.display_name || result.email);
+        setReviewerRole(result.role || "reviewer");
         setLoginVisible(false);
         window.localStorage.setItem("auditReviewerEmail", result.email);
         window.localStorage.setItem("auditReviewerDisplay", result.display_name || result.email);
+        window.localStorage.setItem("auditReviewerRole", result.role || "reviewer");
         window.localStorage.setItem("auditMode", auditMode);
         await loadCalls(result.email, auditMode);
         return;
@@ -488,9 +496,11 @@ export default function Page() {
       });
       setReviewerEmail(profile.email);
       setReviewerDisplay(profile.display_name || profile.email);
+      setReviewerRole(profile.role || "reviewer");
       setLoginVisible(false);
       window.localStorage.setItem("auditReviewerEmail", profile.email);
       window.localStorage.setItem("auditReviewerDisplay", profile.display_name || profile.email);
+      window.localStorage.setItem("auditReviewerRole", profile.role || "reviewer");
       window.localStorage.setItem("auditMode", auditMode);
       await loadCalls(profile.email, auditMode);
     } catch (error) {
@@ -503,6 +513,7 @@ export default function Page() {
   function logout() {
     window.localStorage.removeItem("auditReviewerEmail");
     window.localStorage.removeItem("auditReviewerDisplay");
+    window.localStorage.removeItem("auditReviewerRole");
     setReviewerEmail("");
     setReviewerDisplay("");
     setLoginEmail("");
@@ -599,7 +610,7 @@ export default function Page() {
       alert("Please complete all call ratings. Reason is required when a rating is 1.");
       return;
     }
-    if (auditMode === RESPONSE_VIBE_MODE) {
+    if (auditMode === RESPONSE_VIBE_MODE && showVibe) {
       if (!vibeScore || !vibeReason.trim()) {
         alert("Please fill vibe score and reason before submitting.");
         return;
@@ -824,7 +835,7 @@ export default function Page() {
             <div className="audio-actions">
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 5); }}>-5s</button>
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime += 5; }}>+5s</button>
-              {modeIssueTypes(auditMode).length > 0 && (
+              {showIssues && modeIssueTypes(auditMode).length > 0 && (
                 <>
                   <label className="capture-select">
                     Issue
@@ -849,7 +860,7 @@ export default function Page() {
                 }}>Next</button>
               </div>
 
-              {modeIssueTypes(auditMode).length > 0 && (
+              {showIssues && modeIssueTypes(auditMode).length > 0 && (
                 <>
                   <div className="quick-flags">
                     {modeIssueTypes(auditMode).map((type) => (
@@ -962,7 +973,7 @@ export default function Page() {
                 </>
               )}
 
-              {auditMode === RESPONSE_VIBE_MODE && (
+              {showVibe && auditMode === RESPONSE_VIBE_MODE && (
                 <section className="vibe-calibration">
                   <div className="panel-title small">
                     <h3>Overall vibe score</h3>
@@ -972,16 +983,28 @@ export default function Page() {
                     Give one overall rating for the call, then add a short remark explaining what drove the score.
                   </p>
                   <div className={`rating-card vibe-card ${!vibeScore || !vibeReason.trim() ? "missing" : ""}`}>
-                    <label className={!vibeScore ? "field-missing" : ""}>
-                      Overall rating
-                      <select value={vibeScore} onChange={(event) => setVibeScore(event.target.value)}>
-                        <option value="">Not rated</option>
-                        <option value="1">1 - Major failure</option>
-                        <option value="2">2 - Noticeably broken</option>
-                        <option value="3">3 - Mostly okay</option>
-                        <option value="4">4 - Clean call</option>
-                      </select>
-                    </label>
+                    <div className={`vibe-buttons ${!vibeScore ? "field-missing" : ""}`} style={{ display: "flex", gap: 8 }}>
+                      {[["1", "Major failure"], ["2", "Noticeably broken"], ["3", "Mostly okay"], ["4", "Clean call"]].map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setVibeScore(value)}
+                          style={{
+                            flex: 1,
+                            padding: "12px 4px",
+                            borderRadius: 10,
+                            border: vibeScore === value ? "2px solid #1f7a5c" : "1px solid #d5ddda",
+                            background: vibeScore === value ? "#1f7a5c" : "#fff",
+                            color: vibeScore === value ? "#fff" : "#2b3a35",
+                            cursor: "pointer",
+                            textAlign: "center"
+                          }}
+                        >
+                          <div style={{ fontSize: 20, fontWeight: 700 }}>{value}</div>
+                          <div style={{ fontSize: 11 }}>{label}</div>
+                        </button>
+                      ))}
+                    </div>
                     <label className={!vibeReason.trim() ? "field-missing" : ""}>
                       Remark
                       <textarea
