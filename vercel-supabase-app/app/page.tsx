@@ -132,7 +132,7 @@ export default function Page() {
   const [insertAt, setInsertAt] = useState<number | null>(null); // insert AFTER this turn number (0 = before first)
   const [insertText, setInsertText] = useState("");
   const [respErrorType, setRespErrorType] = useState("");
-  const [flagCall, setFlagCall] = useState(false);
+  const [flagCall, setFlagCall] = useState<boolean | null>(null); // optional: null = not answered
   const [flagReason, setFlagReason] = useState("");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
@@ -278,7 +278,7 @@ export default function Page() {
     setNotes("");
     setSubmittedCallId("");
     setRespErrorType("");
-    setFlagCall(false);
+    setFlagCall(null);
     setFlagReason("");
     setEditingTurn(null);
     setInsertAt(null);
@@ -697,7 +697,7 @@ export default function Page() {
     }
     setMissingRatingFields([]);
     const durationTaken = startedAt ? Math.floor((Date.now() - Date.parse(startedAt)) / 1000) : 0;
-    const flagIssues = flagCall
+    const flagIssues = flagCall === true
       ? [{ type: "flag_for_review", timestamp: "", notes: flagReason.trim() || "Flagged for further discussion" }]
       : [];
     const ratingIssues = activeRatingMetrics.length
@@ -1131,25 +1131,25 @@ export default function Page() {
                 </section>
               )}
 
-              <section className="rating-card" style={{ borderColor: flagCall ? "#b7791f" : undefined, background: flagCall ? "#fffaf0" : undefined }}>
+              <section className="rating-card" style={{ borderColor: flagCall === true ? "#b7791f" : undefined, background: flagCall === true ? "#fffaf0" : undefined }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                  <strong style={{ fontSize: 13 }}>Flag this call for further discussion?</strong>
+                  <strong style={{ fontSize: 13 }}>Flag this call for further discussion? <span style={{ color: "#647084", fontWeight: 500 }}>(optional)</span></strong>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
                       type="button"
-                      className={flagCall ? "" : "primary"}
+                      className={flagCall === false ? "primary" : ""}
                       style={{ minWidth: 64 }}
-                      onClick={() => { setFlagCall(false); setFlagReason(""); }}
+                      onClick={() => { setFlagCall(flagCall === false ? null : false); setFlagReason(""); }}
                     >No</button>
                     <button
                       type="button"
-                      className={flagCall ? "primary" : ""}
-                      style={flagCall ? { minWidth: 64, background: "#b7791f", borderColor: "#b7791f" } : { minWidth: 64 }}
-                      onClick={() => setFlagCall(true)}
+                      className=""
+                      style={flagCall === true ? { minWidth: 64, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { minWidth: 64 }}
+                      onClick={() => setFlagCall(flagCall === true ? null : true)}
                     >Yes</button>
                   </div>
                 </div>
-                {flagCall && (
+                {flagCall === true && (
                   <label style={{ marginTop: 8 }}>
                     What's the doubt? (optional)
                     <textarea value={flagReason} onChange={(e) => setFlagReason(e.target.value)} rows={2} placeholder="e.g. can't decide between 2 and 3 — user audio unclear" />
