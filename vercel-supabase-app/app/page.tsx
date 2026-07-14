@@ -1236,15 +1236,7 @@ export default function Page() {
                         <div className={`turn ${turn.role}`} key={`e-${index}`} style={{ border: "1px solid #1f7a5c", background: "#f2faf7" }}>
                           <div className="turn-role"><span>{index + 1}. {turn.role} — correcting</span></div>
                           <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} />
-                          <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center", fontSize: 12 }}>
-                            <select value={editErrorType} onChange={(e) => setEditErrorType(e.target.value)}>
-                              {TRANSCRIPTION_ERROR_TYPES.filter((t) => t !== "Missing").map((t) => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                            <label style={{ display: "flex", gap: 4, alignItems: "center" }}>Audio unclear
-                              <select value={editUnclear} onChange={(e) => setEditUnclear(e.target.value)}>
-                                <option>No</option><option>Yes</option>
-                              </select>
-                            </label>
+                          <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
                             <button className="primary" type="button" onClick={saveEditTurn}>Save correction</button>
                             <button className="ghost" type="button" onClick={() => setEditingTurn(null)}>Cancel</button>
                           </div>
