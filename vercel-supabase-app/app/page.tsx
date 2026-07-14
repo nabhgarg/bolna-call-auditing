@@ -47,6 +47,7 @@ const issueLabels: Record<string, string> = {
   latency: "Latency",
   response_appropriateness: "Response appropriateness",
   transcription: "Transcription",
+  flag_for_review: "Flagged for discussion",
   overall: "Overall"
 };
 
@@ -132,6 +133,8 @@ export default function Page() {
   const [insertAt, setInsertAt] = useState<number | null>(null); // insert AFTER this turn number (0 = before first)
   const [insertText, setInsertText] = useState("");
   const [respErrorType, setRespErrorType] = useState("");
+  const [flagCall, setFlagCall] = useState(false);
+  const [flagReason, setFlagReason] = useState("");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
   const [issueType, setIssueType] = useState(combinedIssueTypes[0]);
@@ -276,6 +279,8 @@ export default function Page() {
     setNotes("");
     setSubmittedCallId("");
     setRespErrorType("");
+    setFlagCall(false);
+    setFlagReason("");
     setEditingTurn(null);
     setInsertAt(null);
     setWaveform(null);
@@ -693,6 +698,9 @@ export default function Page() {
     }
     setMissingRatingFields([]);
     const durationTaken = startedAt ? Math.floor((Date.now() - Date.parse(startedAt)) / 1000) : 0;
+    const flagIssues = flagCall
+      ? [{ type: "flag_for_review", timestamp: "", notes: flagReason.trim() || "Flagged for further discussion" }]
+      : [];
     const ratingIssues = activeRatingMetrics.length
       ? activeRatingMetrics
           .filter((metric) => metricRatings[metric]?.rating || metricRatings[metric]?.reason)
@@ -718,7 +726,7 @@ export default function Page() {
           llm_rating: "",
           llm_error_type: "",
           notes: auditMode === RESPONSE_VIBE_MODE ? vibeReason : notes,
-          issues: [...issues, ...ratingIssues],
+          issues: [...issues, ...ratingIssues, ...flagIssues],
           started_at: startedAt,
           duration_taken_sec: durationTaken
         })
@@ -1123,6 +1131,32 @@ export default function Page() {
                   ))}
                 </section>
               )}
+
+              <section className="rating-card" style={{ borderColor: flagCall ? "#b7791f" : undefined, background: flagCall ? "#fffaf0" : undefined }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <strong style={{ fontSize: 13 }}>Flag this call for further discussion?</strong>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      className={flagCall ? "" : "primary"}
+                      style={{ minWidth: 64 }}
+                      onClick={() => { setFlagCall(false); setFlagReason(""); }}
+                    >No</button>
+                    <button
+                      type="button"
+                      className={flagCall ? "primary" : ""}
+                      style={flagCall ? { minWidth: 64, background: "#b7791f", borderColor: "#b7791f" } : { minWidth: 64 }}
+                      onClick={() => setFlagCall(true)}
+                    >Yes</button>
+                  </div>
+                </div>
+                {flagCall && (
+                  <label style={{ marginTop: 8 }}>
+                    What's the doubt? (optional)
+                    <textarea value={flagReason} onChange={(e) => setFlagReason(e.target.value)} rows={2} placeholder="e.g. can't decide between 2 and 3 — user audio unclear" />
+                  </label>
+                )}
+              </section>
 
               <div className="submit-row">
                 <a className="ghost export" href={`/api/reviews.csv?mode=${encodeURIComponent(auditMode)}&reviewer=${encodeURIComponent(reviewerEmail)}`}>Download my reviews</a>
