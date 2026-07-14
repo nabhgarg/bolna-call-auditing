@@ -792,3 +792,23 @@ audio {
     font-size: 18px;
   }
 }
+
+/* bigger inline-transcript controls on touch devices */
+@media (max-width: 768px) {
+  .turn-edit-btn {
+    font-size: 20px !important;
+    min-width: 44px;
+    min-height: 36px;
+    background: var(--soft) !important;
+    border-radius: 8px !important;
+  }
+
+  .add-missing-btn {
+    font-size: 14px !important;
+    min-height: 36px;
+    padding: 6px 14px !important;
+    background: var(--soft) !important;
+    border-radius: 999px !important;
+    color: var(--accent) !important;
+  }
+}
