@@ -48,31 +48,40 @@ async function postToSheets(payload: Record<string, unknown>) {
   return { ok: true, configured: true, data };
 }
 
-export async function importCallsFromSheets(auditMode = "pronunciation_tone") {
+// The base sheet splits assignments by track; import merges every track tab.
+// The Apps Script serves its default tab when a requested one is missing, so a
+// mismatched sheet_name in the response means "tab not found" — skip it then.
+const CALL_TRACK_TABS = ["Calls_Vibe", "Calls_Issues", "Calls_Experts"];
+
+export async function importCallsFromSheets(auditMode = "response_vibe") {
   const mode = normalizeAuditMode(auditMode);
-  const sheetNameByMode: Record<string, string> = {
-    pronunciation_tone: "Calls_Pronunciation_Tone",
-    timing_transcription: "Calls_Timing_Transcription",
-    response_vibe: "Calls_Response_Vibe"
-  };
-  const sheetName = sheetNameByMode[mode] || "Calls_Pronunciation_Tone";
-  const result = await postToSheets({ action: "readCalls", audit_mode: mode, sheet_name: sheetName });
-  if (!result.ok) {
-    return { ...result, imported_rows: 0, calls: [] };
+  const allCalls: Array<Record<string, unknown>> = [];
+  const sheetsRead: string[] = [];
+  const seenTabs = new Set<string>();
+
+  for (const tab of CALL_TRACK_TABS) {
+    const result = await postToSheets({ action: "readCalls", audit_mode: mode, sheet_name: tab });
+    if (!result.ok) {
+      return { ...result, imported_rows: 0, calls: [], sheet_name: sheetsRead.join("+") };
+    }
+    const served = String(result.data?.sheet_name || "");
+    if (served !== tab || seenTabs.has(served)) continue; // tab missing (fallback served) or already read
+    seenTabs.add(served);
+    const calls = Array.isArray(result.data?.calls) ? result.data.calls as Array<Record<string, unknown>> : [];
+    if (!calls.length) continue;
+    sheetsRead.push(`${tab}(${calls.length})`);
+    for (const row of normalizeCallRows(calls, mode)) {
+      allCalls.push({ ...row, source_sheet: row.source_sheet || tab });
+    }
   }
 
-  const calls = Array.isArray(result.data?.calls) ? result.data.calls as Array<Record<string, unknown>> : [];
-  const importedSheetName = String(result.data?.sheet_name || sheetName);
   return {
     ok: true,
     configured: true,
-    imported_rows: calls.length,
+    imported_rows: allCalls.length,
     audit_mode: mode,
-    sheet_name: importedSheetName,
-    calls: normalizeCallRows(calls, mode).map((row) => ({
-      ...row,
-      source_sheet: row.source_sheet || importedSheetName
-    }))
+    sheet_name: sheetsRead.join(" + ") || "no tabs found",
+    calls: allCalls
   };
 }
 
@@ -86,41 +95,43 @@ export async function sendOtpEmail(email: string, code: string) {
   return { ok: true as const };
 }
 
-// Reads the optional "Reviewers" tab (columns: email, name, role, active) so the
-// login allowlist can be managed from the spreadsheet instead of SQL.
-export async function importReviewersFromSheets() {
-  const result = await postToSheets({ action: "readCalls", sheet_name: "Reviewers" });
-  if (!result.ok) {
-    return { ok: false as const, found: false, error: result.error, reviewers: [] };
-  }
-  // The Apps Script falls back to the default Calls sheet when the requested tab
-  // is missing; only trust the payload if the Reviewers tab itself came back.
-  const sheetName = String((result.data as Record<string, unknown>)?.sheet_name || "");
-  if (sheetName !== "Reviewers") {
-    return { ok: true as const, found: false, reviewers: [] };
-  }
+// Reads the three role tabs (Reviewers_Vibe / Reviewers_Issues / Reviewers_Experts,
+// columns: email, name, active). The tab a person sits in decides their role.
+const REVIEWER_TABS: Array<[string, string]> = [
+  ["Reviewers_Vibe", "reviewer"],
+  ["Reviewers_Issues", "issue_logger"],
+  ["Reviewers_Experts", "expert"]
+];
 
-  const rows = Array.isArray((result.data as Record<string, unknown>)?.calls)
-    ? ((result.data as Record<string, unknown>).calls as Array<Record<string, unknown>>)
-    : [];
-  const reviewers = rows
-    .map((row) => {
+export async function importReviewersFromSheets() {
+  const reviewers: Array<{ email: string; display_name: string; role: string; is_active: boolean }> = [];
+  let found = false;
+
+  for (const [tab, role] of REVIEWER_TABS) {
+    const result = await postToSheets({ action: "readCalls", sheet_name: tab });
+    if (!result.ok) continue;
+    const served = String((result.data as Record<string, unknown>)?.sheet_name || "");
+    if (served !== tab) continue; // tab missing — the script served its fallback
+    found = true;
+    const rows = Array.isArray((result.data as Record<string, unknown>)?.calls)
+      ? ((result.data as Record<string, unknown>).calls as Array<Record<string, unknown>>)
+      : [];
+    for (const row of rows) {
       const normalized: Record<string, string> = {};
       for (const [key, value] of Object.entries(row)) {
         const header = key.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
         normalized[header] = String(value ?? "").trim();
       }
       const email = (normalized.email || normalized.email_id || normalized.reviewer_email || "").toLowerCase();
-      if (!email || !email.includes("@")) return null;
+      if (!email || !email.includes("@")) continue;
       const displayName = normalized.display_name || normalized.name || normalized.reviewer_name || email;
-      const role = (normalized.role || "scorer").toLowerCase();
       const activeRaw = (normalized.active || normalized.is_active || "yes").toLowerCase();
       const isActive = !["no", "false", "0", "inactive"].includes(activeRaw);
-      return { email, display_name: displayName, role, is_active: isActive };
-    })
-    .filter((row): row is NonNullable<typeof row> => Boolean(row));
+      reviewers.push({ email, display_name: displayName, role, is_active: isActive });
+    }
+  }
 
-  return { ok: true as const, found: true, reviewers };
+  return { ok: true as const, found, reviewers };
 }
 
 export async function syncReviewsToSheets(reviews: ReviewRow[]) {
