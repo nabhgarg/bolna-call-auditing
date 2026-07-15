@@ -131,6 +131,8 @@ export default function Page() {
   const [editErrorType, setEditErrorType] = useState(TRANSCRIPTION_ERROR_TYPES[0]);
   const [editUnclear, setEditUnclear] = useState("No");
   const [insertAt, setInsertAt] = useState<number | null>(null); // insert AFTER this turn number (0 = before first)
+  const [insertSlot, setInsertSlot] = useState(0); // position within the gap's inserted turns
+  const [editingInsert, setEditingInsert] = useState<Issue | null>(null); // existing inserted turn being edited
   const [insertText, setInsertText] = useState("");
   const [respErrorType, setRespErrorType] = useState("");
   const [flagCall, setFlagCall] = useState<boolean | null>(null); // optional: null = not answered
@@ -282,7 +284,7 @@ export default function Page() {
     setFlagCall(null);
     setFlagReason("");
     setEditingTurn(null);
-    setInsertAt(null);
+    closeInsertEditor();
     setWaveform(null);
     setTurnTimes(null);
     setPlayheadSec(0);
@@ -606,7 +608,7 @@ export default function Page() {
   function startEditTurn(index: number) {
     const existing = turnIssueAt(index);
     const hasCorrection = existing && existing.deleted_turn === undefined;
-    setInsertAt(null);
+    closeInsertEditor();
     setEditingTurn(index);
     setEditText(hasCorrection ? existing.audio_said : (currentCall?.turns?.[index]?.text || ""));
     setEditErrorType(hasCorrection ? existing.transcription_error_type : TRANSCRIPTION_ERROR_TYPES[0]);
@@ -662,27 +664,72 @@ export default function Page() {
     setIssues((existing) => existing.filter((i) => i !== issue));
   }
 
+  function insertsAt(list: Issue[], pos: number) {
+    return list
+      .filter((i) => i.type === "transcription" && i.after_turn === String(pos))
+      .sort((a, b) => Number(a.insert_order || 1) - Number(b.insert_order || 1));
+  }
+
+  function renumberInserts(list: Issue[], pos: number) {
+    return list.map((issue, index) => ({
+      ...issue,
+      insert_order: String(index + 1),
+      turn_number: list.length > 1 ? `missing after turn ${pos} (#${index + 1})` : `missing after turn ${pos}`
+    }));
+  }
+
+  function openInsertEditor(pos: number, slot: number, existing: Issue | null) {
+    setEditingTurn(null);
+    setInsertAt(pos);
+    setInsertSlot(slot);
+    setEditingInsert(existing);
+    setInsertText(existing ? existing.audio_said.replace(/^user:\s*/, "") : "");
+  }
+
+  function closeInsertEditor() {
+    setInsertAt(null);
+    setInsertSlot(0);
+    setEditingInsert(null);
+    setInsertText("");
+  }
+
   function saveInsertTurn() {
     if (insertAt === null || !currentCall) return;
     const text = insertText.trim();
-    if (!text) { setInsertAt(null); return; }
-    const anchorIndex = Math.max(insertAt - 1, 0);
-    const issue: Issue = {
-      type: "transcription",
-      timestamp: turnTimestamp(insertAt === 0 ? 0 : anchorIndex),
-      after_turn: String(insertAt),
-      turn_number: `missing after turn ${insertAt}`,
-      transcripted: "(missing from transcript)",
-      audio_said: `user: ${text}`,
-      transcription_error_type: "Missing",
-      audio_unclear: "No"
-    };
-    setIssues((existing) => [
-      ...existing.filter((i) => !(i.type === "transcription" && i.after_turn === issue.after_turn)),
-      issue
-    ]);
-    setInsertAt(null);
-    setInsertText("");
+    if (!text) { closeInsertEditor(); return; }
+    const pos = insertAt;
+    const anchorIndex = Math.max(pos - 1, 0);
+    setIssues((existing) => {
+      const others = existing.filter((i) => !(i.type === "transcription" && i.after_turn === String(pos)));
+      let list = insertsAt(existing, pos);
+      if (editingInsert) {
+        list = list.map((i) => (i === editingInsert ? { ...i, audio_said: `user: ${text}` } : i));
+      } else {
+        const issue: Issue = {
+          type: "transcription",
+          timestamp: turnTimestamp(pos === 0 ? 0 : anchorIndex),
+          after_turn: String(pos),
+          turn_number: `missing after turn ${pos}`,
+          transcripted: "(missing from transcript)",
+          audio_said: `user: ${text}`,
+          transcription_error_type: "Missing",
+          audio_unclear: "No"
+        };
+        const slot = Math.min(insertSlot, list.length);
+        list = [...list.slice(0, slot), issue, ...list.slice(slot)];
+      }
+      return [...others, ...renumberInserts(list, pos)];
+    });
+    closeInsertEditor();
+  }
+
+  function removeInsert(issue: Issue) {
+    const pos = Number(issue.after_turn);
+    setIssues((existing) => {
+      const others = existing.filter((i) => !(i.type === "transcription" && i.after_turn === issue.after_turn));
+      const list = insertsAt(existing, pos).filter((i) => i !== issue);
+      return [...others, ...renumberInserts(list, pos)];
+    });
   }
 
   function updateMetricRating(metric: string, key: keyof MetricRating, value: string) {
@@ -1217,45 +1264,69 @@ export default function Page() {
                   const totalWords = turnWordCounts.reduce((sum, count) => sum + count, 0) || currentCall.turns.length;
                   let cumulativeWords = 0;
                   const editByTurn = new Map(issues.filter((i) => i.type === "transcription" && i.after_turn === undefined).map((i) => [Number(i.turn_number) - 1, i]));
-                  const insertByPos = new Map(issues.filter((i) => i.type === "transcription" && i.after_turn !== undefined).map((i) => [Number(i.after_turn), i]));
+                  const insertsByPos = new Map<number, Issue[]>();
+                  issues.filter((i) => i.type === "transcription" && i.after_turn !== undefined).forEach((i) => {
+                    const pos = Number(i.after_turn);
+                    insertsByPos.set(pos, [...(insertsByPos.get(pos) || []), i]);
+                  });
+                  insertsByPos.forEach((list) => list.sort((a, b) => Number(a.insert_order || 1) - Number(b.insert_order || 1)));
 
                   const insertUi = (pos: number) => {
                     if (!showIssues) return null;
-                    const existing = insertByPos.get(pos);
-                    if (insertAt === pos) {
-                      return (
-                        <div key={`ins-${pos}`} style={{ border: "1px dashed #1f7a5c", borderRadius: 8, padding: 10, margin: "6px 0", background: "#f2faf7" }}>
-                          <div style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>
-                            <strong style={{ fontSize: 12 }}>Missing user speech</strong>
-                          </div>
-                          <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder="What was said in the audio but missing from the transcript" style={{ width: "100%" }} />
-                          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                            <button className="primary" type="button" onClick={saveInsertTurn}>Save missing turn</button>
-                            <button className="ghost" type="button" onClick={() => { setInsertAt(null); setInsertText(""); }}>Cancel</button>
-                          </div>
+                    const inserts = insertsByPos.get(pos) || [];
+                    const editorOpenHere = insertAt === pos;
+
+                    const editorBox = (key: string) => (
+                      <div key={key} style={{ border: "1px dashed #1f7a5c", borderRadius: 8, padding: 10, margin: "6px 0", background: "#f2faf7" }}>
+                        <div style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>
+                          <strong style={{ fontSize: 12 }}>Missing user speech</strong>
                         </div>
-                      );
-                    }
-                    if (existing) {
-                      return (
-                        <div key={`ins-${pos}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
-                          <strong>＋ missing (added by you):</strong> {existing.audio_said}
-                          <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => { setEditingTurn(null); setInsertAt(pos); setInsertText(existing.audio_said.replace(/^user:\s*/, "")); }}>Edit</button>
-                          <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => removeIssue(existing)}>Remove</button>
+                        <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder="What was said in the audio but missing from the transcript" style={{ width: "100%" }} />
+                        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                          <button className="primary" type="button" onClick={saveInsertTurn}>Save missing turn</button>
+                          <button className="ghost" type="button" onClick={closeInsertEditor}>Cancel</button>
                         </div>
-                      );
-                    }
-                    return (
-                      <div key={`ins-${pos}`} style={{ textAlign: "center", margin: "-2px 0" }}>
+                      </div>
+                    );
+
+                    const addButton = (slot: number, key: string) => (
+                      <div key={key} style={{ textAlign: "center", margin: "-2px 0" }}>
                         <button
                           type="button"
                           className="add-missing-btn"
-                          onClick={() => { setInsertAt(pos); setInsertText(""); }}
+                          onClick={() => openInsertEditor(pos, slot, null)}
                           title="Add speech missing from the transcript here"
                           style={{ border: "none", background: "transparent", color: "#9ab0a8", cursor: "pointer", fontSize: 12, padding: "0 6px", lineHeight: "16px" }}
                         >＋ add missing</button>
                       </div>
                     );
+
+                    if (!inserts.length) {
+                      return editorOpenHere ? editorBox(`ins-${pos}`) : addButton(0, `ins-${pos}`);
+                    }
+
+                    const parts: React.ReactNode[] = [];
+                    inserts.forEach((insert, slot) => {
+                      // add-slot before this inserted turn (shows the editor when adding here)
+                      if (editorOpenHere && !editingInsert && insertSlot === slot) parts.push(editorBox(`ins-${pos}-editor`));
+                      else parts.push(addButton(slot, `ins-${pos}-add-${slot}`));
+                      if (editorOpenHere && editingInsert === insert) {
+                        parts.push(editorBox(`ins-${pos}-editor`));
+                      } else {
+                        parts.push(
+                          <div key={`ins-${pos}-${slot}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
+                            <strong>＋ missing (added by you):</strong> {insert.audio_said}
+                            <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => openInsertEditor(pos, slot, insert)}>Edit</button>
+                            <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => removeInsert(insert)}>Remove</button>
+                          </div>
+                        );
+                      }
+                    });
+                    // add-slot after the last inserted turn
+                    if (editorOpenHere && !editingInsert && insertSlot >= inserts.length) parts.push(editorBox(`ins-${pos}-editor`));
+                    else parts.push(addButton(inserts.length, `ins-${pos}-add-end`));
+
+                    return <React.Fragment key={`ins-${pos}`}>{parts}</React.Fragment>;
                   };
 
                   const nodes: React.ReactNode[] = [insertUi(0)];
