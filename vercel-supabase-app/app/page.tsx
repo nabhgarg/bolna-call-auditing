@@ -245,8 +245,14 @@ export default function Page() {
     : null;
   const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentQueueId));
   // Role decides the screen: vibe reviewers score only, issue loggers log only, experts do both.
-  const showVibe = reviewerRole !== "issue_logger";
-  const showIssues = reviewerRole !== "reviewer";
+  // Everyone scores the vibe. Experts log all issue types; vibe reviewers and
+  // issue loggers log transcription only (for now).
+  const showVibe = true;
+  const visibleIssueTypes = reviewerRole === "expert" ? combinedIssueTypes : ["transcription"];
+  const showIssues = visibleIssueTypes.length > 0;
+  useEffect(() => {
+    if (visibleIssueTypes.length && !visibleIssueTypes.includes(issueType)) setIssueType(visibleIssueTypes[0]);
+  }, [reviewerRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function switchMode(mode: AuditMode) {
     if (mode === auditMode) return;
@@ -998,12 +1004,12 @@ export default function Page() {
             <div className="audio-actions">
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 5); }}>-5s</button>
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime += 5; }}>+5s</button>
-              {showIssues && modeIssueTypes(auditMode).length > 0 && (
+              {showIssues && visibleIssueTypes.length > 0 && (
                 <>
                   <label className="capture-select">
                     Issue
                     <select value={issueType} onChange={(event) => setIssueType(event.target.value)}>
-                      {modeIssueTypes(auditMode).map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
+                      {visibleIssueTypes.map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
                     </select>
                   </label>
                   <button className="primary" onClick={captureTimestamp}>Capture {currentTime}</button>
@@ -1023,10 +1029,10 @@ export default function Page() {
                 }}>Next</button>
               </div>
 
-              {showIssues && modeIssueTypes(auditMode).length > 0 && (
+              {showIssues && visibleIssueTypes.length > 0 && (
                 <>
                   <div className="quick-flags">
-                    {modeIssueTypes(auditMode).map((type) => (
+                    {visibleIssueTypes.map((type) => (
                       <button
                         key={type}
                         className={issueType === type ? "selected" : ""}
@@ -1045,7 +1051,7 @@ export default function Page() {
                           setIssueType(event.target.value);
                           setMissingIssueFields([]);
                         }}>
-                          {modeIssueTypes(auditMode).map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
+                          {visibleIssueTypes.map((type) => <option key={type} value={type}>{issueLabels[type]}</option>)}
                         </select>
                       </label>
                       <label>
