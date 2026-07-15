@@ -30,6 +30,7 @@ type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe"
 const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
 const combinedIssueTypes = ["transcription", "response_appropriateness", "pronunciation"];
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
+const DELETED_TURN_ERROR_TYPE = "Wrongly captured (delete turn)";
 const RESPONSE_ERROR_SUBTYPES: Record<string, string[]> = {
   "Repetition": ["Same info asked again", "Same response repeated"],
   "Language errors": ["Switched language unprompted", "Responded in wrong language"]
@@ -61,7 +62,7 @@ const issueConfigs: Record<string, Array<[string, string, "text" | "select", str
     ["error_explanation", "Explain the error", "text"]
   ],
   transcription: [
-    ["transcription_error_type", "Type of transcription error", "select", ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"]],
+    ["transcription_error_type", "Type of transcription error", "select", ["Wrong Transcription same language", "Wrong Transcription different language", "Missing", "Wrongly captured (delete turn)"]],
     ["audio_unclear", "Audio unclear", "select", ["No", "Yes"]]
   ]
 };
@@ -598,34 +599,67 @@ export default function Page() {
     return formatTime(Math.floor((before / total) * duration));
   }
 
+  function turnIssueAt(index: number) {
+    return issues.find((i) => i.type === "transcription" && i.turn_number === String(index + 1) && i.after_turn === undefined);
+  }
+
   function startEditTurn(index: number) {
-    const existing = issues.find((i) => i.type === "transcription" && i.turn_number === String(index + 1) && i.after_turn === undefined);
+    const existing = turnIssueAt(index);
+    const hasCorrection = existing && existing.deleted_turn === undefined;
     setInsertAt(null);
     setEditingTurn(index);
-    setEditText(existing ? existing.audio_said : (currentCall?.turns?.[index]?.text || ""));
-    setEditErrorType(existing ? existing.transcription_error_type : TRANSCRIPTION_ERROR_TYPES[0]);
-    setEditUnclear(existing ? existing.audio_unclear : "No");
+    setEditText(hasCorrection ? existing.audio_said : (currentCall?.turns?.[index]?.text || ""));
+    setEditErrorType(hasCorrection ? existing.transcription_error_type : TRANSCRIPTION_ERROR_TYPES[0]);
+    setEditUnclear(hasCorrection ? existing.audio_unclear : "No");
   }
 
   function saveEditTurn() {
     if (editingTurn === null || !currentCall) return;
     const original = currentCall.turns?.[editingTurn]?.text || "";
     const corrected = editText.trim();
-    if (!corrected || corrected === original.trim()) { setEditingTurn(null); return; }
+    const turnNumber = String(editingTurn + 1);
+    const withoutTurnIssue = (list: Issue[]) => list.filter((i) => !(i.type === "transcription" && i.turn_number === turnNumber && i.after_turn === undefined));
+    if (!corrected || corrected === original.trim()) {
+      // Text matches the original transcript again — drop any saved correction (revert).
+      setIssues(withoutTurnIssue);
+      setEditingTurn(null);
+      return;
+    }
     const issue: Issue = {
       type: "transcription",
       timestamp: turnTimestamp(editingTurn),
-      turn_number: String(editingTurn + 1),
+      turn_number: turnNumber,
       transcripted: original,
       audio_said: corrected,
       transcription_error_type: editErrorType,
       audio_unclear: editUnclear
     };
+    setIssues((existing) => [...withoutTurnIssue(existing), issue]);
+    setEditingTurn(null);
+  }
+
+  function deleteTurn(index: number) {
+    if (!currentCall) return;
+    const turnNumber = String(index + 1);
+    const issue: Issue = {
+      type: "transcription",
+      timestamp: turnTimestamp(index),
+      turn_number: turnNumber,
+      transcripted: currentCall.turns?.[index]?.text || "",
+      audio_said: "(not said — turn wrongly captured)",
+      transcription_error_type: DELETED_TURN_ERROR_TYPE,
+      deleted_turn: "true",
+      audio_unclear: "No"
+    };
     setIssues((existing) => [
-      ...existing.filter((i) => !(i.type === "transcription" && i.turn_number === issue.turn_number && i.after_turn === undefined)),
+      ...existing.filter((i) => !(i.type === "transcription" && i.turn_number === turnNumber && i.after_turn === undefined)),
       issue
     ]);
-    setEditingTurn(null);
+    setEditingTurn((current) => (current === index ? null : current));
+  }
+
+  function removeIssue(issue: Issue) {
+    setIssues((existing) => existing.filter((i) => i !== issue));
   }
 
   function saveInsertTurn() {
@@ -1019,7 +1053,8 @@ export default function Page() {
                     {issueType === "transcription" && (
                       <p className="helper-copy">
                         Mark the correction in the transcript: press ✎ on the user turn to fix its
-                        text, or ＋ between turns to add the missing user speech.
+                        text, 🗑 to delete a wrongly captured turn, or ＋ between turns to add the
+                        missing user speech. Saved corrections can be edited again or undone.
                       </p>
                     )}
                     {missingIssueFields.length > 0 && <p className="validation-message">Fill the highlighted required field before adding the issue.</p>}
@@ -1205,7 +1240,8 @@ export default function Page() {
                       return (
                         <div key={`ins-${pos}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
                           <strong>＋ missing (added by you):</strong> {existing.audio_said}
-                          <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => setIssues((ex) => ex.filter((i) => i !== existing))}>Remove</button>
+                          <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => { setEditingTurn(null); setInsertAt(pos); setInsertText(existing.audio_said.replace(/^user:\s*/, "")); }}>Edit</button>
+                          <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => removeIssue(existing)}>Remove</button>
                         </div>
                       );
                     }
@@ -1242,32 +1278,56 @@ export default function Page() {
                         </div>
                       );
                     } else {
+                      const deleted = edit?.deleted_turn === "true";
                       nodes.push(
                         <div
                           className={`turn ${turn.role}`}
                           key={`${turn.role}-${index}`}
-                          style={edit ? { background: "#fffaf0", borderLeft: "3px solid #b7791f" } : undefined}
+                          style={deleted
+                            ? { background: "#fff5f5", borderLeft: "3px solid #c53030", opacity: 0.75 }
+                            : edit ? { background: "#fffaf0", borderLeft: "3px solid #b7791f" } : undefined}
                           onClick={() => { if (audioRef.current) audioRef.current.currentTime = jumpTime; }}
                         >
                           <div className="turn-role">
-                            <span>{index + 1}. {turn.role}{edit ? " · corrected" : ""}</span>
+                            <span>{index + 1}. {turn.role}{deleted ? " · deleted" : edit ? " · corrected" : ""}</span>
                             <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                               <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
-                              {showIssues && turn.role === "user" && (
-                                <button
-                                  type="button"
-                                  className="turn-edit-btn"
-                                  title="Correct this turn's transcription"
-                                  onClick={(e) => { e.stopPropagation(); startEditTurn(index); }}
-                                  style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 14, padding: 0 }}
-                                >✎</button>
+                              {showIssues && turn.role === "user" && !deleted && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="turn-edit-btn"
+                                    title="Correct this turn's transcription"
+                                    onClick={(e) => { e.stopPropagation(); startEditTurn(index); }}
+                                    style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 14, padding: 0 }}
+                                  >✎</button>
+                                  <button
+                                    type="button"
+                                    className="turn-delete-btn"
+                                    title="Delete this turn — wrongly captured, nothing was said"
+                                    onClick={(e) => { e.stopPropagation(); deleteTurn(index); }}
+                                    style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 14, padding: 0 }}
+                                  >🗑</button>
+                                </>
                               )}
                             </span>
                           </div>
-                          {edit ? (
+                          {deleted && edit ? (
+                            <div>
+                              <div style={{ textDecoration: "line-through", color: "#c53030" }}>{turn.text}</div>
+                              <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
+                                <span style={{ fontSize: 12, fontStyle: "italic", color: "#c53030" }}>Deleted — wrongly captured</span>
+                                <button type="button" className="ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); removeIssue(edit); }}>Undo delete</button>
+                              </div>
+                            </div>
+                          ) : edit ? (
                             <div>
                               <div style={{ textDecoration: "line-through", color: "#b0784a" }}>{turn.text}</div>
                               <div>{edit.audio_said}</div>
+                              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                                <button type="button" className="ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); startEditTurn(index); }}>Edit correction</button>
+                                <button type="button" className="ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); removeIssue(edit); }}>Undo correction</button>
+                              </div>
                             </div>
                           ) : (
                             <div>{turn.text}</div>
