@@ -386,56 +386,50 @@ export default function Page() {
       };
       const seg0 = segs(active[0]);
       const seg1 = segs(active[1]);
-      const talk = (ss: Array<[number, number]>) => ss.reduce((a, s) => a + (s[1] - s[0]), 0);
-      const agentFirst = talk(seg0) >= talk(seg1);
-
-      // one chronological list of speech segments with speaker labels
-      type Seg = { start: number; end: number; role: string };
-      const allSegs: Seg[] = [
-        ...(agentFirst ? seg0 : seg1).map(([s, e]) => ({ start: s, end: e, role: "assistant" })),
-        ...(agentFirst ? seg1 : seg0).map(([s, e]) => ({ start: s, end: e, role: "user" }))
-      ].sort((a, b) => a.start - b.start);
-
-      // DP sequence alignment: turns (by role) vs segments (by speaker).
-      // Moves: match turn↔segment, extend a turn across another same-role segment,
-      // skip a noise segment, or skip an unalignable turn.
       const roles = call.turns.map((t) => (t.role === "assistant" ? "assistant" : "user"));
-      const T = roles.length, S = allSegs.length;
-      const SKIP_SEG = 0.6, SKIP_TURN = 1.0;
-      const INF = 1e9;
-      const dp: number[][] = Array.from({ length: T + 1 }, () => Array(S + 1).fill(INF));
-      const back: number[][] = Array.from({ length: T + 1 }, () => Array(S + 1).fill(0)); // 1=match,2=extend,3=skipSeg,4=skipTurn
-      dp[0][0] = 0;
-      for (let i = 0; i <= T; i++) {
-        for (let j = 0; j <= S; j++) {
-          const cur = dp[i][j];
-          if (cur >= INF) continue;
-          if (i < T && j < S && roles[i] === allSegs[j].role && cur < dp[i + 1][j + 1]) {
-            dp[i + 1][j + 1] = cur; back[i + 1][j + 1] = 1;
-          }
-          if (i > 0 && j < S && roles[i - 1] === allSegs[j].role && cur < dp[i][j + 1]) {
-            dp[i][j + 1] = cur; back[i][j + 1] = 2;
-          }
-          if (j < S && cur + SKIP_SEG < dp[i][j + 1] ) {
-            if (back[i][j + 1] !== 2 || cur + SKIP_SEG < dp[i][j + 1]) {
-              dp[i][j + 1] = cur + SKIP_SEG; back[i][j + 1] = 3;
-            }
-          }
-          if (i < T && cur + SKIP_TURN < dp[i + 1][j]) {
-            dp[i + 1][j] = cur + SKIP_TURN; back[i + 1][j] = 4;
+      type Seg = { start: number; end: number; role: string };
+
+      // DP alignment of the turn sequence against one channel labeling. Returns the
+      // matched start time per turn, how many turns matched, and the DP cost.
+      const alignOne = (agentSeg: Array<[number, number]>, userSeg: Array<[number, number]>) => {
+        const allSegs: Seg[] = [
+          ...agentSeg.map(([s, e]) => ({ start: s, end: e, role: "assistant" })),
+          ...userSeg.map(([s, e]) => ({ start: s, end: e, role: "user" }))
+        ].sort((a, b) => a.start - b.start);
+        const T = roles.length, S = allSegs.length;
+        const SKIP_SEG = 0.6, SKIP_TURN = 1.0, INF = 1e9;
+        const dp: number[][] = Array.from({ length: T + 1 }, () => Array(S + 1).fill(INF));
+        const back: number[][] = Array.from({ length: T + 1 }, () => Array(S + 1).fill(0));
+        dp[0][0] = 0;
+        for (let i = 0; i <= T; i++) {
+          for (let j = 0; j <= S; j++) {
+            const cur = dp[i][j];
+            if (cur >= INF) continue;
+            if (i < T && j < S && roles[i] === allSegs[j].role && cur < dp[i + 1][j + 1]) { dp[i + 1][j + 1] = cur; back[i + 1][j + 1] = 1; }
+            if (i > 0 && j < S && roles[i - 1] === allSegs[j].role && cur < dp[i][j + 1]) { dp[i][j + 1] = cur; back[i][j + 1] = 2; }
+            if (j < S && cur + SKIP_SEG < dp[i][j + 1]) { dp[i][j + 1] = cur + SKIP_SEG; back[i][j + 1] = 3; }
+            if (i < T && cur + SKIP_TURN < dp[i + 1][j]) { dp[i + 1][j] = cur + SKIP_TURN; back[i + 1][j] = 4; }
           }
         }
-      }
-      // backtrack: record the FIRST segment matched to each turn
-      const times: Record<number, number> = {};
-      let bi = T, bj = S;
-      while (bi > 0 || bj > 0) {
-        const move = back[bi][bj];
-        if (move === 1) { times[bi - 1] = allSegs[bj - 1].start; bi -= 1; bj -= 1; }
-        else if (move === 2 || move === 3) { bj -= 1; }
-        else if (move === 4) { bi -= 1; }
-        else break;
-      }
+        const times: Record<number, number> = {};
+        let bi = T, bj = S, matched = 0;
+        while (bi > 0 || bj > 0) {
+          const move = back[bi][bj];
+          if (move === 1) { times[bi - 1] = allSegs[bj - 1].start; matched += 1; bi -= 1; bj -= 1; }
+          else if (move === 2 || move === 3) { bj -= 1; }
+          else if (move === 4) { bi -= 1; }
+          else break;
+        }
+        return { times, matched, cost: dp[T][S] };
+      };
+
+      // Try both channel-as-agent assignments and keep whichever explains the
+      // transcript better (more turns matched, then lower cost). Talk-time alone
+      // is unreliable when both channels talk a similar amount.
+      const A = alignOne(seg0, seg1); // agent = ch0
+      const B = alignOne(seg1, seg0); // agent = ch1
+      const times = (B.matched > A.matched || (B.matched === A.matched && B.cost < A.cost)) ? B.times : A.times;
+      const T = roles.length;
 
       // Alignment is only trustworthy at speaker-change boundaries. Within a run of
       // consecutive same-role turns, spread the turns across the run's time span in
