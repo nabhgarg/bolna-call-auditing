@@ -61,7 +61,11 @@ export const PRONUNCIATION_TONE_REVIEW_EXPORT_COLUMNS = [
   "review_notes",
   "started_at",
   "submitted_at",
-  "duration_taken_sec"
+  "duration_taken_sec",
+  "turn_number",
+  "after_turn",
+  "insert_order",
+  "deleted_turn"
 ] as const;
 
 export const TIMING_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS = [
@@ -90,7 +94,11 @@ export const TIMING_TRANSCRIPTION_REVIEW_EXPORT_COLUMNS = [
   "review_notes",
   "started_at",
   "submitted_at",
-  "duration_taken_sec"
+  "duration_taken_sec",
+  "turn_number",
+  "after_turn",
+  "insert_order",
+  "deleted_turn"
 ] as const;
 
 export const RESPONSE_VIBE_REVIEW_EXPORT_COLUMNS = [
@@ -127,7 +135,11 @@ export const RESPONSE_VIBE_REVIEW_EXPORT_COLUMNS = [
   "review_notes",
   "started_at",
   "submitted_at",
-  "duration_taken_sec"
+  "duration_taken_sec",
+  "turn_number",
+  "after_turn",
+  "insert_order",
+  "deleted_turn"
 ] as const;
 
 export const REVIEW_EXPORT_COLUMNS_BY_MODE = {
@@ -277,7 +289,11 @@ export function exportRowsFromReviews(reviews: ReviewRow[], mode?: string | null
         review_notes: review.notes || "",
         started_at: review.started_at || "",
         submitted_at: review.submitted_at || "",
-        duration_taken_sec: review.duration_taken_sec || ""
+        duration_taken_sec: review.duration_taken_sec || "",
+        turn_number: issue.turn_number || "",
+        after_turn: issue.after_turn || "",
+        insert_order: issue.insert_order || "",
+        deleted_turn: issue.deleted_turn || ""
       });
     }
   }
