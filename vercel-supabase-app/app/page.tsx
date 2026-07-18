@@ -412,23 +412,45 @@ export default function Page() {
           }
         }
         const times: Record<number, number> = {};
+        const wc = (s: string) => Math.max(s.trim().split(/\s+/).filter(Boolean).length, 1);
+        const xs: number[] = []; // word counts of matched turns
+        const ys: number[] = []; // matched segment durations
         let bi = T, bj = S, matched = 0;
         while (bi > 0 || bj > 0) {
           const move = back[bi][bj];
-          if (move === 1) { times[bi - 1] = allSegs[bj - 1].start; matched += 1; bi -= 1; bj -= 1; }
+          if (move === 1) {
+            const seg = allSegs[bj - 1];
+            times[bi - 1] = seg.start; matched += 1;
+            xs.push(wc(call.turns![bi - 1].text)); ys.push(seg.end - seg.start);
+            bi -= 1; bj -= 1;
+          }
           else if (move === 2 || move === 3) { bj -= 1; }
           else if (move === 4) { bi -= 1; }
           else break;
         }
-        return { times, matched, cost: dp[T][S] };
+        // fit = correlation between a turn's word count and its segment duration.
+        // The correct channel labeling maps short turns to short segments.
+        let fit = 0;
+        if (xs.length > 2) {
+          const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+          const mx = mean(xs), my = mean(ys);
+          let cov = 0, vx = 0, vy = 0;
+          for (let k = 0; k < xs.length; k++) { cov += (xs[k] - mx) * (ys[k] - my); vx += (xs[k] - mx) ** 2; vy += (ys[k] - my) ** 2; }
+          fit = vx > 0 && vy > 0 ? cov / Math.sqrt(vx * vy) : 0;
+        }
+        return { times, matched, cost: dp[T][S], fit };
       };
 
-      // Try both channel-as-agent assignments and keep whichever explains the
-      // transcript better (more turns matched, then lower cost). Talk-time alone
-      // is unreliable when both channels talk a similar amount.
+      // Try both channel-as-agent assignments and keep the one that best explains
+      // the transcript: prefer higher fit (short turns -> short segments), then more
+      // matched turns, then lower cost. Talk-time alone is unreliable on similar loads.
       const A = alignOne(seg0, seg1); // agent = ch0
       const B = alignOne(seg1, seg0); // agent = ch1
-      const times = (B.matched > A.matched || (B.matched === A.matched && B.cost < A.cost)) ? B.times : A.times;
+      const better = (p: typeof A, q: typeof A) =>
+        Math.abs(p.fit - q.fit) > 0.1 ? p.fit > q.fit
+        : p.matched !== q.matched ? p.matched > q.matched
+        : p.cost <= q.cost;
+      const times = better(B, A) ? B.times : A.times;
       const T = roles.length;
 
       // Alignment is only trustworthy at speaker-change boundaries. Within a run of
