@@ -22,6 +22,7 @@ type CallDetail = CallSummary & {
   transcript?: string | null;
   recording_url?: string | null;
   turns?: Array<{ role: string; text: string }>;
+  turn_anchors?: Array<{ text: string; startSec: number; endSec: number }>;
 };
 
 type Issue = Record<string, string>;
@@ -441,16 +442,69 @@ export default function Page() {
         return { times, matched, cost: dp[T][S], fit };
       };
 
-      // Try both channel-as-agent assignments and keep the one that best explains
-      // the transcript: prefer higher fit (short turns -> short segments), then more
-      // matched turns, then lower cost. Talk-time alone is unreliable on similar loads.
-      const A = alignOne(seg0, seg1); // agent = ch0
-      const B = alignOne(seg1, seg0); // agent = ch1
-      const better = (p: typeof A, q: typeof A) =>
-        Math.abs(p.fit - q.fit) > 0.1 ? p.fit > q.fit
-        : p.matched !== q.matched ? p.matched > q.matched
-        : p.cost <= q.cost;
-      const times = better(B, A) ? B.times : A.times;
+      // --- HYBRID: pin user turns to Bolna telemetry anchors when available ---
+      // Anchor spacing is exact (real-time ASR); only a constant clock offset vs the
+      // recording is unknown. Solve channel+offset by maximizing speech activity at
+      // anchor positions, pin matched user turns, and let DP fill agent turns.
+      let times: Record<number, number> | null = null;
+      const tAnchors = call.turn_anchors || [];
+      if (tAnchors.length >= 2) {
+        const normTokens = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+        const sim = (a: string, b: string) => {
+          const A1 = new Set(normTokens(a)), B1 = new Set(normTokens(b));
+          if (!A1.size || !B1.size) return 0;
+          let inter = 0; A1.forEach((w) => { if (B1.has(w)) inter += 1; });
+          return inter / Math.max(A1.size, B1.size);
+        };
+        // in-order greedy match: user turns <-> anchors
+        const userTurnIdx = roles.map((r, i) => (r === "user" ? i : -1)).filter((i) => i >= 0);
+        const pairs: Array<{ turn: number; anchor: number }> = [];
+        let nextAnchor = 0;
+        for (const ti of userTurnIdx) {
+          let best = -1, bestScore = 0.34;
+          for (let j = nextAnchor; j < Math.min(nextAnchor + 3, tAnchors.length); j++) {
+            const s = sim(call.turns![ti].text, tAnchors[j].text);
+            if (s > bestScore) { best = j; bestScore = s; }
+          }
+          if (best >= 0) { pairs.push({ turn: ti, anchor: best }); nextAnchor = best + 1; }
+        }
+        if (pairs.length >= 2) {
+          // grid-search: which channel is the user, and what clock offset fits
+          const activityScore = (ch: number, off: number) => {
+            let sc = 0;
+            for (const p of pairs) {
+              const t0 = tAnchors[p.anchor].startSec + off;
+              const i0 = Math.floor(t0 / 0.1);
+              for (let k = i0; k < i0 + 10; k++) { if (k >= 0 && k < n && active[ch][k]) { sc += 1; break; } }
+            }
+            return sc;
+          };
+          let bestCh = 0, bestOff = 0, bestSc = -1;
+          for (const ch of [0, 1]) {
+            for (let off = -8; off <= 8.001; off += 0.1) {
+              const sc = activityScore(ch, off);
+              if (sc > bestSc) { bestSc = sc; bestCh = ch; bestOff = off; }
+            }
+          }
+          if (bestSc >= Math.max(2, Math.floor(pairs.length * 0.6))) {
+            // agent = the other channel; DP fills agent/unmatched turns, anchors override user turns
+            const base = alignOne(bestCh === 0 ? seg1 : seg0, bestCh === 0 ? seg0 : seg1).times;
+            for (const p of pairs) base[p.turn] = Math.max(0, tAnchors[p.anchor].startSec + bestOff);
+            times = base;
+          }
+        }
+      }
+      if (!times) {
+        // fallback: try both channel-as-agent assignments, keep the best fit
+        // (short turns should map to short segments), then matched count, then cost.
+        const A = alignOne(seg0, seg1); // agent = ch0
+        const B = alignOne(seg1, seg0); // agent = ch1
+        const better = (p: typeof A, q: typeof A) =>
+          Math.abs(p.fit - q.fit) > 0.1 ? p.fit > q.fit
+          : p.matched !== q.matched ? p.matched > q.matched
+          : p.cost <= q.cost;
+        times = better(B, A) ? B.times : A.times;
+      }
       const T = roles.length;
 
       // Alignment is only trustworthy at speaker-change boundaries. Within a run of

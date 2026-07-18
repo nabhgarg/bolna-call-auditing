@@ -94,7 +94,12 @@ export async function POST(request: Request) {
     !importedQueueKeys.has(`${row.call_id}||${row.audit_mode}`)
   ));
 
-  const { error } = await supabase.from("calls").upsert(callRows, { onConflict: "execution_id" });
+  let { error } = await supabase.from("calls").upsert(callRows, { onConflict: "execution_id" });
+  if (error && /telemetry_json/.test(error.message)) {
+    // telemetry column not added to the DB yet — import everything else
+    const stripped = callRows.map(({ telemetry_json, ...row }: any) => row);
+    ({ error } = await supabase.from("calls").upsert(stripped, { onConflict: "execution_id" }));
+  }
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

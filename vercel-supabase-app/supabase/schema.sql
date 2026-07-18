@@ -99,3 +99,6 @@ create table if not exists public.login_otps (
   created_at timestamptz not null default now()
 );
 create index if not exists login_otps_email_idx on public.login_otps(email, created_at desc);
+
+alter table public.calls
+  add column if not exists telemetry_json text;

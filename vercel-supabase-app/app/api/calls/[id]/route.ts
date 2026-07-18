@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseTurns } from "../../../../lib/audit";
+import { extractAnchors } from "../../../../lib/telemetry";
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   return NextResponse.json({
     ...call,
+    telemetry_json: undefined, // raw blob is large; anchors carry what the client needs
+    turn_anchors: extractAnchors((call as Record<string, unknown>).telemetry_json),
     turns: parseTurns(call.transcript || ""),
     reviews: reviews || []
   });

@@ -13,7 +13,8 @@ export const CALL_IMPORT_COLUMNS = [
   "recording_url",
   "agent_interrupted_user_count",
   "audit_mode",
-  "source_sheet"
+  "source_sheet",
+  "telemetry_json"
 ] as const;
 
 const headerAliases: Record<string, string> = {
@@ -59,7 +60,10 @@ const headerAliases: Record<string, string> = {
   review_mode: "audit_mode",
   import_mode: "audit_mode",
   source: "source_sheet",
-  source_sheet: "source_sheet"
+  source_sheet: "source_sheet",
+  data: "telemetry_json",
+  telemetry: "telemetry_json",
+  telemetry_json: "telemetry_json"
 };
 
 function normalizeHeader(value: string) {
@@ -136,6 +140,12 @@ export function normalizeCallRows(calls: Array<Record<string, unknown>>, auditMo
         row.agent_interrupted_user_count = Number.isFinite(interruptions) ? interruptions : null;
       }
       row.audit_mode = normalizeAuditMode(row.audit_mode || mode);
+      // keep only parseable telemetry blobs (sheet cells can truncate large JSON)
+      if (row.telemetry_json) {
+        try { JSON.parse(String(row.telemetry_json)); } catch { row.telemetry_json = null; }
+      } else {
+        row.telemetry_json = null;
+      }
       row.imported_at = new Date().toISOString();
       return row;
     })
