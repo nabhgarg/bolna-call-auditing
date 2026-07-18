@@ -229,6 +229,7 @@ export default function Page() {
     setCalls(payload.calls || []);
   }
 
+  const isPriority = (call: CallSummary) => String(call.source_sheet || "").includes("★");
   const filteredCalls = useMemo(() => {
     return calls
       .filter((call) => {
@@ -236,7 +237,8 @@ export default function Page() {
         if (queueView === "submitted" && !call.reviewed) return false;
         return true;
       })
-      .sort((a, b) => a.execution_id.localeCompare(b.execution_id));
+      // priority (★) calls float to the top, then by id
+      .sort((a, b) => (Number(isPriority(b)) - Number(isPriority(a))) || a.execution_id.localeCompare(b.execution_id));
   }, [calls, queueView]);
   const reviewedCount = calls.filter((call) => call.reviewed).length;
   const pendingCount = calls.length - reviewedCount;
@@ -954,7 +956,10 @@ export default function Page() {
           <nav className="call-list">
             {filteredCalls.map((call) => (
               <button key={call.queue_id || call.execution_id} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${(currentQueueId || currentCall?.execution_id) === (call.queue_id || call.execution_id) ? "active" : ""}`} onClick={() => selectCall(call.execution_id, call.queue_id || call.execution_id)}>
-                <span className="call-id">ID {shortCallId(call.execution_id)}</span>
+                <span className="call-id">
+                  ID {shortCallId(call.execution_id)}
+                  {isPriority(call) && <span style={{ marginLeft: 6, color: "#b7791f", fontWeight: 700 }}>★ priority</span>}
+                </span>
                 <strong>{call.agent_name || "Unknown agent"}</strong>
                 <span>{call.org_name || ""} · {formatTime(Number(call.duration_sec || 0))} · {call.language || ""}</span>
                 <span>{call.reviewed ? "Submitted by you" : "Open"} · {call.created_at_ist || ""}</span>
