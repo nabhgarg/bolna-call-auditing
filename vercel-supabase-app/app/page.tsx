@@ -135,6 +135,7 @@ export default function Page() {
   const [insertSlot, setInsertSlot] = useState(0); // position within the gap's inserted turns
   const [editingInsert, setEditingInsert] = useState<Issue | null>(null); // existing inserted turn being edited
   const [insertText, setInsertText] = useState("");
+  const [insertTime, setInsertTime] = useState(""); // exact mm:ss of the missing speech (experts)
   const [respErrorType, setRespErrorType] = useState("");
   const [flagCall, setFlagCall] = useState<boolean | null>(null); // optional: null = not answered
   const [flagReason, setFlagReason] = useState("");
@@ -762,12 +763,32 @@ export default function Page() {
     }));
   }
 
+  // Accepts "95" (seconds), "1:35" or "01:35" and returns mm:ss; "" if unparseable.
+  function normalizeClock(value: string) {
+    const v = value.trim();
+    if (!v) return "";
+    if (/^\d+$/.test(v)) return formatTime(Number(v));
+    const m = v.match(/^(\d{1,3}):(\d{1,2})$/);
+    if (m) return formatTime(Number(m[1]) * 60 + Number(m[2]));
+    return "";
+  }
+
   function openInsertEditor(pos: number, slot: number, existing: Issue | null) {
     setEditingTurn(null);
     setInsertAt(pos);
     setInsertSlot(slot);
     setEditingInsert(existing);
     setInsertText(existing ? existing.audio_said.replace(/^user:\s*/, "") : "");
+    // Experts pin the exact moment: prefill from the issue being edited, else
+    // freeze the audio where it is and start from that position.
+    if (reviewerRole === "expert") {
+      if (existing) {
+        setInsertTime(existing.timestamp || "");
+      } else {
+        audioRef.current?.pause();
+        setInsertTime(formatTime(audioRef.current?.currentTime || 0));
+      }
+    }
   }
 
   function closeInsertEditor() {
@@ -775,6 +796,7 @@ export default function Page() {
     setInsertSlot(0);
     setEditingInsert(null);
     setInsertText("");
+    setInsertTime("");
   }
 
   function saveInsertTurn() {
@@ -783,15 +805,18 @@ export default function Page() {
     if (!text) { closeInsertEditor(); return; }
     const pos = insertAt;
     const anchorIndex = Math.max(pos - 1, 0);
+    const exactTime = reviewerRole === "expert" ? normalizeClock(insertTime) : "";
     setIssues((existing) => {
       const others = existing.filter((i) => !(i.type === "transcription" && i.after_turn === String(pos)));
       let list = insertsAt(existing, pos);
       if (editingInsert) {
-        list = list.map((i) => (i === editingInsert ? { ...i, audio_said: `user: ${text}` } : i));
+        list = list.map((i) => (i === editingInsert
+          ? { ...i, audio_said: `user: ${text}`, ...(exactTime ? { timestamp: exactTime } : {}) }
+          : i));
       } else {
         const issue: Issue = {
           type: "transcription",
-          timestamp: turnTimestamp(pos === 0 ? 0 : anchorIndex),
+          timestamp: exactTime || turnTimestamp(pos === 0 ? 0 : anchorIndex),
           after_turn: String(pos),
           turn_number: `missing after turn ${pos}`,
           transcripted: "(missing from transcript)",
@@ -1365,8 +1390,26 @@ export default function Page() {
 
                     const editorBox = (key: string) => (
                       <div key={key} style={{ border: "1px dashed #1f7a5c", borderRadius: 8, padding: 10, margin: "6px 0", background: "#f2faf7" }}>
-                        <div style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>
+                        <div style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center", flexWrap: "wrap" }}>
                           <strong style={{ fontSize: 12 }}>Missing user speech</strong>
+                          {reviewerRole === "expert" && (
+                            <span style={{ display: "inline-flex", gap: 6, alignItems: "center", marginLeft: "auto" }}>
+                              <label style={{ fontSize: 12, color: "#2b3a35" }}>at</label>
+                              <input
+                                value={insertTime}
+                                onChange={(e) => setInsertTime(e.target.value)}
+                                placeholder="mm:ss"
+                                style={{ width: 64, fontSize: 13, padding: "3px 6px", textAlign: "center" }}
+                              />
+                              <button
+                                type="button"
+                                className="ghost"
+                                style={{ fontSize: 12 }}
+                                title="Pause the audio at the missing speech, then press this"
+                                onClick={() => { audioRef.current?.pause(); setInsertTime(formatTime(audioRef.current?.currentTime || 0)); }}
+                              >⏸ use audio position</button>
+                            </span>
+                          )}
                         </div>
                         <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder="What was said in the audio but missing from the transcript" style={{ width: "100%" }} />
                         <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
@@ -1402,7 +1445,7 @@ export default function Page() {
                       } else {
                         parts.push(
                           <div key={`ins-${pos}-${slot}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
-                            <strong>＋ missing (added by you):</strong> {insert.audio_said}
+                            <strong>＋ missing (added by you){reviewerRole === "expert" && insert.timestamp ? ` @ ${insert.timestamp}` : ""}:</strong> {insert.audio_said}
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => openInsertEditor(pos, slot, insert)}>Edit</button>
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => removeInsert(insert)}>Remove</button>
                           </div>
