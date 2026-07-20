@@ -50,16 +50,29 @@ export async function GET(request: Request) {
   const reviewer = normalizeReviewerName(url.searchParams.get("reviewer") || "");
   const emailMap = reviewer ? await loadReviewerEmailMap(supabase) : new Map<string, string>();
 
-  const queueResult = await supabase
-    .from("call_audit_queue")
-    .select("call_id,assigned_reviewer,audit_mode,source_sheet")
-    .or(queueModeMatches(auditMode))
-    .order("audit_mode", { ascending: true });
+  // Fetch the whole queue for this mode in pages — Supabase caps a single
+  // response at 1000 rows, and the queue can exceed that once several batches
+  // are assigned, so a single query would silently drop rows (and calls would
+  // vanish from reviewers' screens).
+  const pageSize = 1000;
+  let queueData: any[] = [];
+  let queueError: any = null;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("call_audit_queue")
+      .select("call_id,assigned_reviewer,audit_mode,source_sheet")
+      .or(queueModeMatches(auditMode))
+      .order("audit_mode", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) { queueError = error; break; }
+    queueData = queueData.concat(data || []);
+    if (!data || data.length < pageSize) break;
+  }
 
-  if (!queueResult.error) {
+  if (!queueError) {
     const queueRows = reviewer
-      ? (queueResult.data || []).filter((row: any) => reviewerMatches(row.assigned_reviewer, reviewer, emailMap))
-      : queueResult.data || [];
+      ? queueData.filter((row: any) => reviewerMatches(row.assigned_reviewer, reviewer, emailMap))
+      : queueData;
     const callIds = queueRows.map((row: any) => row.call_id).filter(Boolean);
     if (!callIds.length) {
       return NextResponse.json({ calls: [] }, { headers: { "Cache-Control": "no-store" } });
