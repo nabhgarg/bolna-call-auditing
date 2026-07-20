@@ -248,7 +248,7 @@ export default function Page() {
     : null;
   const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentQueueId));
   // Role decides the screen:
-  //   vibe reviewer  -> vibe score + transcription
+  //   vibe reviewer  -> vibe score only
   //   issue logger   -> transcription + pronunciation (no vibe score)
   //   expert (GT)    -> vibe score + all issue types
   const showVibe = reviewerRole !== "issue_logger";
@@ -257,7 +257,7 @@ export default function Page() {
       ? combinedIssueTypes
       : reviewerRole === "issue_logger"
         ? ["transcription", "pronunciation"]
-        : ["transcription"];
+        : [];
   const showIssues = visibleIssueTypes.length > 0;
   useEffect(() => {
     if (visibleIssueTypes.length && !visibleIssueTypes.includes(issueType)) setIssueType(visibleIssueTypes[0]);
