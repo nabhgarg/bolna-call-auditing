@@ -17,6 +17,31 @@ export const CALL_IMPORT_COLUMNS = [
   "telemetry_json"
 ] as const;
 
+// 2026-07-20 migration to @realloop.in logins. Sheets edited before the
+// migration still carry the old personal emails; imports normalize them so a
+// stale sheet can never flip assignments/logins back to the old identities.
+export const EMAIL_ALIASES: Record<string, string> = {
+  "who.suren19@gmail.com": "aditya.wakde@realloop.in",
+  "juiwaykole@gmail.com": "juiwaykole@realloop.in",
+  "krishshrotiya@gmail.com": "kanishka.shrotiya@realloop.in",
+  "kashak0712@gmail.com": "kashak.yadav@realloop.in",
+  "maithilee@ieee.org": "maithilee.kedare@realloop.in",
+  "manavi.garg1399@gmail.com": "manavi@realloop.in",
+  "singhsmile716@gmail.com": "muskan.singh@realloop.in",
+  "muskanmishra0223@gmail.com": "muskan.mishra@realloop.in",
+  "nabhgarg@gmail.com": "nabh@realloop.in",
+  "kpushpanjali2005@gmail.com": "pushpanjali.kumari@realloop.in",
+  "patilroshankishor@gmail.com": "roshan.patil@realloop.in",
+  "ss5641863@gmail.com": "sapna.singh@realloop.in",
+  "shambhubar9356@gmail.com": "shambhu.barangule@realloop.in",
+  "sumitchintamani88@gmail.com": "sumit.chintamani@realloop.in"
+};
+
+export function applyEmailAlias(value: string) {
+  const email = value.trim().toLowerCase();
+  return EMAIL_ALIASES[email] || value;
+}
+
 const headerAliases: Record<string, string> = {
   row_id: "queue_id",
   queue_id: "queue_id",
@@ -140,6 +165,7 @@ export function normalizeCallRows(calls: Array<Record<string, unknown>>, auditMo
         row.agent_interrupted_user_count = Number.isFinite(interruptions) ? interruptions : null;
       }
       row.audit_mode = normalizeAuditMode(row.audit_mode || mode);
+      if (row.assigned_reviewer) row.assigned_reviewer = applyEmailAlias(String(row.assigned_reviewer));
       // keep only parseable telemetry blobs (sheet cells can truncate large JSON)
       if (row.telemetry_json) {
         try { JSON.parse(String(row.telemetry_json)); } catch { row.telemetry_json = null; }

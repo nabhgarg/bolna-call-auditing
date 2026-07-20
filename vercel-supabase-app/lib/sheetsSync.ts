@@ -1,5 +1,5 @@
 import { exportRowsFromReviews, normalizeReviewMode, REVIEW_EXPORT_COLUMNS_BY_MODE, ReviewRow } from "./audit";
-import { normalizeAuditMode, normalizeCallRows } from "./callImport";
+import { applyEmailAlias, normalizeAuditMode, normalizeCallRows } from "./callImport";
 
 // Current sheet webhook (experts phase). Not a secret - it's a public Apps Script
 // endpoint. GOOGLE_SHEETS_WEBHOOK_OVERRIDE env var wins if set, so the sheet can be
@@ -122,7 +122,7 @@ export async function importReviewersFromSheets() {
         const header = key.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
         normalized[header] = String(value ?? "").trim();
       }
-      const email = (normalized.email || normalized.email_id || normalized.reviewer_email || "").toLowerCase();
+      const email = applyEmailAlias((normalized.email || normalized.email_id || normalized.reviewer_email || "").toLowerCase());
       if (!email || !email.includes("@")) continue;
       const displayName = normalized.display_name || normalized.name || normalized.reviewer_name || email;
       const activeRaw = (normalized.active || normalized.is_active || "yes").toLowerCase();
