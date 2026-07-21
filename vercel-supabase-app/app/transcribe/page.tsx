@@ -351,6 +351,13 @@ export default function Transcribe() {
     if (kind === "correct" || kind === "noise") {
       patch(i, { kind, status: "done", tokens: kind === "noise" ? [] : s.tokens, roman: kind === "noise" ? "{noise}" : s.roman });
       next(i);
+    } else if (kind === "wrong") {
+      // Prefill with the ASR so the reviewer edits the wrong words instead of
+      // retyping the whole segment. Run conversion so the preview shows at once.
+      const gg = segs[i];
+      const asr = gg && gg.turnIndex !== null && call ? call.turns[gg.turnIndex].text : "";
+      patch(i, { kind });
+      if (!s.roman.trim() && asr) onRoman(i, asr);
     } else patch(i, { kind });
   }
   function saveEdit(i: number) {
