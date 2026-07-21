@@ -1498,8 +1498,8 @@ export default function Page() {
                             <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
                           </div>
                           <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} placeholder={editUnclear === "Yes" ? "Optional — leave blank if you can't make it out" : "Corrected transcript for this turn"} />
-                          <div style={{ display: "flex", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
-                            <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4, minWidth: 220, flex: "1 1 240px" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
+                            <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
                               Transcription error
                               <select value={editErrorType} onChange={(e) => setEditErrorType(e.target.value)} style={{ fontSize: 13, padding: "6px 8px", width: "100%" }}>
                                 {CORRECTION_ERROR_TYPES.map((o) => <option key={o} value={o}>{o}</option>)}
