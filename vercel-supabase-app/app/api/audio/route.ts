@@ -22,15 +22,26 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Host not allowed" }, { status: 403 });
   }
 
-  const upstream = await fetch(parsed.toString(), { cache: "no-store" });
+  // Forward Range requests so <audio> can seek to unbuffered positions —
+  // without this, seeking silently restarts playback from 0:00.
+  const range = request.headers.get("range");
+  const upstream = await fetch(parsed.toString(), {
+    cache: "no-store",
+    headers: range ? { Range: range } : undefined
+  });
   if (!upstream.ok || !upstream.body) {
     return NextResponse.json({ error: `Upstream ${upstream.status}` }, { status: 502 });
   }
+  const headers: Record<string, string> = {
+    "Content-Type": upstream.headers.get("Content-Type") || "audio/mpeg",
+    "Cache-Control": "private, max-age=3600"
+  };
+  for (const h of ["content-range", "content-length", "accept-ranges"]) {
+    const v = upstream.headers.get(h);
+    if (v) headers[h] = v;
+  }
   return new NextResponse(upstream.body, {
-    status: 200,
-    headers: {
-      "Content-Type": upstream.headers.get("Content-Type") || "audio/mpeg",
-      "Cache-Control": "private, max-age=3600"
-    }
+    status: upstream.status === 206 ? 206 : 200,
+    headers
   });
 }

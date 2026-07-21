@@ -146,6 +146,46 @@ export default function Transcribe() {
   const stopAtRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const debounceRef = useRef<any>(null);
+  // Spike playback goes through Web Audio from the decoded buffer — the
+  // <audio> element can't reliably seek into unbuffered ranges through the
+  // proxy, which made spike clicks restart from 0:00 in production.
+  const ctxRef = useRef<AudioContext | null>(null);
+  const bufRef = useRef<AudioBuffer | null>(null);
+  const srcRef = useRef<AudioBufferSourceNode | null>(null);
+  const playInfoRef = useRef<{ startedAt: number; offset: number; until: number } | null>(null);
+  const rafRef = useRef<number>(0);
+
+  function stopSpikeAudio() {
+    try { srcRef.current?.stop(); } catch {}
+    srcRef.current = null;
+    playInfoRef.current = null;
+    cancelAnimationFrame(rafRef.current);
+  }
+  function playBuffer(from: number, until: number) {
+    const ctx = ctxRef.current, buf = bufRef.current;
+    if (!ctx || !buf) return false;
+    stopSpikeAudio();
+    audioRef.current?.pause();
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    const start = Math.max(0, Math.min(from, buf.duration));
+    const stop = Math.max(start, Math.min(until, buf.duration));
+    src.start(0, start, stop - start);
+    srcRef.current = src;
+    playInfoRef.current = { startedAt: ctx.currentTime, offset: start, until: stop };
+    const tick = () => {
+      const info = playInfoRef.current;
+      if (!info || !ctxRef.current) return;
+      const pos = info.offset + (ctxRef.current.currentTime - info.startedAt);
+      setPlayhead(Math.min(pos, info.until));
+      if (pos < info.until) rafRef.current = requestAnimationFrame(tick);
+      else playInfoRef.current = null;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return true;
+  }
 
   useEffect(() => {
     const e = (window.localStorage.getItem("auditReviewerEmail") || "").trim().toLowerCase();
@@ -165,6 +205,9 @@ export default function Transcribe() {
   const allDone = segs.length > 0 && doneCount === segs.length;
 
   async function openCall(item: QueueItem) {
+    stopSpikeAudio();
+    ctxRef.current?.close().catch(() => {});
+    ctxRef.current = null; bufRef.current = null;
     setCall(null); setSegs([]); setStates({}); setCur(0); setApproxMode(false); setWave(null); setPlayhead(0);
     setCurrentQueueId(item.queue_id);
     const d: Call = await fetch(`/api/calls/${item.execution_id}`).then((r) => r.json());
@@ -174,6 +217,7 @@ export default function Transcribe() {
       const buf = await fetch(`/api/audio?url=${encodeURIComponent(d.recording_url || "")}`).then((r) => r.arrayBuffer());
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const audio = await ctx.decodeAudioData(buf);
+      ctxRef.current = ctx; bufRef.current = audio;
       const userTurnIdx = d.turns.map((t, i) => ({ t, i })).filter((x) => x.t.role !== "assistant");
       const wc = userTurnIdx.map((x) => words(x.t.text).length);
       let userIdx = 0;
@@ -207,7 +251,6 @@ export default function Transcribe() {
         user: buckets(userEnv.env),
         duration: audio.duration
       });
-      ctx.close();
       setTimeout(() => playSeg(0, built), 350);
     } catch {
       setApproxMode(true);
@@ -224,6 +267,9 @@ export default function Transcribe() {
   }
 
   function seekPlay(target: number, stopAt: number | null) {
+    // Prefer sample-accurate playback from the decoded buffer.
+    if (playBuffer(target, stopAt !== null ? stopAt : (bufRef.current?.duration || target + 600))) return;
+    // Fallback (approx mode / decode failed): seek the element once metadata is up.
     const a = audioRef.current;
     if (!a) return;
     const go = () => {
@@ -231,7 +277,6 @@ export default function Transcribe() {
       stopAtRef.current = stopAt;
       a.play().catch(() => {});
     };
-    // Seeking before metadata is loaded silently plays from 0 — wait for it.
     if (a.readyState >= 1 && !Number.isNaN(a.duration)) go();
     else a.addEventListener("loadedmetadata", go, { once: true });
   }
@@ -411,7 +456,7 @@ export default function Transcribe() {
             <div style={{ fontSize: 12, color: "#8a988f" }}>{call ? `${doneCount}/${segs.length} spikes resolved` : "No call selected"}</div>
             <strong style={{ fontSize: 15 }}>{call ? (call.agent_name || call.execution_id.slice(0, 8)) : "Select a call to start"}</strong>
             <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
-              <audio ref={audioRef} controls preload="auto" onTimeUpdate={onTime}
+              <audio ref={audioRef} controls preload="auto" onTimeUpdate={onTime} onPlay={stopSpikeAudio}
                 src={call ? `/api/audio?url=${encodeURIComponent(call.recording_url || "")}` : undefined} style={{ height: 32, width: "100%", maxWidth: 380 }} />
               <button onClick={() => setRulesOpen(!rulesOpen)} style={{ fontSize: 12 }}>{rulesOpen ? "rules ▴" : "rules ▾"}</button>
               {approxMode && <span style={{ fontSize: 11, color: "#b7791f" }}>~approx timing</span>}
