@@ -799,6 +799,38 @@ export default function Page() {
     setInsertTime("");
   }
 
+  // Expert two-step flow: step 1 pins the exact moment and drops a "transcript
+  // missing @ mm:ss" placeholder immediately; the text is added afterwards
+  // (now or later) via Add/Edit on the placeholder chip.
+  function markMissing(pos: number, slot: number) {
+    if (!currentCall) return;
+    audioRef.current?.pause();
+    const ts = formatTime(audioRef.current?.currentTime || 0);
+    const issue: Issue = {
+      type: "transcription",
+      timestamp: ts,
+      after_turn: String(pos),
+      turn_number: `missing after turn ${pos}`,
+      transcripted: "(missing from transcript)",
+      audio_said: "user: ",
+      transcription_error_type: "Missing",
+      audio_unclear: "No"
+    };
+    setEditingTurn(null);
+    closeInsertEditor();
+    setIssues((existing) => {
+      const others = existing.filter((i) => !(i.type === "transcription" && i.after_turn === String(pos)));
+      let list = insertsAt(existing, pos);
+      const s = Math.min(slot, list.length);
+      list = [...list.slice(0, s), issue, ...list.slice(s)];
+      return [...others, ...renumberInserts(list, pos)];
+    });
+  }
+
+  function insertSaid(insert: Issue) {
+    return String(insert.audio_said || "").replace(/^user:\s*/, "").trim();
+  }
+
   function saveInsertTurn() {
     if (insertAt === null || !currentCall) return;
     const text = insertText.trim();
@@ -1419,15 +1451,18 @@ export default function Page() {
                       </div>
                     );
 
+                    const isExpert = reviewerRole === "expert";
                     const addButton = (slot: number, key: string) => (
                       <div key={key} style={{ textAlign: "center", margin: "-2px 0" }}>
                         <button
                           type="button"
                           className="add-missing-btn"
-                          onClick={() => openInsertEditor(pos, slot, null)}
-                          title="Add speech missing from the transcript here"
+                          // Experts: one click pins the timestamp and flags "missing" now;
+                          // text is added on the placeholder afterwards. Others: open the box.
+                          onClick={() => isExpert ? markMissing(pos, slot) : openInsertEditor(pos, slot, null)}
+                          title={isExpert ? "Pause at the missing speech, then click to mark the exact time" : "Add speech missing from the transcript here"}
                           style={{ border: "none", background: "transparent", color: "#9ab0a8", cursor: "pointer", fontSize: 12, padding: "0 6px", lineHeight: "16px" }}
-                        >＋ add missing</button>
+                        >{isExpert ? "＋ mark transcript missing here" : "＋ add missing"}</button>
                       </div>
                     );
 
@@ -1443,10 +1478,13 @@ export default function Page() {
                       if (editorOpenHere && editingInsert === insert) {
                         parts.push(editorBox(`ins-${pos}-editor`));
                       } else {
+                        const said = insertSaid(insert);
+                        const empty = !said;
                         parts.push(
-                          <div key={`ins-${pos}-${slot}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
-                            <strong>＋ missing (added by you){reviewerRole === "expert" && insert.timestamp ? ` @ ${insert.timestamp}` : ""}:</strong> {insert.audio_said}
-                            <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => openInsertEditor(pos, slot, insert)}>Edit</button>
+                          <div key={`ins-${pos}-${slot}`} style={{ border: `1px dashed ${empty ? "#c05621" : "#b7791f"}`, borderRadius: 8, padding: 8, margin: "6px 0", background: empty ? "#fff4ed" : "#fffaf0", fontSize: 13 }}>
+                            <strong>{empty ? "⚠ transcript missing" : "＋ missing (added by you)"}{insert.timestamp ? ` @ ${insert.timestamp}` : ""}:</strong>{" "}
+                            {empty ? <em style={{ color: "#c05621" }}>add what was said →</em> : said}
+                            <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => openInsertEditor(pos, slot, insert)}>{empty ? "Add text" : "Edit"}</button>
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => removeInsert(insert)}>Remove</button>
                           </div>
                         );
