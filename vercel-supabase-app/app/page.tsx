@@ -34,8 +34,8 @@ const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
 const combinedIssueTypes = ["transcription", "response_appropriateness", "pronunciation"];
 void combinedIssueTypes;
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
-// Shown when correcting an existing turn (the "wrong transcription" kinds).
-const CORRECTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language"];
+// Shown when correcting an existing turn.
+const CORRECTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
 const DELETED_TURN_ERROR_TYPE = "Wrongly captured (delete turn)";
 const RESPONSE_ERROR_SUBTYPES: Record<string, string[]> = {
   "Repetition": ["Same info asked again", "Same response repeated"],
