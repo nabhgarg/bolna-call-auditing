@@ -1428,16 +1428,18 @@ export default function Page() {
                           </span>
                         </div>
                         <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder={insertUnclear === "Yes" ? "Optional — leave blank if you can't make it out" : "What was said in the audio but missing from the transcript"} style={{ width: "100%" }} />
-                        <div style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4, marginTop: 10 }}>
-                          Was the audio clear?
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button type="button" className={insertUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 13, minWidth: 52 }} onClick={() => setInsertUnclear("No")}>Yes</button>
-                            <button type="button" className="ghost" style={insertUnclear === "Yes" ? { fontSize: 13, minWidth: 52, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 13, minWidth: 52 }} onClick={() => setInsertUnclear("Yes")}>No</button>
+                        <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+                          <div style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
+                            Was the audio clear?
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <button type="button" className={insertUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 13, minWidth: 52 }} onClick={() => setInsertUnclear("No")}>Yes</button>
+                              <button type="button" className="ghost" style={insertUnclear === "Yes" ? { fontSize: 13, minWidth: 52, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 13, minWidth: 52 }} onClick={() => setInsertUnclear("Yes")}>No</button>
+                            </div>
                           </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                          <button className="primary" type="button" onClick={saveInsertTurn}>Save missing turn</button>
-                          <button className="ghost" type="button" onClick={closeInsertEditor}>Cancel</button>
+                          <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                            <button className="primary" type="button" onClick={saveInsertTurn}>Save missing turn</button>
+                            <button className="ghost" type="button" onClick={closeInsertEditor}>Cancel</button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1497,25 +1499,30 @@ export default function Page() {
                             <span>{index + 1}. {turn.role} — correcting</span>
                             <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
                           </div>
-                          <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} placeholder={editUnclear === "Yes" ? "Optional — leave blank if you can't make it out" : "Corrected transcript for this turn"} />
-                          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
-                            <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
-                              Transcription error
-                              <select value={editErrorType} onChange={(e) => setEditErrorType(e.target.value)} style={{ fontSize: 13, padding: "6px 8px", width: "100%" }}>
-                                {CORRECTION_ERROR_TYPES.map((o) => <option key={o} value={o}>{o}</option>)}
-                              </select>
-                            </label>
-                            <div style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
-                              Was the audio clear?
-                              <div style={{ display: "flex", gap: 6 }}>
-                                <button type="button" className={editUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 13, minWidth: 52 }} onClick={() => setEditUnclear("No")}>Yes</button>
-                                <button type="button" className="ghost" style={editUnclear === "Yes" ? { fontSize: 13, minWidth: 52, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 13, minWidth: 52 }} onClick={() => setEditUnclear("Yes")}>No</button>
+                          {/* single wrapper so the .turn grid treats the editor as one content cell */}
+                          <div style={{ gridColumn: "1 / -1" }}>
+                            <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} placeholder={editUnclear === "Yes" ? "Optional — leave blank if you can't make it out" : "Corrected transcript for this turn"} />
+                            <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+                              <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+                                <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
+                                  Transcription error
+                                  <select value={editErrorType} onChange={(e) => setEditErrorType(e.target.value)} style={{ fontSize: 13, padding: "6px 8px", width: "100%", maxWidth: 340 }}>
+                                    {CORRECTION_ERROR_TYPES.map((o) => <option key={o} value={o}>{o}</option>)}
+                                  </select>
+                                </label>
+                                <div style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
+                                  Was the audio clear?
+                                  <div style={{ display: "flex", gap: 6 }}>
+                                    <button type="button" className={editUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 13, minWidth: 52 }} onClick={() => setEditUnclear("No")}>Yes</button>
+                                    <button type="button" className="ghost" style={editUnclear === "Yes" ? { fontSize: 13, minWidth: 52, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 13, minWidth: 52 }} onClick={() => setEditUnclear("Yes")}>No</button>
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                                <button className="primary" type="button" onClick={saveEditTurn}>Save correction</button>
+                                <button className="ghost" type="button" onClick={() => setEditingTurn(null)}>Cancel</button>
                               </div>
                             </div>
-                          </div>
-                          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                            <button className="primary" type="button" onClick={saveEditTurn}>Save correction</button>
-                            <button className="ghost" type="button" onClick={() => setEditingTurn(null)}>Cancel</button>
                           </div>
                         </div>
                       );
