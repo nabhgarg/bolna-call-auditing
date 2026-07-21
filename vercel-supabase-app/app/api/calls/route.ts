@@ -4,6 +4,14 @@ import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
+// Batch 3 is a re-review batch: reviewers re-score calls, including ones they
+// already did in earlier batches. A ::b3 assignment is "done" only when there
+// is a review submitted at/after the batch was created (2026-07-21 14:06 UTC),
+// so prior-batch reviews don't auto-satisfy it. A constant (not imported_at) is
+// used so a sheet re-import can't shift the cutoff.
+const REREVIEW_MODE_RE = /::b3/;
+const REREVIEW_CUTOFF = "2026-07-21T14:06:00.000Z";
+
 function queueModeMatches(mode: string) {
   return `audit_mode.eq.${mode},audit_mode.like.${mode}::%`;
 }
@@ -80,7 +88,7 @@ export async function GET(request: Request) {
 
     const reviewsQuery = supabase
       .from("reviews")
-      .select("call_id,reviewer_name,reviewer_email,review_mode")
+      .select("call_id,reviewer_name,reviewer_email,review_mode,submitted_at")
       .in("call_id", callIds)
       .eq("review_mode", auditMode);
 
@@ -108,11 +116,25 @@ export async function GET(request: Request) {
 
     const callsById = new Map((calls || []).map((call: any) => [call.execution_id, call]));
     const reviewsById = new Map((reviews || []).map((review: any) => [review.call_id, review]));
+    // Latest review time per call, so re-review batches can require a fresh submission.
+    const latestReviewAt = new Map<string, string>();
+    for (const r of reviews) {
+      const t = String(r.submitted_at || "");
+      if (!latestReviewAt.has(r.call_id) || t > (latestReviewAt.get(r.call_id) as string)) {
+        latestReviewAt.set(r.call_id, t);
+      }
+    }
     const response = NextResponse.json({
       calls: queueRows.map((queue: any) => {
         const call = callsById.get(queue.call_id) || {};
         const review = reviewsById.get(queue.call_id) || null;
         const queueId = queueIdFromMode(queue.call_id, queue.audit_mode);
+        // Re-review batches (::b3*) count as done only when re-scored AFTER the
+        // batch was assigned — so calls a reviewer did in an earlier batch
+        // resurface as pending and get reviewed again.
+        const reviewed = REREVIEW_MODE_RE.test(queue.audit_mode)
+          ? (latestReviewAt.get(queue.call_id) || "") >= REREVIEW_CUTOFF
+          : Boolean(review);
         return {
           queue_id: queueId,
           execution_id: queue.call_id,
@@ -125,7 +147,7 @@ export async function GET(request: Request) {
           language: call.transcriber_language,
           audit_mode: auditMode,
           source_sheet: queue.source_sheet || call.source_sheet,
-          reviewed: Boolean(review),
+          reviewed,
           reviewer_name: review?.reviewer_name || null
         };
       })
