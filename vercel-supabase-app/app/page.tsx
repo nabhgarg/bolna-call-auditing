@@ -34,6 +34,8 @@ const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
 const combinedIssueTypes = ["transcription", "response_appropriateness", "pronunciation"];
 void combinedIssueTypes;
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
+// Shown when correcting an existing turn (the "wrong transcription" kinds).
+const CORRECTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language"];
 const DELETED_TURN_ERROR_TYPE = "Wrongly captured (delete turn)";
 const RESPONSE_ERROR_SUBTYPES: Record<string, string[]> = {
   "Repetition": ["Same info asked again", "Same response repeated"],
@@ -705,7 +707,7 @@ export default function Page() {
     closeInsertEditor();
     setEditingTurn(index);
     setEditText(hasCorrection ? existing.audio_said : (currentCall?.turns?.[index]?.text || ""));
-    setEditErrorType(hasCorrection ? existing.transcription_error_type : TRANSCRIPTION_ERROR_TYPES[0]);
+    setEditErrorType(hasCorrection && CORRECTION_ERROR_TYPES.includes(existing.transcription_error_type) ? existing.transcription_error_type : CORRECTION_ERROR_TYPES[0]);
     setEditUnclear(hasCorrection ? existing.audio_unclear : "No");
   }
 
@@ -713,10 +715,12 @@ export default function Page() {
     if (editingTurn === null || !currentCall) return;
     const original = currentCall.turns?.[editingTurn]?.text || "";
     const corrected = editText.trim();
+    const unclear = editUnclear === "Yes";
     const turnNumber = String(editingTurn + 1);
     const withoutTurnIssue = (list: Issue[]) => list.filter((i) => !(i.type === "transcription" && i.turn_number === turnNumber && i.after_turn === undefined));
-    if (!corrected || corrected === original.trim()) {
-      // Text matches the original transcript again — drop any saved correction (revert).
+    // Nothing to log only when the audio is clear AND the text is unchanged.
+    // If the audio is unclear, we still save (no transcription required).
+    if (!unclear && (!corrected || corrected === original.trim())) {
       setIssues(withoutTurnIssue);
       setEditingTurn(null);
       return;
@@ -726,8 +730,8 @@ export default function Page() {
       timestamp: turnTimestamp(editingTurn),
       turn_number: turnNumber,
       transcripted: original,
-      audio_said: corrected,
-      transcription_error_type: editErrorType,
+      audio_said: corrected || "(audio unclear — not transcribed)",
+      transcription_error_type: unclear && !corrected ? "Audio unclear" : editErrorType,
       audio_unclear: editUnclear
     };
     setIssues((existing) => [...withoutTurnIssue(existing), issue]);
@@ -811,7 +815,10 @@ export default function Page() {
   function saveInsertTurn() {
     if (insertAt === null || !currentCall) return;
     const text = insertText.trim();
-    if (!text) { closeInsertEditor(); return; }
+    const unclear = insertUnclear === "Yes";
+    // Empty is fine when the audio is unclear (nothing to transcribe); otherwise
+    // an empty box means "cancel".
+    if (!text && !unclear) { closeInsertEditor(); return; }
     const pos = insertAt;
     const anchorIndex = Math.max(pos - 1, 0);
     const exactTime = normalizeClock(insertTime);
@@ -830,7 +837,7 @@ export default function Page() {
           turn_number: `missing after turn ${pos}`,
           transcripted: "(missing from transcript)",
           audio_said: `user: ${text}`,
-          transcription_error_type: "Missing",
+          transcription_error_type: unclear && !text ? "Audio unclear" : "Missing",
           audio_unclear: insertUnclear
         };
         const slot = Math.min(insertSlot, list.length);
@@ -1224,28 +1231,21 @@ export default function Page() {
                     <button className="primary" type="submit">Add Issue</button>
                   </form>
 
-                  {(() => {
-                    // Transcription corrections are shown & managed inline in the
-                    // Transcript panel, so keep them out of the Review issue list.
-                    const reviewIssues = issues.filter((i) => i.type !== "transcription");
-                    return (
-                      <section className="issue-list-wrap">
-                        <div className="panel-title small">
-                          <h3>Logged issues</h3>
-                          <span>{reviewIssues.length}</span>
+                  <section className="issue-list-wrap">
+                    <div className="panel-title small">
+                      <h3>Logged issues</h3>
+                      <span>{issues.length}</span>
+                    </div>
+                    <div className={`issue-list ${issues.length ? "" : "empty-state"}`}>
+                      {issues.length ? issues.map((issue, index) => (
+                        <div className="issue-item" key={`${issue.type}-${issue.timestamp}-${index}`}>
+                          <header><span>{issueLabels[issue.type] || issue.type} · {issue.timestamp}</span></header>
+                          <p>{Object.entries(issue).filter(([key]) => !["type", "timestamp"].includes(key)).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · ")}</p>
+                          <button type="button" onClick={() => removeIssue(issue)}>Remove</button>
                         </div>
-                        <div className={`issue-list ${reviewIssues.length ? "" : "empty-state"}`}>
-                          {reviewIssues.length ? reviewIssues.map((issue, index) => (
-                            <div className="issue-item" key={`${issue.type}-${issue.timestamp}-${index}`}>
-                              <header><span>{issueLabels[issue.type] || issue.type} · {issue.timestamp}</span></header>
-                              <p>{Object.entries(issue).filter(([key]) => !["type", "timestamp"].includes(key)).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · ")}</p>
-                              <button type="button" onClick={() => removeIssue(issue)}>Remove</button>
-                            </div>
-                          )) : "No issues yet."}
-                        </div>
-                      </section>
-                    );
-                  })()}
+                      )) : "No issues yet."}
+                    </div>
+                  </section>
                 </>
               )}
 
@@ -1427,11 +1427,11 @@ export default function Page() {
                             >⏸ use audio position</button>
                           </span>
                         </div>
-                        <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder="What was said in the audio but missing from the transcript" style={{ width: "100%" }} />
+                        <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder={insertUnclear === "Yes" ? "Optional — leave blank if you can't make it out" : "What was said in the audio but missing from the transcript"} style={{ width: "100%" }} />
                         <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 12, color: "#5b6b64" }}>Audio here:</span>
-                          <button type="button" className={insertUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 12 }} onClick={() => setInsertUnclear("No")}>Clear</button>
-                          <button type="button" className="ghost" style={insertUnclear === "Yes" ? { fontSize: 12, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 12 }} onClick={() => setInsertUnclear("Yes")}>Not clear</button>
+                          <span style={{ fontSize: 12, color: "#5b6b64" }}>Was the audio clear?</span>
+                          <button type="button" className={insertUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 12 }} onClick={() => setInsertUnclear("No")}>Yes</button>
+                          <button type="button" className="ghost" style={insertUnclear === "Yes" ? { fontSize: 12, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 12 }} onClick={() => setInsertUnclear("Yes")}>No</button>
                           <button className="primary" type="button" style={{ marginLeft: "auto" }} onClick={saveInsertTurn}>Save missing turn</button>
                           <button className="ghost" type="button" onClick={closeInsertEditor}>Cancel</button>
                         </div>
@@ -1464,7 +1464,7 @@ export default function Page() {
                       } else {
                         parts.push(
                           <div key={`ins-${pos}-${slot}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
-                            <strong>＋ missing (added by you){insert.timestamp ? ` @ ${insert.timestamp}` : ""}{insert.audio_unclear === "Yes" ? " · audio unclear" : ""}:</strong> {insert.audio_said}
+                            <strong>＋ missing (added by you){insert.timestamp ? ` @ ${insert.timestamp}` : ""}{insert.audio_unclear === "Yes" ? " · audio unclear" : ""}:</strong> {insert.audio_said.replace(/^user:\s*/, "").trim() || "(audio unclear — not transcribed)"}
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => openInsertEditor(pos, slot, insert)}>Edit</button>
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => removeInsert(insert)}>Remove</button>
                           </div>
@@ -1493,11 +1493,17 @@ export default function Page() {
                             <span>{index + 1}. {turn.role} — correcting</span>
                             <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
                           </div>
-                          <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} placeholder="Corrected transcript for this turn" />
+                          <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} placeholder={editUnclear === "Yes" ? "Optional — leave blank if you can't make it out" : "Corrected transcript for this turn"} />
+                          <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+                            Transcription error:
+                            <select value={editErrorType} onChange={(e) => setEditErrorType(e.target.value)} style={{ fontSize: 13 }}>
+                              {CORRECTION_ERROR_TYPES.map((o) => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </label>
                           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
-                            <span style={{ fontSize: 12, color: "#5b6b64" }}>Audio here:</span>
-                            <button type="button" className={editUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 12 }} onClick={() => setEditUnclear("No")}>Clear</button>
-                            <button type="button" className="ghost" style={editUnclear === "Yes" ? { fontSize: 12, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 12 }} onClick={() => setEditUnclear("Yes")}>Not clear</button>
+                            <span style={{ fontSize: 12, color: "#5b6b64" }}>Was the audio clear?</span>
+                            <button type="button" className={editUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 12 }} onClick={() => setEditUnclear("No")}>Yes</button>
+                            <button type="button" className="ghost" style={editUnclear === "Yes" ? { fontSize: 12, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 12 }} onClick={() => setEditUnclear("Yes")}>No</button>
                             <button className="primary" type="button" style={{ marginLeft: "auto" }} onClick={saveEditTurn}>Save correction</button>
                             <button className="ghost" type="button" onClick={() => setEditingTurn(null)}>Cancel</button>
                           </div>
