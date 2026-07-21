@@ -29,7 +29,10 @@ type Issue = Record<string, string>;
 type MetricRating = { rating: string; reason: string };
 type AuditMode = "pronunciation_tone" | "timing_transcription" | "response_vibe";
 const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
+// Full issue-type taxonomy (kept for labels/config). Transcription now lives in
+// the Transcript panel; response appropriateness returns to Review later.
 const combinedIssueTypes = ["transcription", "response_appropriateness", "pronunciation"];
+void combinedIssueTypes;
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
 const DELETED_TURN_ERROR_TYPE = "Wrongly captured (delete turn)";
 const RESPONSE_ERROR_SUBTYPES: Record<string, string[]> = {
@@ -82,8 +85,12 @@ function modeLabel(mode: AuditMode) {
   return mode === RESPONSE_VIBE_MODE ? "Combined audit" : "Combined audit";
 }
 
+// Issue types logged in the Review panel. Transcription is handled in the
+// Transcript panel, not here; response appropriateness returns later.
+const reviewIssueTypes = ["pronunciation"];
+
 function modeIssueTypes(_mode: AuditMode) {
-  return combinedIssueTypes;
+  return reviewIssueTypes;
 }
 
 function modeRatingMetrics(mode: AuditMode) {
@@ -135,13 +142,14 @@ export default function Page() {
   const [insertSlot, setInsertSlot] = useState(0); // position within the gap's inserted turns
   const [editingInsert, setEditingInsert] = useState<Issue | null>(null); // existing inserted turn being edited
   const [insertText, setInsertText] = useState("");
-  const [insertTime, setInsertTime] = useState(""); // exact mm:ss of the missing speech (experts)
+  const [insertTime, setInsertTime] = useState(""); // exact mm:ss of the missing speech
+  const [insertUnclear, setInsertUnclear] = useState("No"); // was the audio clear at the gap?
   const [respErrorType, setRespErrorType] = useState("");
   const [flagCall, setFlagCall] = useState<boolean | null>(null); // optional: null = not answered
   const [flagReason, setFlagReason] = useState("");
   const [currentTime, setCurrentTime] = useState("00:00");
   const [capturedTime, setCapturedTime] = useState("00:00");
-  const [issueType, setIssueType] = useState(combinedIssueTypes[0]);
+  const [issueType, setIssueType] = useState(reviewIssueTypes[0]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [metricRatings, setMetricRatings] = useState<Record<string, MetricRating>>(emptyMetricRatings);
   const [vibeScore, setVibeScore] = useState("");
@@ -248,17 +256,18 @@ export default function Page() {
     ? calls.find((call) => (call.queue_id || call.execution_id) === currentQueueId) || null
     : null;
   const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentQueueId));
-  // Role decides the screen:
+  // Role decides the screen. Transcription is NOT an issue type — it lives in
+  // the Transcript panel (correct text + mark audio clarity + timestamp).
   //   vibe reviewer  -> vibe score only
-  //   issue logger   -> transcription + pronunciation (no vibe score)
-  //   expert (GT)    -> vibe score + all issue types
+  //   issue logger   -> pronunciation (Review) + transcription (Transcript panel)
+  //   expert (GT)    -> vibe + pronunciation (Review) + transcription (Transcript panel)
+  //   (response appropriateness returns to Review later)
   const showVibe = reviewerRole !== "issue_logger";
+  const showTranscription = reviewerRole === "issue_logger" || reviewerRole === "expert";
   const visibleIssueTypes =
-    reviewerRole === "expert"
-      ? combinedIssueTypes
-      : reviewerRole === "issue_logger"
-        ? ["transcription", "pronunciation"]
-        : [];
+    reviewerRole === "issue_logger" || reviewerRole === "expert"
+      ? ["pronunciation"]
+      : [];
   const showIssues = visibleIssueTypes.length > 0;
   useEffect(() => {
     if (visibleIssueTypes.length && !visibleIssueTypes.includes(issueType)) setIssueType(visibleIssueTypes[0]);
@@ -779,15 +788,14 @@ export default function Page() {
     setInsertSlot(slot);
     setEditingInsert(existing);
     setInsertText(existing ? existing.audio_said.replace(/^user:\s*/, "") : "");
-    // Experts pin the exact moment: prefill from the issue being edited, else
-    // freeze the audio where it is and start from that position.
-    if (reviewerRole === "expert") {
-      if (existing) {
-        setInsertTime(existing.timestamp || "");
-      } else {
-        audioRef.current?.pause();
-        setInsertTime(formatTime(audioRef.current?.currentTime || 0));
-      }
+    setInsertUnclear(existing?.audio_unclear || "No");
+    // Pin the exact moment: prefill from the issue being edited, else freeze the
+    // audio where it is and start from that playhead position.
+    if (existing) {
+      setInsertTime(existing.timestamp || "");
+    } else {
+      audioRef.current?.pause();
+      setInsertTime(formatTime(audioRef.current?.currentTime || 0));
     }
   }
 
@@ -797,6 +805,7 @@ export default function Page() {
     setEditingInsert(null);
     setInsertText("");
     setInsertTime("");
+    setInsertUnclear("No");
   }
 
   function saveInsertTurn() {
@@ -805,13 +814,13 @@ export default function Page() {
     if (!text) { closeInsertEditor(); return; }
     const pos = insertAt;
     const anchorIndex = Math.max(pos - 1, 0);
-    const exactTime = reviewerRole === "expert" ? normalizeClock(insertTime) : "";
+    const exactTime = normalizeClock(insertTime);
     setIssues((existing) => {
       const others = existing.filter((i) => !(i.type === "transcription" && i.after_turn === String(pos)));
       let list = insertsAt(existing, pos);
       if (editingInsert) {
         list = list.map((i) => (i === editingInsert
-          ? { ...i, audio_said: `user: ${text}`, ...(exactTime ? { timestamp: exactTime } : {}) }
+          ? { ...i, audio_said: `user: ${text}`, audio_unclear: insertUnclear, ...(exactTime ? { timestamp: exactTime } : {}) }
           : i));
       } else {
         const issue: Issue = {
@@ -822,7 +831,7 @@ export default function Page() {
           transcripted: "(missing from transcript)",
           audio_said: `user: ${text}`,
           transcription_error_type: "Missing",
-          audio_unclear: "No"
+          audio_unclear: insertUnclear
         };
         const slot = Math.min(insertSlot, list.length);
         list = [...list.slice(0, slot), issue, ...list.slice(slot)];
@@ -1137,17 +1146,19 @@ export default function Page() {
 
               {showIssues && visibleIssueTypes.length > 0 && (
                 <>
-                  <div className="quick-flags">
-                    {visibleIssueTypes.map((type) => (
-                      <button
-                        key={type}
-                        className={issueType === type ? "selected" : ""}
-                        onClick={() => setIssueType(type)}
-                      >
-                        {issueLabels[type]}
-                      </button>
-                    ))}
-                  </div>
+                  {visibleIssueTypes.length > 1 && (
+                    <div className="quick-flags">
+                      {visibleIssueTypes.map((type) => (
+                        <button
+                          key={type}
+                          className={issueType === type ? "selected" : ""}
+                          onClick={() => setIssueType(type)}
+                        >
+                          {issueLabels[type]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   <form className="issue-form issue-form-active" onSubmit={addIssue} noValidate>
                     <div className="form-row">
@@ -1209,32 +1220,32 @@ export default function Page() {
                       })}
                     </div>
 
-                    {issueType === "transcription" && (
-                      <p className="helper-copy">
-                        Mark the correction in the transcript: press ✎ on the user turn to fix its
-                        text, 🗑 to delete a wrongly captured turn, or ＋ between turns to add the
-                        missing user speech. Saved corrections can be edited again or undone.
-                      </p>
-                    )}
                     {missingIssueFields.length > 0 && <p className="validation-message">Fill the highlighted required field before adding the issue.</p>}
                     <button className="primary" type="submit">Add Issue</button>
                   </form>
 
-                  <section className="issue-list-wrap">
-                    <div className="panel-title small">
-                      <h3>Logged issues</h3>
-                      <span>{issues.length}</span>
-                    </div>
-                    <div className={`issue-list ${issues.length ? "" : "empty-state"}`}>
-                      {issues.length ? issues.map((issue, index) => (
-                        <div className="issue-item" key={`${issue.type}-${issue.timestamp}-${index}`}>
-                          <header><span>{issueLabels[issue.type] || issue.type} · {issue.timestamp}</span></header>
-                          <p>{Object.entries(issue).filter(([key]) => !["type", "timestamp"].includes(key)).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · ")}</p>
-                          <button type="button" onClick={() => setIssues((existing) => existing.filter((_, itemIndex) => itemIndex !== index))}>Remove</button>
+                  {(() => {
+                    // Transcription corrections are shown & managed inline in the
+                    // Transcript panel, so keep them out of the Review issue list.
+                    const reviewIssues = issues.filter((i) => i.type !== "transcription");
+                    return (
+                      <section className="issue-list-wrap">
+                        <div className="panel-title small">
+                          <h3>Logged issues</h3>
+                          <span>{reviewIssues.length}</span>
                         </div>
-                      )) : "No issues yet."}
-                    </div>
-                  </section>
+                        <div className={`issue-list ${reviewIssues.length ? "" : "empty-state"}`}>
+                          {reviewIssues.length ? reviewIssues.map((issue, index) => (
+                            <div className="issue-item" key={`${issue.type}-${issue.timestamp}-${index}`}>
+                              <header><span>{issueLabels[issue.type] || issue.type} · {issue.timestamp}</span></header>
+                              <p>{Object.entries(issue).filter(([key]) => !["type", "timestamp"].includes(key)).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value}`).join(" · ")}</p>
+                              <button type="button" onClick={() => removeIssue(issue)}>Remove</button>
+                            </div>
+                          )) : "No issues yet."}
+                        </div>
+                      </section>
+                    );
+                  })()}
                 </>
               )}
 
@@ -1369,6 +1380,13 @@ export default function Page() {
                   {turnTimes ? " (exact)" : " (approx)"}
                 </span>
               </div>
+              {showTranscription && currentCall && (
+                <p className="helper-copy" style={{ marginTop: 0 }}>
+                  Fix transcription here: <strong>✎</strong> correct a user turn, <strong>🗑</strong> delete a
+                  wrongly captured turn, <strong>＋ add missing speech</strong> between turns. Each correction
+                  lets you mark the audio <em>clear / not clear</em> and carries its timestamp.
+                </p>
+              )}
               <div className={`transcript ${currentCall ? "" : "empty-state"}`}>
                 {currentCall?.turns?.length ? (() => {
                   const duration = Number(currentCall.duration_sec || 0);
@@ -1384,7 +1402,7 @@ export default function Page() {
                   insertsByPos.forEach((list) => list.sort((a, b) => Number(a.insert_order || 1) - Number(b.insert_order || 1)));
 
                   const insertUi = (pos: number) => {
-                    if (!showIssues) return null;
+                    if (!showTranscription) return null;
                     const inserts = insertsByPos.get(pos) || [];
                     const editorOpenHere = insertAt === pos;
 
@@ -1392,28 +1410,29 @@ export default function Page() {
                       <div key={key} style={{ border: "1px dashed #1f7a5c", borderRadius: 8, padding: 10, margin: "6px 0", background: "#f2faf7" }}>
                         <div style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center", flexWrap: "wrap" }}>
                           <strong style={{ fontSize: 12 }}>Missing user speech</strong>
-                          {reviewerRole === "expert" && (
-                            <span style={{ display: "inline-flex", gap: 6, alignItems: "center", marginLeft: "auto" }}>
-                              <label style={{ fontSize: 12, color: "#2b3a35" }}>at</label>
-                              <input
-                                value={insertTime}
-                                onChange={(e) => setInsertTime(e.target.value)}
-                                placeholder="mm:ss"
-                                style={{ width: 64, fontSize: 13, padding: "3px 6px", textAlign: "center" }}
-                              />
-                              <button
-                                type="button"
-                                className="ghost"
-                                style={{ fontSize: 12 }}
-                                title="Pause the audio at the missing speech, then press this"
-                                onClick={() => { audioRef.current?.pause(); setInsertTime(formatTime(audioRef.current?.currentTime || 0)); }}
-                              >⏸ use audio position</button>
-                            </span>
-                          )}
+                          <span style={{ display: "inline-flex", gap: 6, alignItems: "center", marginLeft: "auto" }}>
+                            <label style={{ fontSize: 12, color: "#2b3a35" }}>at</label>
+                            <input
+                              value={insertTime}
+                              onChange={(e) => setInsertTime(e.target.value)}
+                              placeholder="mm:ss"
+                              style={{ width: 64, fontSize: 13, padding: "3px 6px", textAlign: "center" }}
+                            />
+                            <button
+                              type="button"
+                              className="ghost"
+                              style={{ fontSize: 12 }}
+                              title="Pause the audio at the missing speech, then press this"
+                              onClick={() => { audioRef.current?.pause(); setInsertTime(formatTime(audioRef.current?.currentTime || 0)); }}
+                            >⏸ use audio position</button>
+                          </span>
                         </div>
                         <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder="What was said in the audio but missing from the transcript" style={{ width: "100%" }} />
-                        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                          <button className="primary" type="button" onClick={saveInsertTurn}>Save missing turn</button>
+                        <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 12, color: "#5b6b64" }}>Audio here:</span>
+                          <button type="button" className={insertUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 12 }} onClick={() => setInsertUnclear("No")}>Clear</button>
+                          <button type="button" className="ghost" style={insertUnclear === "Yes" ? { fontSize: 12, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 12 }} onClick={() => setInsertUnclear("Yes")}>Not clear</button>
+                          <button className="primary" type="button" style={{ marginLeft: "auto" }} onClick={saveInsertTurn}>Save missing turn</button>
                           <button className="ghost" type="button" onClick={closeInsertEditor}>Cancel</button>
                         </div>
                       </div>
@@ -1425,9 +1444,9 @@ export default function Page() {
                           type="button"
                           className="add-missing-btn"
                           onClick={() => openInsertEditor(pos, slot, null)}
-                          title="Add speech missing from the transcript here"
+                          title="Pause at the missing speech, then add what was said"
                           style={{ border: "none", background: "transparent", color: "#9ab0a8", cursor: "pointer", fontSize: 12, padding: "0 6px", lineHeight: "16px" }}
-                        >＋ add missing</button>
+                        >＋ add missing speech</button>
                       </div>
                     );
 
@@ -1445,7 +1464,7 @@ export default function Page() {
                       } else {
                         parts.push(
                           <div key={`ins-${pos}-${slot}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
-                            <strong>＋ missing (added by you){reviewerRole === "expert" && insert.timestamp ? ` @ ${insert.timestamp}` : ""}:</strong> {insert.audio_said}
+                            <strong>＋ missing (added by you){insert.timestamp ? ` @ ${insert.timestamp}` : ""}{insert.audio_unclear === "Yes" ? " · audio unclear" : ""}:</strong> {insert.audio_said}
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => openInsertEditor(pos, slot, insert)}>Edit</button>
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => removeInsert(insert)}>Remove</button>
                           </div>
@@ -1470,10 +1489,16 @@ export default function Page() {
                     if (editingTurn === index) {
                       nodes.push(
                         <div className={`turn ${turn.role}`} key={`e-${index}`} style={{ border: "1px solid #1f7a5c", background: "#f2faf7" }}>
-                          <div className="turn-role"><span>{index + 1}. {turn.role} — correcting</span></div>
-                          <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} />
-                          <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
-                            <button className="primary" type="button" onClick={saveEditTurn}>Save correction</button>
+                          <div className="turn-role">
+                            <span>{index + 1}. {turn.role} — correcting</span>
+                            <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
+                          </div>
+                          <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} placeholder="Corrected transcript for this turn" />
+                          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+                            <span style={{ fontSize: 12, color: "#5b6b64" }}>Audio here:</span>
+                            <button type="button" className={editUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 12 }} onClick={() => setEditUnclear("No")}>Clear</button>
+                            <button type="button" className="ghost" style={editUnclear === "Yes" ? { fontSize: 12, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 12 }} onClick={() => setEditUnclear("Yes")}>Not clear</button>
+                            <button className="primary" type="button" style={{ marginLeft: "auto" }} onClick={saveEditTurn}>Save correction</button>
                             <button className="ghost" type="button" onClick={() => setEditingTurn(null)}>Cancel</button>
                           </div>
                         </div>
@@ -1493,7 +1518,7 @@ export default function Page() {
                             <span>{index + 1}. {turn.role}{deleted ? " · deleted" : edit ? " · corrected" : ""}</span>
                             <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                               <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
-                              {showIssues && turn.role === "user" && !deleted && (
+                              {showTranscription && turn.role === "user" && !deleted && (
                                 <>
                                   <button
                                     type="button"
@@ -1524,7 +1549,7 @@ export default function Page() {
                           ) : edit ? (
                             <div>
                               <div style={{ textDecoration: "line-through", color: "#b0784a" }}>{turn.text}</div>
-                              <div>{edit.audio_said}</div>
+                              <div>{edit.audio_said}{edit.audio_unclear === "Yes" ? <span style={{ color: "#b7791f", fontSize: 12 }}> · audio unclear</span> : null}</div>
                               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                                 <button type="button" className="ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); startEditTurn(index); }}>Edit correction</button>
                                 <button type="button" className="ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); removeIssue(edit); }}>Undo correction</button>
