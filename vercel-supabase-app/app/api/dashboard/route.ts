@@ -1,7 +1,27 @@
 import { NextResponse } from "next/server";
+import { verifyOtp } from "../../../lib/otp";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
+
+// Server-side gate: the page's localStorage check keeps honest people out of
+// the UI, but this endpoint returns reviewer names/performance and client call
+// content, so it must not answer anonymous requests. Experts authenticate with
+// their email + (long-lived) OTP code in headers; verifyOtp accepts both the
+// emailed short-window code and the 30-day hand-out code.
+async function authorizeExpert(request: Request) {
+  const email = String(request.headers.get("x-reviewer-email") || "").trim().toLowerCase();
+  const code = String(request.headers.get("x-reviewer-code") || "").trim();
+  if (!email || !/^\d{6}$/.test(code) || !verifyOtp(email, code)) return null;
+  const supabase = supabaseAdmin();
+  const { data } = await supabase
+    .from("reviewers")
+    .select("email,role,is_active")
+    .eq("email", email)
+    .maybeSingle();
+  if (!data || data.is_active === false || data.role !== "expert") return null;
+  return data;
+}
 
 // Client-facing analytics: trust metrics, error analytics, golden-transcript
 // evidence. Everything is computed live from the current response_vibe batch.
@@ -38,7 +58,26 @@ function parseIssues(raw: unknown): Array<Record<string, string>> {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const expert = await authorizeExpert(request);
+  if (!expert) {
+    return NextResponse.json({ error: "auth_required" }, { status: 401 });
+  }
+  // One retry on transient failure; a hard 503 (not a crash page) otherwise so
+  // the client can keep showing last-good numbers.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await computeDashboard();
+    } catch (error) {
+      if (attempt >= 1) {
+        return NextResponse.json({ error: (error as Error).message || "compute_failed" }, { status: 503 });
+      }
+      await new Promise((r) => setTimeout(r, 800));
+    }
+  }
+}
+
+async function computeDashboard() {
   const supabase = supabaseAdmin();
 
   const queue = await fetchAll<{ call_id: string; assigned_reviewer: string; audit_mode: string }>((from, to) =>
@@ -113,17 +152,19 @@ export async function GET() {
     const b2set = batch2.get(email) || new Set();
     const split = (predicate: (callId: string) => boolean) => {
       const p = pairs.filter(([, , c]) => predicate(c));
-      if (!p.length) return null;
-      return Math.round((p.filter(([a, b]) => Math.abs(a - b) <= 1).length / p.length) * 100);
+      if (!p.length) return { pct: null, n: 0 };
+      return { pct: Math.round((p.filter(([a, b]) => Math.abs(a - b) <= 1).length / p.length) * 100), n: p.length };
     };
+    const b1 = split((c) => !b2set.has(c));
+    const b2 = split((c) => b2set.has(c));
     perReviewer.push({
       name,
       n: pairs.length,
       exact: Math.round((pairs.filter(([a, b]) => a === b).length / pairs.length) * 100),
       within1: Math.round((pairs.filter(([a, b]) => Math.abs(a - b) <= 1).length / pairs.length) * 100),
       mean_delta: Number((pairs.reduce((acc, [a, b]) => acc + (a - b), 0) / pairs.length).toFixed(2)),
-      b1_within1: split((c) => !b2set.has(c)),
-      b2_within1: split((c) => b2set.has(c))
+      b1_within1: b1.pct, b1_n: b1.n,
+      b2_within1: b2.pct, b2_n: b2.n
     });
   });
   perReviewer.sort((a, b) => b.within1 - a.within1);

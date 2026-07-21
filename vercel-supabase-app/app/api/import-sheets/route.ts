@@ -83,15 +83,30 @@ export async function POST(request: Request) {
   const duplicateRows = rows.length - queueRows.length;
   const importedQueueKeys = new Set(queueRows.map((row: any) => `${row.call_id}||${row.audit_mode}`));
 
-  const { data: existingQueueRows, error: existingQueueError } = await supabase
-    .from("call_audit_queue")
-    .select("call_id,audit_mode")
-    .or(queueModeMatches(mode));
-  if (existingQueueError) {
-    return NextResponse.json({ error: existingQueueError.message }, { status: 500 });
+  // Page through existing rows — a single query caps at 1000 and a truncated
+  // list here would mark unseen rows as stale and archive live assignments.
+  const pageSize = 1000;
+  let existingQueueRows: any[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error: pageError } = await supabase
+      .from("call_audit_queue")
+      .select("call_id,audit_mode")
+      .or(queueModeMatches(mode))
+      .order("call_id", { ascending: true })
+      .order("audit_mode", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (pageError) {
+      return NextResponse.json({ error: pageError.message }, { status: 500 });
+    }
+    existingQueueRows = existingQueueRows.concat(data || []);
+    if (!data || data.length < pageSize) break;
   }
-  const staleQueueRows = (existingQueueRows || []).filter((row: any) => (
-    !importedQueueKeys.has(`${row.call_id}||${row.audit_mode}`)
+  // Guard: batch-2 assignments (::b2* queue ids) were inserted directly into
+  // Supabase and are not in the sheet — never archive them on import. Once the
+  // sheet carries them they match importedQueueKeys and are untouched anyway.
+  const staleQueueRows = existingQueueRows.filter((row: any) => (
+    !importedQueueKeys.has(`${row.call_id}||${row.audit_mode}`) &&
+    !/::b2/.test(String(row.audit_mode || ""))
   ));
 
   let { error } = await supabase.from("calls").upsert(callRows, { onConflict: "execution_id" });
