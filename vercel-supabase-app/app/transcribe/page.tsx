@@ -8,10 +8,13 @@ import React, { useEffect, useRef, useState } from "react";
 // speech segments highlighted and clickable; each segment is the unit of work.
 
 type Turn = { role: string; text: string };
-type Call = { execution_id: string; agent_name?: string; duration_sec?: number; recording_url?: string; turns: Turn[] };
+type Anchor = { text: string; startSec: number; endSec: number };
+type Call = { execution_id: string; agent_name?: string; duration_sec?: number; recording_url?: string; turns: Turn[]; turn_anchors?: Anchor[] };
 type QueueItem = { queue_id: string; execution_id: string; agent_name?: string; duration_sec?: number; reviewed: boolean };
 
-type Seg = { start: number; end: number; turnIndex: number | null };
+// A segment is either an OFFICIAL Bolna turn (asr text + exact timing) or an
+// extra user-channel spike with no official transcript (asr = null → "write it").
+type Seg = { start: number; end: number; asr: string | null; official: boolean };
 type Tok = { src: string; out: string; converted: boolean };
 type SegState = {
   status: "pending" | "done";
@@ -213,6 +216,8 @@ export default function Transcribe() {
     const d: Call = await fetch(`/api/calls/${item.execution_id}`).then((r) => r.json());
     setCall(d);
     setAnalyzing(true);
+    const anchors = (d.turn_anchors || []).slice().sort((a, b) => a.startSec - b.startSec);
+    const hasTel = anchors.length > 0;
     try {
       const buf = await fetch(`/api/audio?url=${encodeURIComponent(d.recording_url || "")}`).then((r) => r.arrayBuffer());
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -220,47 +225,71 @@ export default function Transcribe() {
       ctxRef.current = ctx; bufRef.current = audio;
       const userTurnIdx = d.turns.map((t, i) => ({ t, i })).filter((x) => x.t.role !== "assistant");
       const wc = userTurnIdx.map((x) => words(x.t.text).length);
-      let userIdx = 0;
+
       let envs: Array<{ env: Float32Array; hop: number }> = [];
+      let userIdx = 0;
       if (audio.numberOfChannels >= 2) {
         envs = [envelope(audio.getChannelData(0), audio.sampleRate), envelope(audio.getChannelData(1), audio.sampleRate)];
-        let best = Infinity;
-        for (let ch = 0; ch < 2; ch++) {
-          const gs = segmentsFromEnv(envs[ch].env, envs[ch].hop);
-          const mapb = alignSegs(gs, wc);
-          const matched = mapb.filter((x) => x !== null).length;
-          const score = Math.abs(gs.length - wc.length) * 2 - matched * 1.5;
-          if (score < best) { best = score; userIdx = ch; }
+        if (hasTel) {
+          // user channel = the one whose spikes best overlap the official anchor times
+          let best = -1;
+          for (let ch = 0; ch < 2; ch++) {
+            const gs = segmentsFromEnv(envs[ch].env, envs[ch].hop);
+            let overlap = 0;
+            for (const a of anchors) for (const g of gs) overlap += Math.max(0, Math.min(a.endSec, g.end) - Math.max(a.startSec, g.start));
+            if (overlap > best) { best = overlap; userIdx = ch; }
+          }
+        } else {
+          let best = Infinity;
+          for (let ch = 0; ch < 2; ch++) {
+            const gs = segmentsFromEnv(envs[ch].env, envs[ch].hop);
+            const matched = alignSegs(gs, wc).filter((x) => x !== null).length;
+            const score = Math.abs(gs.length - wc.length) * 2 - matched * 1.5;
+            if (score < best) { best = score; userIdx = ch; }
+          }
         }
       } else {
         setApproxMode(true);
         envs = [envelope(audio.getChannelData(0), audio.sampleRate)];
-        userIdx = 0;
       }
       const userEnv = envs[userIdx];
       const agentEnv = envs.length > 1 ? envs[1 - userIdx] : null;
-      const gs = segmentsFromEnv(userEnv.env, userEnv.hop);
-      const map = alignSegs(gs, wc);
-      const built: Seg[] = gs.map((g, gi) => ({
-        start: Math.max(0, g.start - 0.2), end: g.end + 0.2,
-        turnIndex: map[gi] === null ? null : userTurnIdx[map[gi] as number].i
-      }));
+      const spikes = segmentsFromEnv(userEnv.env, userEnv.hop);
+
+      let built: Seg[];
+      if (hasTel) {
+        // Official Bolna turns are authoritative. Any user spike not overlapping
+        // an official turn becomes an empty "write it" segment.
+        const official: Seg[] = anchors.map((a) => ({ start: a.startSec, end: a.endSec, asr: a.text, official: true }));
+        const extra: Seg[] = spikes
+          .filter((g) => !anchors.some((a) => Math.min(a.endSec, g.end) - Math.max(a.startSec, g.start) > 0.25))
+          .filter((g) => g.end - g.start >= 0.45)
+          .map((g) => ({ start: Math.max(0, g.start - 0.15), end: g.end + 0.15, asr: null, official: false }));
+        built = [...official, ...extra].sort((x, y) => x.start - y.start);
+      } else {
+        const map = alignSegs(spikes, wc);
+        built = spikes.map((g, gi) => ({
+          start: Math.max(0, g.start - 0.2), end: g.end + 0.2, official: map[gi] !== null,
+          asr: map[gi] === null ? null : d.turns[userTurnIdx[map[gi] as number].i].text
+        }));
+      }
       setSegs(built);
-      setWave({
-        agent: agentEnv ? buckets(agentEnv.env) : new Array(700).fill(0),
-        user: buckets(userEnv.env),
-        duration: audio.duration
-      });
+      setWave({ agent: agentEnv ? buckets(agentEnv.env) : new Array(700).fill(0), user: buckets(userEnv.env), duration: audio.duration });
       setTimeout(() => playSeg(0, built), 350);
     } catch {
-      setApproxMode(true);
-      const dur = Number(d.duration_sec || 0);
-      const uidx = d.turns.map((t, i) => ({ t, i })).filter((x) => x.t.role !== "assistant");
-      const counts = d.turns.map((t) => words(t.text).length);
-      const total = counts.reduce((a, b) => a + b, 0) || 1;
-      let before = 0; const est: Record<number, { s: number; e: number }> = {};
-      d.turns.forEach((t, i) => { est[i] = { s: (before / total) * dur, e: ((before + counts[i]) / total) * dur }; before += counts[i]; });
-      setSegs(uidx.map((x) => ({ start: est[x.i].s, end: est[x.i].e, turnIndex: x.i })));
+      // decode failed — use official telemetry timing if we have it, else estimate
+      if (hasTel) {
+        setSegs(anchors.map((a) => ({ start: a.startSec, end: a.endSec, asr: a.text, official: true })));
+      } else {
+        setApproxMode(true);
+        const dur = Number(d.duration_sec || 0);
+        const uidx = d.turns.map((t, i) => ({ t, i })).filter((x) => x.t.role !== "assistant");
+        const counts = d.turns.map((t) => words(t.text).length);
+        const total = counts.reduce((a, b) => a + b, 0) || 1;
+        let before = 0; const est: Record<number, { s: number; e: number }> = {};
+        d.turns.forEach((t, i) => { est[i] = { s: (before / total) * dur, e: ((before + counts[i]) / total) * dur }; before += counts[i]; });
+        setSegs(uidx.map((x) => ({ start: est[x.i].s, end: est[x.i].e, asr: x.t.text, official: false })));
+      }
     } finally {
       setAnalyzing(false);
     }
@@ -354,8 +383,7 @@ export default function Transcribe() {
     } else if (kind === "wrong") {
       // Prefill with the ASR so the reviewer edits the wrong words instead of
       // retyping the whole segment. Run conversion so the preview shows at once.
-      const gg = segs[i];
-      const asr = gg && gg.turnIndex !== null && call ? call.turns[gg.turnIndex].text : "";
+      const asr = segs[i]?.asr || "";
       patch(i, { kind });
       if (!s.roman.trim() && asr) onRoman(i, asr);
     } else patch(i, { kind });
@@ -373,14 +401,15 @@ export default function Transcribe() {
     try {
       const issues = segs.map((g, i) => {
         const s = st(i);
-        const asr = g.turnIndex !== null ? call.turns[g.turnIndex].text : "";
+        const asr = g.asr || "";
         const gold = s.kind === "correct" ? asr : s.kind === "noise" ? "{noise}" : goldOf(s.tokens, s.roman) || "{noise}";
         return {
           type: "transcription",
           timestamp: fmt(g.start),
           segment_start_sec: Number(g.start.toFixed(1)),
           segment_end_sec: Number(g.end.toFixed(1)),
-          turn_number: g.turnIndex !== null ? String(g.turnIndex + 1) : `spike ${i + 1} (no transcript)`,
+          turn_number: g.official ? `turn ${i + 1}` : `spike ${i + 1} (no transcript)`,
+          official_bolna_turn: g.official ? "Yes" : "No",
           verdict: s.kind,
           transcripted: asr || "(missing from transcript)",
           audio_said: gold,
@@ -432,8 +461,8 @@ export default function Transcribe() {
   const pendingCount = queue.filter((c) => !c.reviewed).length;
   const g = segs[cur];
   const s = g ? st(cur) : null;
-  const asrText = g && g.turnIndex !== null && call ? call.turns[g.turnIndex].text : "";
-  const editorOpen = s && (s.kind === "wrong" || s.kind === "missing" || (g && g.turnIndex === null && s.kind === null));
+  const asrText = g?.asr || "";
+  const editorOpen = s && (s.kind === "wrong" || s.kind === "missing" || (g && g.asr === null && s.kind === null));
 
   return (
     <div className="app-shell">
@@ -516,23 +545,23 @@ export default function Transcribe() {
                       </span>
                     </div>
 
-                    {g.turnIndex !== null ? (
+                    {g.asr !== null ? (
                       <>
-                        <div style={{ fontSize: 11.5, color: "#8a988f", marginTop: 10 }}>ASR heard (turn {g.turnIndex + 1}):</div>
+                        <div style={{ fontSize: 11.5, color: "#8a988f", marginTop: 10 }}>ASR heard {g.official ? "(official Bolna turn)" : ""}:</div>
                         <p style={{ fontSize: 16, margin: "4px 0 10px", color: "#1f2d28", lineHeight: 1.6 }}>{asrText}</p>
                       </>
                     ) : (
-                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "#9b2c2c" }}>No transcript for this audio — listen and write what was said.</p>
+                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "#9b2c2c" }}>No official transcript for this spike — listen and write what was said.</p>
                     )}
 
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {g.turnIndex !== null && (
+                      {g.asr !== null && (
                         <>
                           <button onClick={() => resolve(cur, "correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #1f7a5c", background: s.kind === "correct" ? "#1f7a5c" : "#fff", color: s.kind === "correct" ? "#fff" : "#1f7a5c", cursor: "pointer" }}>✓ Correct</button>
                           <button onClick={() => resolve(cur, "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "wrong" ? "#c05621" : "#fff", color: s.kind === "wrong" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Edit — ASR is wrong</button>
                         </>
                       )}
-                      {g.turnIndex === null && (
+                      {g.asr === null && (
                         <button onClick={() => resolve(cur, "missing")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "missing" ? "#c05621" : "#fff", color: s.kind === "missing" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Write it</button>
                       )}
                       <button onClick={() => resolve(cur, "noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #4a5568", background: s.kind === "noise" ? "#4a5568" : "#fff", color: s.kind === "noise" ? "#fff" : "#4a5568", cursor: "pointer" }}>{"{noise}"}</button>
@@ -543,7 +572,7 @@ export default function Transcribe() {
 
                     {editorOpen && (
                       <div style={{ marginTop: 10 }}>
-                        {g.turnIndex !== null && (
+                        {g.asr !== null && (
                           <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#5b6b64", marginBottom: 6 }}>
                             wrong in:
                             <label><input type="radio" checked={s.wrongLang === "same"} onChange={() => patch(cur, { wrongLang: "same" })} /> same language</label>
@@ -588,7 +617,7 @@ export default function Transcribe() {
               <section style={{ background: "#fff", border: "1px solid #e2e8e5", borderRadius: 10, padding: 12, maxHeight: "70vh", overflow: "auto", position: "sticky", top: 120 }}>
                 <div style={{ fontSize: 12, color: "#8a988f", marginBottom: 8 }}>Full transcript (read-only)</div>
                 {call.turns.map((t, i) => (
-                  <p key={i} style={{ fontSize: 12.5, lineHeight: 1.6, margin: "6px 0", color: t.role === "assistant" ? "#9aa8a1" : "#1f2d28", background: g && g.turnIndex === i ? "#fdf3e3" : "transparent", borderRadius: 4, padding: "2px 4px" }}>
+                  <p key={i} style={{ fontSize: 12.5, lineHeight: 1.6, margin: "6px 0", color: t.role === "assistant" ? "#9aa8a1" : "#1f2d28", background: g && g.asr !== null && t.role !== "assistant" && t.text.trim() && asrText.includes(t.text.trim().slice(0, 20)) ? "#fdf3e3" : "transparent", borderRadius: 4, padding: "2px 4px" }}>
                     <strong>{i + 1}. {t.role === "assistant" ? "agent" : "user"}:</strong> {t.text}
                   </p>
                 ))}
