@@ -1,14 +1,11 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 // Transcription workbench — golden dataset, audio-first.
-// The unit of work is a USER-CHANNEL WAVEFORM SPIKE, not a transcript turn:
-// every detected user-speech segment must be listened to and resolved. ASR
-// turns are mapped onto spikes where they exist (verdict: correct / edit);
-// spikes with no transcript are written from scratch. Reviewers type Roman;
-// Hindi words are converted to Devanagari in real time and highlighted so a
-// wrong conversion is one click to flip.
+// Same shell as the main app (sidebar call list + workspace). The waveform is
+// the classic dual-channel view (agent up/green, user down/blue) with USER
+// speech segments highlighted and clickable; each segment is the unit of work.
 
 type Turn = { role: string; text: string };
 type Call = { execution_id: string; agent_name?: string; duration_sec?: number; recording_url?: string; turns: Turn[] };
@@ -24,11 +21,12 @@ type SegState = {
   tokens: Tok[];
   unclear: boolean;
 };
+type Wave = { agent: number[]; user: number[]; duration: number };
 
 const MODE = "timing_transcription";
 
 const RULES: Array<[string, string]> = [
-  ["Script", "Hindi in Devanagari, English in Roman — never translate (\"pepsi के दो can\"). Type in Roman; the tool converts."],
+  ["Script", "Hindi in Devanagari, English in Roman — never translate. Type Roman; the tool converts."],
   ["Numbers", "As spoken words, not digits — पांच / five, not 5"],
   ["Decimals", "No \".\" — \"two point two five\", written out"],
   ["Names", "Indian names/places in Devanagari; foreign in Roman"],
@@ -48,7 +46,6 @@ function lint(text: string): string[] {
   for (const word of text.toLowerCase().split(/[^a-z0-9']+/)) if (SHORTHAND[word]) w.push(`"${word}" → "${SHORTHAND[word]}"`);
   return [...new Set(w)];
 }
-
 function fmt(sec: number) {
   const s = Math.max(0, Math.floor(sec));
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -58,7 +55,6 @@ function goldOf(tokens: Tok[], roman: string) {
   return tokens.length ? tokens.map((t) => (t.converted ? t.out : t.src)).join(" ") : roman.trim();
 }
 
-// ---------- waveform analysis: user-channel spikes ----------
 function envelope(data: Float32Array, sampleRate: number, hop = 0.05) {
   const win = Math.round(sampleRate * hop);
   const out = new Float32Array(Math.ceil(data.length / win));
@@ -69,27 +65,31 @@ function envelope(data: Float32Array, sampleRate: number, hop = 0.05) {
   }
   return { env: out, hop };
 }
+function buckets(env: Float32Array, n = 700) {
+  const out = new Array(n).fill(0);
+  const max = Math.max(...env, 0.0001);
+  for (let i = 0; i < n; i++) out[i] = (env[Math.floor((i / n) * env.length)] || 0) / max;
+  return out;
+}
 function segmentsFromEnv(env: Float32Array, hop: number) {
   const sorted = [...env].sort((a, b) => a - b);
   const p95 = sorted[Math.floor(sorted.length * 0.95)] || 0;
   const thr = Math.max(0.015, p95 * 0.18);
-  const segs: Array<{ start: number; end: number }> = [];
+  const raw: Array<{ start: number; end: number }> = [];
   let s = -1;
   for (let i = 0; i <= env.length; i++) {
     const on = i < env.length && env[i] > thr;
     if (on && s < 0) s = i;
-    if (!on && s >= 0) { segs.push({ start: s * hop, end: i * hop }); s = -1; }
+    if (!on && s >= 0) { raw.push({ start: s * hop, end: i * hop }); s = -1; }
   }
-  // merge gaps < 0.55s, drop < 0.35s
-  const merged: typeof segs = [];
-  for (const g of segs) {
+  const merged: typeof raw = [];
+  for (const g of raw) {
     const last = merged[merged.length - 1];
     if (last && g.start - last.end < 0.55) last.end = g.end;
     else merged.push({ ...g });
   }
   return merged.filter((g) => g.end - g.start >= 0.35);
 }
-// monotonic DP: map segments to user turns by duration-vs-wordcount fit
 function alignSegs(segs: Array<{ start: number; end: number }>, turnWords: number[]) {
   const m = segs.length, n = turnWords.length;
   const totalDur = segs.reduce((a, g) => a + (g.end - g.start), 0) || 1;
@@ -106,11 +106,11 @@ function alignSegs(segs: Array<{ start: number; end: number }>, turnWords: numbe
       const c = dp[i][k] + Math.abs(dur - turnWords[k] * spw);
       if (c < dp[i + 1][k + 1]) { dp[i + 1][k + 1] = c; bk[i + 1][k + 1] = 1; }
     }
-    if (i < m) { // unmatched spike (candidate missing speech)
+    if (i < m) {
       const c = dp[i][k] + (segs[i].end - segs[i].start) * 0.9;
       if (c < dp[i + 1][k]) { dp[i + 1][k] = c; bk[i + 1][k] = 2; }
     }
-    if (k < n) { // turn with no spike
+    if (k < n) {
       const c = dp[i][k] + turnWords[k] * spw * 1.1;
       if (c < dp[i][k + 1]) { dp[i][k + 1] = c; bk[i][k + 1] = 3; }
     }
@@ -120,8 +120,8 @@ function alignSegs(segs: Array<{ start: number; end: number }>, turnWords: numbe
   while (i > 0 || k > 0) {
     const b = bk[i][k];
     if (b === 1) { map[i - 1] = k - 1; i--; k--; }
-    else if (b === 2) { i--; }
-    else { k--; }
+    else if (b === 2) i--;
+    else k--;
   }
   return map;
 }
@@ -131,13 +131,15 @@ export default function Transcribe() {
   const [display, setDisplay] = useState("");
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [call, setCall] = useState<Call | null>(null);
+  const [currentQueueId, setCurrentQueueId] = useState("");
   const [segs, setSegs] = useState<Seg[]>([]);
-  const [userEnv, setUserEnv] = useState<{ env: Float32Array; hop: number } | null>(null);
+  const [wave, setWave] = useState<Wave | null>(null);
   const [approxMode, setApproxMode] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [cur, setCur] = useState(0);
   const [states, setStates] = useState<Record<number, SegState>>({});
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [playhead, setPlayhead] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -163,7 +165,8 @@ export default function Transcribe() {
   const allDone = segs.length > 0 && doneCount === segs.length;
 
   async function openCall(item: QueueItem) {
-    setCall(null); setSegs([]); setStates({}); setCur(0); setApproxMode(false); setUserEnv(null);
+    setCall(null); setSegs([]); setStates({}); setCur(0); setApproxMode(false); setWave(null); setPlayhead(0);
+    setCurrentQueueId(item.queue_id);
     const d: Call = await fetch(`/api/calls/${item.execution_id}`).then((r) => r.json());
     setCall(d);
     setAnalyzing(true);
@@ -173,35 +176,40 @@ export default function Transcribe() {
       const audio = await ctx.decodeAudioData(buf);
       const userTurnIdx = d.turns.map((t, i) => ({ t, i })).filter((x) => x.t.role !== "assistant");
       const wc = userTurnIdx.map((x) => words(x.t.text).length);
-      let chosen: { env: Float32Array; hop: number } | null = null;
-      let chosenSegs: Array<{ start: number; end: number }> = [];
+      let userIdx = 0;
+      let envs: Array<{ env: Float32Array; hop: number }> = [];
       if (audio.numberOfChannels >= 2) {
-        // score each channel: how well do its spikes fit the user turns?
+        envs = [envelope(audio.getChannelData(0), audio.sampleRate), envelope(audio.getChannelData(1), audio.sampleRate)];
         let best = Infinity;
         for (let ch = 0; ch < 2; ch++) {
-          const e = envelope(audio.getChannelData(ch), audio.sampleRate);
-          const gs = segmentsFromEnv(e.env, e.hop);
+          const gs = segmentsFromEnv(envs[ch].env, envs[ch].hop);
           const mapb = alignSegs(gs, wc);
           const matched = mapb.filter((x) => x !== null).length;
           const score = Math.abs(gs.length - wc.length) * 2 - matched * 1.5;
-          if (score < best) { best = score; chosen = e; chosenSegs = gs; }
+          if (score < best) { best = score; userIdx = ch; }
         }
       } else {
         setApproxMode(true);
-        const e = envelope(audio.getChannelData(0), audio.sampleRate);
-        chosen = e; chosenSegs = segmentsFromEnv(e.env, e.hop);
+        envs = [envelope(audio.getChannelData(0), audio.sampleRate)];
+        userIdx = 0;
       }
-      ctx.close();
-      const map = alignSegs(chosenSegs, wc);
-      const built: Seg[] = chosenSegs.map((g, gi) => ({
+      const userEnv = envs[userIdx];
+      const agentEnv = envs.length > 1 ? envs[1 - userIdx] : null;
+      const gs = segmentsFromEnv(userEnv.env, userEnv.hop);
+      const map = alignSegs(gs, wc);
+      const built: Seg[] = gs.map((g, gi) => ({
         start: Math.max(0, g.start - 0.2), end: g.end + 0.2,
         turnIndex: map[gi] === null ? null : userTurnIdx[map[gi] as number].i
       }));
-      setSegs(built); setUserEnv(chosen);
-      // prefill matched segments' roman with nothing (ASR text shown separately)
-      setTimeout(() => playSeg(0, built), 300);
+      setSegs(built);
+      setWave({
+        agent: agentEnv ? buckets(agentEnv.env) : new Array(700).fill(0),
+        user: buckets(userEnv.env),
+        duration: audio.duration
+      });
+      ctx.close();
+      setTimeout(() => playSeg(0, built), 350);
     } catch {
-      // decode failed — approx mode from word-count estimates
       setApproxMode(true);
       const dur = Number(d.duration_sec || 0);
       const uidx = d.turns.map((t, i) => ({ t, i })).filter((x) => x.t.role !== "assistant");
@@ -215,17 +223,29 @@ export default function Transcribe() {
     }
   }
 
+  function seekPlay(target: number, stopAt: number | null) {
+    const a = audioRef.current;
+    if (!a) return;
+    const go = () => {
+      try { a.currentTime = target; } catch { /* not seekable yet */ }
+      stopAtRef.current = stopAt;
+      a.play().catch(() => {});
+    };
+    // Seeking before metadata is loaded silently plays from 0 — wait for it.
+    if (a.readyState >= 1 && !Number.isNaN(a.duration)) go();
+    else a.addEventListener("loadedmetadata", go, { once: true });
+  }
   function playSeg(i: number, list: Seg[] = segs) {
-    const g = list[i]; const a = audioRef.current;
-    if (!g || !a) return;
+    const g = list[i];
+    if (!g) return;
     setCur(i);
-    a.currentTime = Math.max(0, g.start - 0.15);
-    stopAtRef.current = g.end + 0.15;
-    a.play().catch(() => {});
+    seekPlay(Math.max(0, g.start - 0.15), g.end + 0.15);
   }
   function onTime() {
     const a = audioRef.current;
-    if (a && stopAtRef.current !== null && a.currentTime >= stopAtRef.current) { a.pause(); stopAtRef.current = null; }
+    if (!a) return;
+    setPlayhead(a.currentTime);
+    if (stopAtRef.current !== null && a.currentTime >= stopAtRef.current) { a.pause(); stopAtRef.current = null; }
   }
   function next(i = cur) {
     const nxt = segs.findIndex((_, k) => k > i && st(k).status === "pending");
@@ -233,30 +253,40 @@ export default function Transcribe() {
     playSeg(target);
   }
 
-  // waveform strip
+  // classic dual-channel waveform + user-segment highlights + playhead
   useEffect(() => {
-    const cv = canvasRef.current;
-    if (!cv || !userEnv || !call) return;
-    const W = cv.width = cv.offsetWidth * 2, H = cv.height = 96;
-    const ctx = cv.getContext("2d")!;
+    const canvas = canvasRef.current;
+    if (!canvas || !wave) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const W = canvas.width = canvas.offsetWidth * 2, H = canvas.height = 120, mid = H / 2;
     ctx.clearRect(0, 0, W, H);
-    const { env, hop } = userEnv;
-    const dur = env.length * hop;
-    const max = Math.max(...env, 0.001);
-    ctx.fillStyle = "#c8d6d0";
-    for (let x = 0; x < W; x++) {
-      const v = env[Math.floor((x / W) * env.length)] / max;
-      const h = Math.max(1, v * (H - 8));
-      ctx.fillRect(x, (H - h) / 2, 1, h);
+    ctx.fillStyle = "#e6ebe9";
+    ctx.fillRect(0, mid - 0.5, W, 1);
+    const bars = wave.agent.length;
+    const bw = W / bars;
+    for (let i = 0; i < bars; i++) {
+      const up = (wave.agent[i] || 0) * (mid - 2);
+      const down = (wave.user[i] || 0) * (mid - 2);
+      ctx.fillStyle = "#1f7a5c";
+      ctx.fillRect(i * bw, mid - up, Math.max(bw - 0.5, 0.5), up);
+      ctx.fillStyle = "#5b8def";
+      ctx.fillRect(i * bw, mid, Math.max(bw - 0.5, 0.5), down);
     }
+    // user segments: highlight bottom half only (agent side untouched)
     segs.forEach((g, i) => {
-      const x1 = (g.start / dur) * W, x2 = (g.end / dur) * W;
-      ctx.fillStyle = i === cur ? "rgba(183,121,31,0.35)" : st(i).status === "done" ? "rgba(31,122,92,0.28)" : "rgba(192,86,33,0.18)";
-      ctx.fillRect(x1, 0, Math.max(2, x2 - x1), H);
+      const x1 = (g.start / wave.duration) * W, x2 = (g.end / wave.duration) * W;
+      ctx.fillStyle = i === cur ? "rgba(183,121,31,0.4)" : st(i).status === "done" ? "rgba(31,122,92,0.25)" : "rgba(214,69,69,0.18)";
+      ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
+      if (i === cur) { ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2); }
     });
-  }, [userEnv, segs, states, cur, call]);
+    if (wave.duration > 0) {
+      const x = (playhead / wave.duration) * W;
+      ctx.fillStyle = "#d64545";
+      ctx.fillRect(x - 1, 0, 2, H);
+    }
+  }, [wave, segs, states, cur, playhead]);
 
-  // roman -> devanagari (debounced per current segment)
   function onRoman(i: number, value: string) {
     patch(i, { roman: value });
     clearTimeout(debounceRef.current);
@@ -264,7 +294,7 @@ export default function Transcribe() {
       try {
         const d = await fetch("/api/transliterate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: value }) }).then((r) => r.json());
         setStates((s) => {
-          const now = s[i]; if (!now || now.roman !== value) return s; // stale
+          const now = s[i]; if (!now || now.roman !== value) return s;
           return { ...s, [i]: { ...now, tokens: d.tokens || [] } };
         });
       } catch { /* keep roman */ }
@@ -276,14 +306,11 @@ export default function Transcribe() {
     if (kind === "correct" || kind === "noise") {
       patch(i, { kind, status: "done", tokens: kind === "noise" ? [] : s.tokens, roman: kind === "noise" ? "{noise}" : s.roman });
       next(i);
-    } else {
-      patch(i, { kind }); // wrong / missing -> editor opens; done on save
-    }
+    } else patch(i, { kind });
   }
   function saveEdit(i: number) {
     const s = st(i);
-    const gold = goldOf(s.tokens, s.roman);
-    if (!gold && !s.unclear) return;
+    if (!goldOf(s.tokens, s.roman) && !s.unclear) return;
     patch(i, { status: "done" });
     next(i);
   }
@@ -326,11 +353,10 @@ export default function Transcribe() {
         })
       }).then((r) => r.json());
       if (res.error) { alert(res.error); return; }
-      setSubmittedId(call.execution_id); setCall(null);
+      setSubmittedId(call.execution_id); setCall(null); setCurrentQueueId("");
     } finally { setSubmitting(false); }
   }
 
-  // keyboard: space = replay, arrows = prev/next
   useEffect(() => {
     if (!call) return;
     const h = (e: KeyboardEvent) => {
@@ -351,170 +377,174 @@ export default function Transcribe() {
     </main>;
   }
 
+  const pendingCount = queue.filter((c) => !c.reviewed).length;
   const g = segs[cur];
   const s = g ? st(cur) : null;
   const asrText = g && g.turnIndex !== null && call ? call.turns[g.turnIndex].text : "";
   const editorOpen = s && (s.kind === "wrong" || s.kind === "missing" || (g && g.turnIndex === null && s.kind === null));
 
   return (
-    <main style={{ fontFamily: "system-ui", background: "#f6f8f7", minHeight: "100vh", padding: "12px 16px 60px" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-          <h1 style={{ fontSize: 19, color: "#1f2d28", margin: 0 }}>Transcription — golden dataset</h1>
-          <span style={{ fontSize: 12, color: "#8a988f" }}>{display} · {queue.filter((c) => !c.reviewed).length} pending / {queue.length} assigned</span>
-          <button onClick={() => setRulesOpen(!rulesOpen)} style={{ fontSize: 12, marginLeft: "auto" }}>{rulesOpen ? "hide rules ▴" : "golden rules ▾"}</button>
-          <a href="/" style={{ fontSize: 12 }}>← main app</a>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <h1 style={{ fontSize: 18 }}>Transcription</h1>
+          <p>golden dataset · {display} · <a href="/">main app</a></p>
         </div>
+        <div className="queue-stats">{pendingCount} pending · {queue.length - pendingCount} submitted · {queue.length} assigned</div>
+        <nav className="call-list">
+          {queue.map((c) => (
+            <button key={c.queue_id}
+              className={`call-card ${c.reviewed ? "reviewed submitted" : ""} ${currentQueueId === c.queue_id ? "active" : ""}`}
+              onClick={() => !c.reviewed && openCall(c)}>
+              <span className="call-id">ID {c.execution_id.slice(0, 8)}</span>
+              <strong>{c.agent_name || "call"}</strong>
+              <span>· {fmt(Number(c.duration_sec || 0))} · {c.reviewed ? "Done ✓" : "Open"}</span>
+            </button>
+          ))}
+          {queue.length === 0 && <div className="queue-empty"><p>No calls assigned yet.</p></div>}
+        </nav>
+      </aside>
+
+      <main className="workspace">
+        <section className="audio-bar">
+          <div>
+            <div style={{ fontSize: 12, color: "#8a988f" }}>{call ? `${doneCount}/${segs.length} spikes resolved` : "No call selected"}</div>
+            <strong style={{ fontSize: 15 }}>{call ? (call.agent_name || call.execution_id.slice(0, 8)) : "Select a call to start"}</strong>
+            <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <audio ref={audioRef} controls preload="auto" onTimeUpdate={onTime}
+                src={call ? `/api/audio?url=${encodeURIComponent(call.recording_url || "")}` : undefined} style={{ height: 32, width: "100%", maxWidth: 380 }} />
+              <button onClick={() => setRulesOpen(!rulesOpen)} style={{ fontSize: 12 }}>{rulesOpen ? "rules ▴" : "rules ▾"}</button>
+              {approxMode && <span style={{ fontSize: 11, color: "#b7791f" }}>~approx timing</span>}
+            </div>
+          </div>
+          <div>
+            {wave ? (
+              <>
+                <canvas ref={canvasRef} className="waveform" style={{ width: "100%", height: 60, cursor: "pointer", display: "block" }}
+                  onClick={(e) => {
+                    const r = (e.target as HTMLCanvasElement).getBoundingClientRect();
+                    const t = ((e.clientX - r.left) / r.width) * wave.duration;
+                    const hit = segs.findIndex((gg) => t >= gg.start && t <= gg.end);
+                    if (hit >= 0) playSeg(hit);
+                    else seekPlay(t, null);
+                  }} />
+                <div style={{ fontSize: 10.5, color: "#8a988f" }}>
+                  <span style={{ color: "#1f7a5c" }}>▮ agent</span> · <span style={{ color: "#5b8def" }}>▮ user</span> — user spikes: <span style={{ color: "#d64545" }}>pending</span> / <span style={{ color: "#1f7a5c" }}>done</span> / <span style={{ color: "#b7791f" }}>current</span> · click a spike to jump · Space replay · ←/→
+                </div>
+              </>
+            ) : call && analyzing ? <div style={{ fontSize: 12, color: "#5b6b64" }}>Analyzing waveform…</div> : null}
+          </div>
+        </section>
+
         {rulesOpen && (
-          <section style={{ background: "#fffbea", border: "1px solid #f0e2b0", borderRadius: 10, padding: "8px 14px", margin: "10px 0" }}>
+          <section style={{ background: "#fffbea", borderBottom: "1px solid #f0e2b0", padding: "8px 18px" }}>
             <ul style={{ margin: "4px 0", paddingLeft: 18, fontSize: 12.5, color: "#5b5330", lineHeight: 1.7 }}>
               {RULES.map(([k, v]) => <li key={k}><strong>{k}:</strong> {v}</li>)}
             </ul>
           </section>
         )}
 
-        {!call ? (
-          <section style={{ marginTop: 12 }}>
-            <h2 style={{ fontSize: 14, color: "#5b6b64" }}>Your transcription queue</h2>
-            {queue.length === 0 && <p style={{ color: "#8a988f", fontSize: 13 }}>No calls assigned yet.</p>}
-            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))" }}>
-              {queue.map((c) => (
-                <button key={c.queue_id} onClick={() => !c.reviewed && openCall(c)} disabled={c.reviewed}
-                  style={{ textAlign: "left", padding: 12, borderRadius: 10, cursor: c.reviewed ? "default" : "pointer", border: "1px solid #e2e8e5", background: c.reviewed ? "#eef2f0" : "#fff", opacity: c.reviewed ? 0.6 : 1 }}>
-                  <code style={{ fontSize: 11, color: "#8a988f" }}>{c.execution_id.slice(0, 8)}</code>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1f2d28" }}>{c.agent_name || "call"}</div>
-                  <div style={{ fontSize: 12, color: "#5b6b64" }}>{fmt(Number(c.duration_sec || 0))} {c.reviewed ? "· ✓ done" : ""}</div>
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : (
-          <>
-            <div style={{ position: "sticky", top: 0, zIndex: 5, background: "#fff", border: "1px solid #e2e8e5", borderRadius: 10, padding: "8px 12px", margin: "10px 0", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <strong style={{ fontSize: 13 }}>{call.agent_name || call.execution_id.slice(0, 8)}</strong>
-              <audio ref={audioRef} controls preload="auto" onTimeUpdate={onTime}
-                src={`/api/audio?url=${encodeURIComponent(call.recording_url || "")}`} style={{ height: 32, flex: "1 1 260px" }} />
-              <span style={{ fontSize: 12, color: allDone ? "#1f7a5c" : "#5b6b64" }}>{doneCount}/{segs.length} spikes resolved</span>
-              {approxMode && <span style={{ fontSize: 11, color: "#b7791f" }}>~approx timing</span>}
-              <button onClick={() => setCall(null)} style={{ fontSize: 12 }}>close</button>
-            </div>
+        <div style={{ padding: "14px 18px", display: "grid", gridTemplateColumns: "minmax(360px,1fr) minmax(260px,0.7fr)", gap: 14, alignItems: "start" }}>
+          {!call ? (
+            <p style={{ color: "#8a988f", fontSize: 13 }}>{analyzing ? "Loading…" : "Pick a call from the left to start transcribing."}</p>
+          ) : analyzing ? (
+            <p style={{ color: "#5b6b64", fontSize: 13 }}>Analyzing user-channel waveform…</p>
+          ) : (
+            <>
+              <section>
+                {g && s && (
+                  <div style={{ border: "2px solid #b7791f", background: "#fff", borderRadius: 12, padding: 14 }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <button onClick={() => playSeg(cur)} style={{ fontSize: 13 }}>🔁 {fmt(g.start)}–{fmt(g.end)}</button>
+                      <strong style={{ fontSize: 13, color: "#5b6b64" }}>spike {cur + 1} of {segs.length}</strong>
+                      {s.status === "done" && <span style={{ fontSize: 11, color: "#1f7a5c" }}>✓ {s.kind}</span>}
+                      <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                        <button disabled={cur === 0} onClick={() => playSeg(cur - 1)} style={{ fontSize: 12 }}>← prev</button>
+                        <button disabled={cur >= segs.length - 1} onClick={() => playSeg(cur + 1)} style={{ fontSize: 12 }}>next →</button>
+                      </span>
+                    </div>
 
-            {analyzing ? (
-              <p style={{ color: "#5b6b64", fontSize: 13 }}>Analyzing user-channel waveform…</p>
-            ) : (
-              <>
-                {/* waveform strip */}
-                <canvas ref={canvasRef} onClick={(e) => {
-                  const r = (e.target as HTMLCanvasElement).getBoundingClientRect();
-                  const frac = (e.clientX - r.left) / r.width;
-                  const dur = userEnv ? userEnv.env.length * userEnv.hop : 0;
-                  const t = frac * dur;
-                  const hit = segs.findIndex((gg) => t >= gg.start && t <= gg.end);
-                  if (hit >= 0) playSeg(hit);
-                }} style={{ width: "100%", height: 48, background: "#fff", border: "1px solid #e2e8e5", borderRadius: 8, cursor: "pointer" }} />
-                <div style={{ fontSize: 11, color: "#8a988f", margin: "2px 0 10px" }}>
-                  user-channel spikes: <span style={{ color: "#c05621" }}>■ pending</span> · <span style={{ color: "#1f7a5c" }}>■ done</span> · <span style={{ color: "#b7791f" }}>■ current</span> — click a block to jump · Space replays · ←/→ navigate
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "minmax(360px,1fr) minmax(260px,0.7fr)", gap: 14, alignItems: "start" }}>
-                  {/* CURRENT SPIKE CARD */}
-                  <section>
-                    {g && s && (
-                      <div style={{ border: "2px solid #b7791f", background: "#fff", borderRadius: 12, padding: 14 }}>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                          <button onClick={() => playSeg(cur)} style={{ fontSize: 13 }}>🔁 {fmt(g.start)}–{fmt(g.end)}</button>
-                          <strong style={{ fontSize: 13, color: "#5b6b64" }}>spike {cur + 1} of {segs.length}</strong>
-                          {s.status === "done" && <span style={{ fontSize: 11, color: "#1f7a5c" }}>✓ {s.kind}</span>}
-                          <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                            <button disabled={cur === 0} onClick={() => playSeg(cur - 1)} style={{ fontSize: 12 }}>← prev</button>
-                            <button disabled={cur >= segs.length - 1} onClick={() => playSeg(cur + 1)} style={{ fontSize: 12 }}>next →</button>
-                          </span>
-                        </div>
-
-                        {g.turnIndex !== null ? (
-                          <>
-                            <div style={{ fontSize: 11.5, color: "#8a988f", marginTop: 10 }}>ASR heard (turn {g.turnIndex + 1}):</div>
-                            <p style={{ fontSize: 16, margin: "4px 0 10px", color: "#1f2d28", lineHeight: 1.6 }}>{asrText}</p>
-                          </>
-                        ) : (
-                          <p style={{ fontSize: 13.5, margin: "10px 0", color: "#9b2c2c" }}>No transcript for this audio — listen and write what was said.</p>
-                        )}
-
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {g.turnIndex !== null && (
-                            <>
-                              <button onClick={() => resolve(cur, "correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #1f7a5c", background: s.kind === "correct" ? "#1f7a5c" : "#fff", color: s.kind === "correct" ? "#fff" : "#1f7a5c", cursor: "pointer" }}>✓ Correct</button>
-                              <button onClick={() => resolve(cur, "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "wrong" ? "#c05621" : "#fff", color: s.kind === "wrong" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Edit — ASR is wrong</button>
-                            </>
-                          )}
-                          {g.turnIndex === null && (
-                            <button onClick={() => resolve(cur, "missing")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "missing" ? "#c05621" : "#fff", color: s.kind === "missing" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Write it</button>
-                          )}
-                          <button onClick={() => resolve(cur, "noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #4a5568", background: s.kind === "noise" ? "#4a5568" : "#fff", color: s.kind === "noise" ? "#fff" : "#4a5568", cursor: "pointer" }}>{"{noise}"}</button>
-                          <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto" }}>
-                            <input type="checkbox" checked={s.unclear} onChange={(e) => patch(cur, { unclear: e.target.checked })} /> audio unclear
-                          </label>
-                        </div>
-
-                        {editorOpen && (
-                          <div style={{ marginTop: 10 }}>
-                            {g.turnIndex !== null && (
-                              <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#5b6b64", marginBottom: 6 }}>
-                                wrong in:
-                                <label><input type="radio" checked={s.wrongLang === "same"} onChange={() => patch(cur, { wrongLang: "same" })} /> same language</label>
-                                <label><input type="radio" checked={s.wrongLang === "different"} onChange={() => patch(cur, { wrongLang: "different" })} /> different language</label>
-                              </div>
-                            )}
-                            <textarea value={s.roman} rows={2} autoFocus style={{ width: "100%", fontSize: 14.5 }}
-                              placeholder="Type in Roman — hindi words convert automatically (e.g. haan didi main kaam kar rahi hoon)"
-                              onChange={(e) => onRoman(cur, e.target.value)} />
-                            {s.tokens.length > 0 && (
-                              <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 15.5, lineHeight: 1.9 }}>
-                                {s.tokens.map((t, ti) => (
-                                  <span key={ti} onClick={() => {
-                                    const tk = [...s.tokens]; tk[ti] = { ...tk[ti], converted: !tk[ti].converted };
-                                    patch(cur, { tokens: tk });
-                                  }} title={t.converted ? `click to keep Roman: ${t.src}` : "click to convert to Devanagari"}
-                                    style={{ cursor: "pointer", padding: "1px 3px", borderRadius: 4, marginRight: 3, background: t.converted ? "#fdecc8" : "transparent" }}>
-                                    {t.converted ? t.out : t.src}
-                                  </span>
-                                ))}
-                                <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari — click any word to flip it</div>
-                              </div>
-                            )}
-                            {lint(goldOf(s.tokens, s.roman)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "#b7791f", marginTop: 3 }}>⚠ {w}</div>)}
-                            <button onClick={() => saveEdit(cur)} disabled={!goldOf(s.tokens, s.roman) && !s.unclear}
-                              style={{ marginTop: 8, fontSize: 13, padding: "7px 16px", borderRadius: 7, border: "none", background: "#1f7a5c", color: "#fff", cursor: "pointer" }}>
-                              Save & next
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                    {g.turnIndex !== null ? (
+                      <>
+                        <div style={{ fontSize: 11.5, color: "#8a988f", marginTop: 10 }}>ASR heard (turn {g.turnIndex + 1}):</div>
+                        <p style={{ fontSize: 16, margin: "4px 0 10px", color: "#1f2d28", lineHeight: 1.6 }}>{asrText}</p>
+                      </>
+                    ) : (
+                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "#9b2c2c" }}>No transcript for this audio — listen and write what was said.</p>
                     )}
 
-                    <div style={{ position: "sticky", bottom: 10, marginTop: 14 }}>
-                      <button onClick={submit} disabled={!allDone || submitting}
-                        style={{ width: "100%", padding: "12px 0", fontSize: 15, borderRadius: 10, border: "none", cursor: allDone ? "pointer" : "not-allowed", background: allDone ? "#1f7a5c" : "#c8d6d0", color: "#fff" }}>
-                        {submitting ? "Submitting…" : allDone ? "Submit golden transcription" : `Resolve all spikes to submit (${doneCount}/${segs.length})`}
-                      </button>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {g.turnIndex !== null && (
+                        <>
+                          <button onClick={() => resolve(cur, "correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #1f7a5c", background: s.kind === "correct" ? "#1f7a5c" : "#fff", color: s.kind === "correct" ? "#fff" : "#1f7a5c", cursor: "pointer" }}>✓ Correct</button>
+                          <button onClick={() => resolve(cur, "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "wrong" ? "#c05621" : "#fff", color: s.kind === "wrong" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Edit — ASR is wrong</button>
+                        </>
+                      )}
+                      {g.turnIndex === null && (
+                        <button onClick={() => resolve(cur, "missing")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "missing" ? "#c05621" : "#fff", color: s.kind === "missing" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Write it</button>
+                      )}
+                      <button onClick={() => resolve(cur, "noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #4a5568", background: s.kind === "noise" ? "#4a5568" : "#fff", color: s.kind === "noise" ? "#fff" : "#4a5568", cursor: "pointer" }}>{"{noise}"}</button>
+                      <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto" }}>
+                        <input type="checkbox" checked={s.unclear} onChange={(e) => patch(cur, { unclear: e.target.checked })} /> audio unclear
+                      </label>
                     </div>
-                  </section>
 
-                  {/* FULL TRANSCRIPT */}
-                  <section style={{ background: "#fff", border: "1px solid #e2e8e5", borderRadius: 10, padding: 12, maxHeight: "70vh", overflow: "auto", position: "sticky", top: 62 }}>
-                    <div style={{ fontSize: 12, color: "#8a988f", marginBottom: 8 }}>Full transcript (read-only)</div>
-                    {call.turns.map((t, i) => (
-                      <p key={i} style={{ fontSize: 12.5, lineHeight: 1.6, margin: "6px 0", color: t.role === "assistant" ? "#9aa8a1" : "#1f2d28", background: g && g.turnIndex === i ? "#fdf3e3" : "transparent", borderRadius: 4, padding: "2px 4px" }}>
-                        <strong>{i + 1}. {t.role === "assistant" ? "agent" : "user"}:</strong> {t.text}
-                      </p>
-                    ))}
-                  </section>
+                    {editorOpen && (
+                      <div style={{ marginTop: 10 }}>
+                        {g.turnIndex !== null && (
+                          <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#5b6b64", marginBottom: 6 }}>
+                            wrong in:
+                            <label><input type="radio" checked={s.wrongLang === "same"} onChange={() => patch(cur, { wrongLang: "same" })} /> same language</label>
+                            <label><input type="radio" checked={s.wrongLang === "different"} onChange={() => patch(cur, { wrongLang: "different" })} /> different language</label>
+                          </div>
+                        )}
+                        <textarea value={s.roman} rows={2} autoFocus style={{ width: "100%", fontSize: 14.5 }}
+                          placeholder="Type in Roman — hindi words convert automatically (e.g. haan didi main kaam kar rahi hoon)"
+                          onChange={(e) => onRoman(cur, e.target.value)} />
+                        {s.tokens.length > 0 && (
+                          <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 15.5, lineHeight: 1.9 }}>
+                            {s.tokens.map((t, ti) => (
+                              <span key={ti} onClick={() => {
+                                const tk = [...s.tokens]; tk[ti] = { ...tk[ti], converted: !tk[ti].converted };
+                                patch(cur, { tokens: tk });
+                              }} title={t.converted ? `click to keep Roman: ${t.src}` : "click to convert to Devanagari"}
+                                style={{ cursor: "pointer", padding: "1px 3px", borderRadius: 4, marginRight: 3, background: t.converted ? "#fdecc8" : "transparent" }}>
+                                {t.converted ? t.out : t.src}
+                              </span>
+                            ))}
+                            <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari — click any word to flip it</div>
+                          </div>
+                        )}
+                        {lint(goldOf(s.tokens, s.roman)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "#b7791f", marginTop: 3 }}>⚠ {w}</div>)}
+                        <button onClick={() => saveEdit(cur)} disabled={!goldOf(s.tokens, s.roman) && !s.unclear}
+                          style={{ marginTop: 8, fontSize: 13, padding: "7px 16px", borderRadius: 7, border: "none", background: "#1f7a5c", color: "#fff", cursor: "pointer" }}>
+                          Save & next
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ position: "sticky", bottom: 10, marginTop: 14 }}>
+                  <button onClick={submit} disabled={!allDone || submitting}
+                    style={{ width: "100%", padding: "12px 0", fontSize: 15, borderRadius: 10, border: "none", cursor: allDone ? "pointer" : "not-allowed", background: allDone ? "#1f7a5c" : "#c8d6d0", color: "#fff" }}>
+                    {submitting ? "Submitting…" : allDone ? "Submit golden transcription" : `Resolve all spikes to submit (${doneCount}/${segs.length})`}
+                  </button>
                 </div>
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </main>
+              </section>
+
+              <section style={{ background: "#fff", border: "1px solid #e2e8e5", borderRadius: 10, padding: 12, maxHeight: "70vh", overflow: "auto", position: "sticky", top: 120 }}>
+                <div style={{ fontSize: 12, color: "#8a988f", marginBottom: 8 }}>Full transcript (read-only)</div>
+                {call.turns.map((t, i) => (
+                  <p key={i} style={{ fontSize: 12.5, lineHeight: 1.6, margin: "6px 0", color: t.role === "assistant" ? "#9aa8a1" : "#1f2d28", background: g && g.turnIndex === i ? "#fdf3e3" : "transparent", borderRadius: 4, padding: "2px 4px" }}>
+                    <strong>{i + 1}. {t.role === "assistant" ? "agent" : "user"}:</strong> {t.text}
+                  </p>
+                ))}
+              </section>
+            </>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
