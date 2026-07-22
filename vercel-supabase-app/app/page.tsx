@@ -199,6 +199,12 @@ export default function Page() {
     }
   }, []);
 
+  // Issue loggers now work exclusively in the transcription workbench —
+  // send them straight there once their role is known.
+  useEffect(() => {
+    if (!loginVisible && reviewerRole === "issue_logger") window.location.replace("/transcribe");
+  }, [reviewerRole, loginVisible]);
+
   // Draw waveform: agent channel up (green), user channel down (blue), playhead line
   useEffect(() => {
     const canvas = waveCanvasRef.current;
