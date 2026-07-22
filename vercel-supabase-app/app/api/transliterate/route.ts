@@ -5,12 +5,13 @@ export const dynamic = "force-dynamic";
 // Roman-Hinglish -> golden-script converter.
 // Reviewers type everything in Roman for speed; this decides per word whether
 // it is English (stays Roman) or Hindi (converted to Devanagari via Google
-// Input Tools transliteration). The client renders converted tokens
-// highlighted so the reviewer can toggle any wrong decision. An LLM can later
-// replace the word-classifier; the response shape stays the same.
+// Input Tools transliteration). Word classification uses Claude Haiku when
+// ANTHROPIC_API_KEY is set (context-aware, far better than a wordlist), and
+// falls back to the compact dictionary below when it isn't / on timeout.
+// The client renders converted tokens highlighted so the reviewer can toggle
+// or correct any wrong decision.
 
-// Words that stay Roman even though they'd transliterate fine. Compact set:
-// common English + domain vocabulary seen in these calls.
+// Fallback list: words that stay Roman even though they'd transliterate fine.
 const ENGLISH = new Set(`
 a i am is are was were be been the this that these those it its of in on at to for from with without and or but if then than so not no yes you your yours he she they them his her we us our me my mine
 do does did done doing have has had having will would can could should shall may might must
@@ -25,6 +26,48 @@ problem issue help support team customer service agent details detail informatio
 `.trim().split(/\s+/));
 
 const DEVANAGARI = /[ऀ-ॿ]/;
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || "";
+
+// Context-aware classifier: for each candidate word, is it Hindi (convert to
+// Devanagari) or English/brand/code-switch (keep Roman)? Sees the whole
+// sentence so "car" in "car lena hai" stays Roman while "kar" converts.
+async function classifyWithHaiku(sentence: string, candidates: Array<{ index: number; word: string }>): Promise<Map<number, boolean> | null> {
+  if (!ANTHROPIC_KEY || !candidates.length) return null;
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5",
+        max_tokens: 400,
+        system:
+          "You classify words in Roman-typed Hinglish call transcripts. " +
+          "For each listed word (given with its position in the sentence), answer whether it is a HINDI word the writer typed in Roman (should be transliterated to Devanagari) or an ENGLISH/brand/product/foreign word (stays in Roman). " +
+          "English words borrowed into Hindi speech (app, company, offer, salary, madam, ok) stay Roman. Hindi words stay Hindi even if they look like English words (kar, to, hai, the->थे when clearly Hindi past tense in context). " +
+          "Reply with ONLY a JSON array of 0/1, one per listed word in the same order: 1 = Hindi (convert), 0 = keep Roman. No other text.",
+        messages: [{
+          role: "user",
+          content: `Sentence: ${sentence}\nWords: ${JSON.stringify(candidates.map((c) => c.word))}`
+        }]
+      }),
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = String(data?.content?.[0]?.text || "");
+    const arr = JSON.parse(text.slice(text.indexOf("["), text.lastIndexOf("]") + 1));
+    if (!Array.isArray(arr) || arr.length !== candidates.length) return null;
+    const map = new Map<number, boolean>();
+    candidates.forEach((c, k) => map.set(c.index, Boolean(Number(arr[k]))));
+    return map;
+  } catch {
+    return null; // fall back to dictionary
+  }
+}
 
 async function transliterateRun(words: string[]): Promise<string[]> {
   const phrase = words.join(" ");
@@ -48,26 +91,54 @@ async function transliterateRun(words: string[]): Promise<string[]> {
   return words;
 }
 
+// Top-N Devanagari candidates for one word — used by the click-to-correct
+// popover in the transcription tool.
+async function alternativesFor(word: string): Promise<string[]> {
+  try {
+    const r = await fetch(`https://inputtools.google.com/request?text=${encodeURIComponent(word)}&itc=hi-t-i0-und&num=6`, { signal: AbortSignal.timeout(3500) });
+    const j = await r.json();
+    const alts = (j?.[1]?.[0]?.[1] || []).map((x: unknown) => String(x)).filter(Boolean);
+    return [...new Set(alts)].slice(0, 6) as string[];
+  } catch { return []; }
+}
+
 export async function POST(request: Request) {
-  const { text } = await request.json().catch(() => ({ text: "" }));
-  const raw = String(text || "");
+  const body = await request.json().catch(() => ({}));
+
+  // alternatives mode: { word } -> { alts: [...] }
+  if (body?.word) {
+    const alts = await alternativesFor(String(body.word));
+    return NextResponse.json({ alts }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  const raw = String(body?.text || "");
   if (!raw.trim()) return NextResponse.json({ tokens: [] });
 
   // split preserving punctuation attached to words
   const parts = raw.trim().split(/\s+/);
   type Tok = { src: string; out: string; converted: boolean };
-  const tokens: Tok[] = parts.map((src) => {
+  const tokens: Tok[] = [];
+  const candidates: Array<{ index: number; word: string }> = [];
+  parts.forEach((src, index) => {
     const core = src.replace(/^[^\wऀ-ॿ{]+|[^\wऀ-ॿ}]+$/g, "");
     const lower = core.toLowerCase();
-    const keepRoman =
+    // hard guards that never go to the classifier
+    const hardRoman =
       !core ||
       DEVANAGARI.test(core) ||          // already Devanagari
       core === "{noise}" || lower === "noise" ||
-      ENGLISH.has(lower) ||
       /\d/.test(core) ||                // digits handled by lint, don't convert
       /['-]/.test(core);                // don't / e-mail style words -> English
-    return { src, out: src, converted: !keepRoman };
+    tokens.push({ src, out: src, converted: !hardRoman });
+    if (!hardRoman) candidates.push({ index, word: core });
   });
+
+  // classify: Haiku (context-aware) with dictionary fallback
+  const haiku = await classifyWithHaiku(raw.trim(), candidates);
+  for (const c of candidates) {
+    const hindi = haiku ? (haiku.get(c.index) ?? !ENGLISH.has(c.word.toLowerCase())) : !ENGLISH.has(c.word.toLowerCase());
+    tokens[c.index].converted = hindi;
+  }
 
   // transliterate consecutive Hindi-candidate runs together (context helps)
   let i = 0;
@@ -84,5 +155,5 @@ export async function POST(request: Request) {
     i = j;
   }
 
-  return NextResponse.json({ tokens }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ tokens, classifier: haiku ? "haiku" : "dictionary" }, { headers: { "Cache-Control": "no-store" } });
 }

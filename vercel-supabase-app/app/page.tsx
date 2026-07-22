@@ -253,6 +253,9 @@ export default function Page() {
 
   const isPriority = (call: CallSummary) => String(call.source_sheet || "").includes("★");
   const isIssueAssignment = (id?: string | null) => /^[sb]4i_/.test(String(id || ""));
+  // queue_id alone is shared across a person's whole batch (e.g. b4v_aditya),
+  // so rows are identified by queue_id + call id.
+  const rowKey = (call: CallSummary) => `${call.queue_id || ""}:${call.execution_id}`;
   // Vibe reviewers with an s4i_* queue get the vibe/issue-logging tab split.
   const hasIssueQueue = reviewerRole === "reviewer" && calls.some((call) => isIssueAssignment(call.queue_id));
   const tabCalls = useMemo(() => {
@@ -272,7 +275,7 @@ export default function Page() {
   const reviewedCount = tabCalls.filter((call) => call.reviewed).length;
   const pendingCount = tabCalls.length - reviewedCount;
   const currentCallSummary = currentCall
-    ? calls.find((call) => (call.queue_id || call.execution_id) === currentQueueId) || null
+    ? calls.find((call) => rowKey(call) === currentQueueId) || null
     : null;
   const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentQueueId));
   // Role decides the screen. Transcription is NOT an issue type — it lives in
@@ -961,7 +964,7 @@ export default function Page() {
       });
       setSubmittedCallId(currentQueueId);
       setCalls((existing) => existing.map((call) => (
-        (call.queue_id || call.execution_id) === currentQueueId
+        rowKey(call) === currentQueueId
           ? { ...call, reviewed: true, reviewer_name: reviewerDisplay }
           : call
       )));
@@ -1113,7 +1116,7 @@ export default function Page() {
           <div className="queue-stats">{pendingCount} pending · {reviewedCount} submitted · {tabCalls.length} assigned{hasIssueQueue ? (assignView === "issues" ? " · issue logging" : " · vibe") : ""}</div>
           <nav className="call-list">
             {filteredCalls.map((call) => (
-              <button key={call.queue_id || call.execution_id} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${(currentQueueId || currentCall?.execution_id) === (call.queue_id || call.execution_id) ? "active" : ""}`} onClick={() => selectCall(call.execution_id, call.queue_id || call.execution_id)}>
+              <button key={rowKey(call)} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${currentQueueId === rowKey(call) ? "active" : ""}`} onClick={() => selectCall(call.execution_id, rowKey(call))}>
                 <span className="call-id">
                   ID {shortCallId(call.execution_id)}
                   {isPriority(call) && <span style={{ marginLeft: 6, color: "#b7791f", fontWeight: 700 }}>★ priority</span>}
@@ -1187,8 +1190,8 @@ export default function Page() {
               <div className="panel-title">
                 <h2>Review</h2>
                 <button className="ghost" onClick={() => {
-                  const next = filteredCalls.find((call) => !call.reviewed && (call.queue_id || call.execution_id) !== currentQueueId);
-                  if (next) selectCall(next.execution_id, next.queue_id || next.execution_id);
+                  const next = filteredCalls.find((call) => !call.reviewed && rowKey(call) !== currentQueueId);
+                  if (next) selectCall(next.execution_id, rowKey(next));
                 }}>Next</button>
               </div>
 
