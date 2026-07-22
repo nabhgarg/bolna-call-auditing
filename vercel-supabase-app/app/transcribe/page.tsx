@@ -77,7 +77,11 @@ function buckets(env: Float32Array, n = 700) {
 function segmentsFromEnv(env: Float32Array, hop: number) {
   const sorted = [...env].sort((a, b) => a - b);
   const p95 = sorted[Math.floor(sorted.length * 0.95)] || 0;
-  const thr = Math.max(0.015, p95 * 0.18);
+  const median = sorted[Math.floor(sorted.length * 0.5)] || 0;
+  // Noise-aware threshold: quiet far-end channels (phone users) sit well below
+  // a fixed 0.015 floor and lost most speech (seen on a7d51f2b, p95=0.024).
+  // The median tracks the channel's noise floor and protects noisy lines.
+  const thr = Math.max(0.006, p95 * 0.15, median * 4);
   const raw: Array<{ start: number; end: number }> = [];
   let s = -1;
   for (let i = 0; i <= env.length; i++) {
