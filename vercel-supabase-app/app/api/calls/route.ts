@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 // assigned; only reviews submitted after that count as done for those rows.
 const REREVIEW_RULES: Array<{ re: RegExp; cutoff: string }> = [
   { re: /::b3/, cutoff: "2026-07-21T14:06:00.000Z" },
-  { re: /::s4/, cutoff: "2026-07-22T09:00:00.000Z" }
+  // batch 4 (initially assigned under the s4 prefix — both spellings match)
+  { re: /::[sb]4/, cutoff: "2026-07-22T09:00:00.000Z" }
 ];
 function rereviewCutoff(auditMode: string) {
   return REREVIEW_RULES.find((r) => r.re.test(auditMode))?.cutoff || "";

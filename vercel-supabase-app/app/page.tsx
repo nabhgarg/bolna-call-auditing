@@ -252,7 +252,7 @@ export default function Page() {
   }
 
   const isPriority = (call: CallSummary) => String(call.source_sheet || "").includes("★");
-  const isIssueAssignment = (id?: string | null) => /^s4i_/.test(String(id || ""));
+  const isIssueAssignment = (id?: string | null) => /^[sb]4i_/.test(String(id || ""));
   // Vibe reviewers with an s4i_* queue get the vibe/issue-logging tab split.
   const hasIssueQueue = reviewerRole === "reviewer" && calls.some((call) => isIssueAssignment(call.queue_id));
   const tabCalls = useMemo(() => {
