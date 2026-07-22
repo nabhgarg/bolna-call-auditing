@@ -262,14 +262,15 @@ export default function Page() {
   // the Transcript panel (correct text + mark audio clarity + timestamp).
   //   vibe reviewer  -> vibe score only
   //   issue logger   -> pronunciation (Review) + transcription (Transcript panel)
-  //   expert (GT)    -> vibe + pronunciation (Review) + transcription (Transcript panel)
-  //   (response appropriateness returns to Review later)
+  //   expert (GT)    -> vibe + pronunciation + response appropriateness (Review) + transcription (Transcript panel)
   const showVibe = reviewerRole !== "issue_logger";
   const showTranscription = reviewerRole === "issue_logger" || reviewerRole === "expert";
   const visibleIssueTypes =
-    reviewerRole === "issue_logger" || reviewerRole === "expert"
-      ? ["pronunciation"]
-      : [];
+    reviewerRole === "expert"
+      ? ["pronunciation", "response_appropriateness"]
+      : reviewerRole === "issue_logger"
+        ? ["pronunciation"]
+        : [];
   const showIssues = visibleIssueTypes.length > 0;
   useEffect(() => {
     if (visibleIssueTypes.length && !visibleIssueTypes.includes(issueType)) setIssueType(visibleIssueTypes[0]);
