@@ -99,6 +99,55 @@ function segmentsFromEnv(env: Float32Array, hop: number) {
   // become spikes — a 0.35s floor silently dropped them (seen on e8addc83).
   return merged.filter((g) => g.end - g.start >= 0.25);
 }
+// Agent-window alignment: agent turns are long, distinctive TTS — align THEM
+// to the agent channel first (merging sub-1.2s pauses: TTS turns are
+// continuous), then each user turn must sit in the silence window between its
+// surrounding agent turns. Duration-only matching on user spikes ties/flips;
+// this anchors every user turn temporally (fixes hello@0:05 on e81b7796).
+function alignByAgentWindows(
+  userSegs: Array<{ start: number; end: number }>,
+  agentSegs: Array<{ start: number; end: number }>,
+  turns: Turn[]
+) {
+  // merge agent fragments across short pauses
+  const merged: Array<{ start: number; end: number }> = [];
+  for (const g of agentSegs) {
+    const last = merged[merged.length - 1];
+    if (last && g.start - last.end < 1.2) last.end = g.end;
+    else merged.push({ ...g });
+  }
+  const agentWords = turns.filter((t) => t.role === "assistant").map((t) => words(t.text).length);
+  const aMap = alignSegs(merged, agentWords); // merged seg -> agent-turn ordinal
+  const aRange = new Map<number, { start: number; end: number }>();
+  aMap.forEach((t, si) => {
+    if (t === null) return;
+    const r = aRange.get(t as number);
+    const g = merged[si];
+    if (r) { r.start = Math.min(r.start, g.start); r.end = Math.max(r.end, g.end); }
+    else aRange.set(t as number, { ...g });
+  });
+  // walk transcript: each user turn takes the earliest free spike between the
+  // previous agent turn's audio end and the next agent turn's audio start
+  const map = new Array(userSegs.length).fill(null) as Array<number | null>;
+  const used = new Set<number>();
+  let aOrd = -1, uOrd = 0;
+  for (const t of turns) {
+    if (t.role === "assistant") { aOrd += 1; continue; }
+    const lo = aOrd >= 0 && aRange.has(aOrd) ? (aRange.get(aOrd) as { end: number }).end : 0;
+    let hi = Infinity;
+    for (let a2 = aOrd + 1; a2 < agentWords.length; a2++) {
+      if (aRange.has(a2)) { hi = (aRange.get(a2) as { start: number }).start; break; }
+    }
+    for (let si = 0; si < userSegs.length; si++) {
+      if (used.has(si)) continue;
+      const mid = (userSegs[si].start + userSegs[si].end) / 2;
+      if (mid >= lo - 0.4 && mid <= hi + 0.4) { used.add(si); map[si] = uOrd; break; }
+    }
+    uOrd += 1;
+  }
+  return map;
+}
+
 function alignSegs(segs: Array<{ start: number; end: number }>, turnWords: number[]) {
   const m = segs.length, n = turnWords.length;
   const totalDur = segs.reduce((a, g) => a + (g.end - g.start), 0) || 1;
@@ -294,7 +343,11 @@ export default function Transcribe() {
           .map((g) => ({ start: Math.max(0, g.start - 0.15), end: g.end + 0.15, asr: null, official: false }));
         built = [...official, ...extra].sort((x, y) => x.start - y.start);
       } else {
-        const map = alignSegs(spikes, wc);
+        // No telemetry: prefer role-sequence alignment (agent turns anchor the
+        // order); fall back to duration matching when we lack an agent channel.
+        const map = envs.length > 1
+          ? alignByAgentWindows(spikes, segmentsFromEnv(envs[1 - userIdx].env, envs[1 - userIdx].hop), d.turns)
+          : alignSegs(spikes, wc);
         built = spikes.map((g, gi) => ({
           start: Math.max(0, g.start - 0.2), end: g.end + 0.2, official: map[gi] !== null,
           asr: map[gi] === null ? null : d.turns[userTurnIdx[map[gi] as number].i].text
