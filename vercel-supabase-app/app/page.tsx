@@ -131,6 +131,10 @@ export default function Page() {
   const [otpCode, setOtpCode] = useState("");
   const [auditMode, setAuditMode] = useState<AuditMode>(RESPONSE_VIBE_MODE);
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
+  // Set-4 dual assignment: vibe reviewers carry a vibe queue (s4v_*) AND an
+  // issue-logging queue (s4i_*). Tabs split the two; the review panel adapts
+  // to whichever kind of call is open.
+  const [assignView, setAssignView] = useState<"vibe" | "issues">("vibe");
   const waveCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [waveform, setWaveform] = useState<{ peaks: number[][]; duration: number } | null>(null);
   const [turnTimes, setTurnTimes] = useState<Record<number, number> | null>(null);
@@ -242,8 +246,15 @@ export default function Page() {
   }
 
   const isPriority = (call: CallSummary) => String(call.source_sheet || "").includes("★");
+  const isIssueAssignment = (id?: string | null) => /^s4i_/.test(String(id || ""));
+  // Vibe reviewers with an s4i_* queue get the vibe/issue-logging tab split.
+  const hasIssueQueue = reviewerRole === "reviewer" && calls.some((call) => isIssueAssignment(call.queue_id));
+  const tabCalls = useMemo(() => {
+    if (!hasIssueQueue) return calls;
+    return calls.filter((call) => isIssueAssignment(call.queue_id) === (assignView === "issues"));
+  }, [calls, hasIssueQueue, assignView]);
   const filteredCalls = useMemo(() => {
-    return calls
+    return tabCalls
       .filter((call) => {
         if (queueView === "pending" && call.reviewed) return false;
         if (queueView === "submitted" && !call.reviewed) return false;
@@ -251,9 +262,9 @@ export default function Page() {
       })
       // priority (★) calls float to the top, then by id
       .sort((a, b) => (Number(isPriority(b)) - Number(isPriority(a))) || a.execution_id.localeCompare(b.execution_id));
-  }, [calls, queueView]);
-  const reviewedCount = calls.filter((call) => call.reviewed).length;
-  const pendingCount = calls.length - reviewedCount;
+  }, [tabCalls, queueView]);
+  const reviewedCount = tabCalls.filter((call) => call.reviewed).length;
+  const pendingCount = tabCalls.length - reviewedCount;
   const currentCallSummary = currentCall
     ? calls.find((call) => (call.queue_id || call.execution_id) === currentQueueId) || null
     : null;
@@ -263,18 +274,23 @@ export default function Page() {
   //   vibe reviewer  -> vibe score only
   //   issue logger   -> pronunciation (Review) + transcription (Transcript panel)
   //   expert (GT)    -> vibe + pronunciation + response appropriateness (Review) + transcription (Transcript panel)
-  const showVibe = reviewerRole !== "issue_logger";
+  //   vibe reviewer on an s4i_* call -> issue logging (pronunciation +
+  //   response appropriateness), no vibe score.
+  const currentIsIssueCall = reviewerRole === "reviewer" && isIssueAssignment(currentQueueId);
+  const showVibe = reviewerRole !== "issue_logger" && !currentIsIssueCall;
   const showTranscription = reviewerRole === "issue_logger" || reviewerRole === "expert";
   const visibleIssueTypes =
     reviewerRole === "expert"
       ? ["pronunciation", "response_appropriateness"]
       : reviewerRole === "issue_logger"
         ? ["pronunciation"]
-        : [];
+        : currentIsIssueCall
+          ? ["pronunciation", "response_appropriateness"]
+          : [];
   const showIssues = visibleIssueTypes.length > 0;
   useEffect(() => {
     if (visibleIssueTypes.length && !visibleIssueTypes.includes(issueType)) setIssueType(visibleIssueTypes[0]);
-  }, [reviewerRole]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [reviewerRole, currentQueueId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function switchMode(mode: AuditMode) {
     if (mode === auditMode) return;
@@ -1054,6 +1070,24 @@ export default function Page() {
           </div>
           {importStatus && <div className="import-status">{importStatus}</div>}
 
+          {hasIssueQueue && (
+            <div className="queue-tabs" role="tablist" aria-label="Assignment type" style={{ marginBottom: 6 }}>
+              <button
+                type="button"
+                className={assignView === "vibe" ? "active" : ""}
+                onClick={() => { setAssignView("vibe"); setQueueView("pending"); }}
+              >
+                Vibe score <span>{calls.filter((c) => !isIssueAssignment(c.queue_id)).length}</span>
+              </button>
+              <button
+                type="button"
+                className={assignView === "issues" ? "active" : ""}
+                onClick={() => { setAssignView("issues"); setQueueView("pending"); }}
+              >
+                Issue logging <span>{calls.filter((c) => isIssueAssignment(c.queue_id)).length}</span>
+              </button>
+            </div>
+          )}
           <div className="queue-tabs" role="tablist" aria-label="Review queue status">
             <button
               type="button"
@@ -1070,7 +1104,7 @@ export default function Page() {
               Submitted <span>{reviewedCount}</span>
             </button>
           </div>
-          <div className="queue-stats">{pendingCount} pending · {reviewedCount} submitted · {calls.length} assigned</div>
+          <div className="queue-stats">{pendingCount} pending · {reviewedCount} submitted · {tabCalls.length} assigned{hasIssueQueue ? (assignView === "issues" ? " · issue logging" : " · vibe") : ""}</div>
           <nav className="call-list">
             {filteredCalls.map((call) => (
               <button key={call.queue_id || call.execution_id} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${(currentQueueId || currentCall?.execution_id) === (call.queue_id || call.execution_id) ? "active" : ""}`} onClick={() => selectCall(call.execution_id, call.queue_id || call.execution_id)}>

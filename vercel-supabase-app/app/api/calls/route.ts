@@ -9,8 +9,15 @@ export const dynamic = "force-dynamic";
 // is a review submitted at/after the batch was created (2026-07-21 14:06 UTC),
 // so prior-batch reviews don't auto-satisfy it. A constant (not imported_at) is
 // used so a sheet re-import can't shift the cutoff.
-const REREVIEW_MODE_RE = /::b3/;
-const REREVIEW_CUTOFF = "2026-07-21T14:06:00.000Z";
+// Each re-review batch pairs a queue-id pattern with the moment it was
+// assigned; only reviews submitted after that count as done for those rows.
+const REREVIEW_RULES: Array<{ re: RegExp; cutoff: string }> = [
+  { re: /::b3/, cutoff: "2026-07-21T14:06:00.000Z" },
+  { re: /::s4/, cutoff: "2026-07-22T09:00:00.000Z" }
+];
+function rereviewCutoff(auditMode: string) {
+  return REREVIEW_RULES.find((r) => r.re.test(auditMode))?.cutoff || "";
+}
 
 function queueModeMatches(mode: string) {
   return `audit_mode.eq.${mode},audit_mode.like.${mode}::%`;
@@ -132,8 +139,9 @@ export async function GET(request: Request) {
         // Re-review batches (::b3*) count as done only when re-scored AFTER the
         // batch was assigned — so calls a reviewer did in an earlier batch
         // resurface as pending and get reviewed again.
-        const reviewed = REREVIEW_MODE_RE.test(queue.audit_mode)
-          ? (latestReviewAt.get(queue.call_id) || "") >= REREVIEW_CUTOFF
+        const cutoff = rereviewCutoff(queue.audit_mode);
+        const reviewed = cutoff
+          ? (latestReviewAt.get(queue.call_id) || "") >= cutoff
           : Boolean(review);
         return {
           queue_id: queueId,
