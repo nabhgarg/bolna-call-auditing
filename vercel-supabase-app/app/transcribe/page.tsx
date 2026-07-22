@@ -614,11 +614,29 @@ export default function Transcribe() {
                 </div>
               </section>
 
-              <section style={{ background: "#fff", border: "1px solid #e2e8e5", borderRadius: 10, padding: 12, maxHeight: "70vh", overflow: "auto", position: "sticky", top: 120 }}>
-                <div style={{ fontSize: 12, color: "#8a988f", marginBottom: 8 }}>Full transcript (read-only)</div>
+              <section style={{ background: "#fff", border: "1px solid #e2e8e5", borderRadius: 10, padding: 12, maxHeight: "72vh", overflow: "auto", position: "sticky", top: 120 }}>
+                {/* User turns = the spikes themselves, so mapping is always 1:1.
+                    Bolna's telemetry ASR turns don't line up with the cleaned
+                    agent-context transcript, so the segment list is authoritative. */}
+                <div style={{ fontSize: 12, color: "#8a988f", marginBottom: 8 }}>User turns ({segs.length}) — click to jump</div>
+                {segs.map((sg, i) => {
+                  const said = st(i).status === "done"
+                    ? (st(i).kind === "correct" ? (sg.asr || "") : st(i).kind === "noise" ? "{noise}" : goldOf(st(i).tokens, st(i).roman))
+                    : (sg.asr ?? "");
+                  return (
+                    <p key={i} onClick={() => playSeg(i)}
+                      style={{ fontSize: 12.5, lineHeight: 1.5, margin: "5px 0", padding: "3px 5px", borderRadius: 4, cursor: "pointer",
+                        background: i === cur ? "#fdf3e3" : "transparent",
+                        borderLeft: `3px solid ${st(i).status === "done" ? "#1f7a5c" : sg.official ? "#c8d6d0" : "#c05621"}` }}>
+                      <strong style={{ color: "#5b6b64" }}>{i + 1}. @{fmt(sg.start)}{sg.official ? "" : " · spike"}:</strong>{" "}
+                      {said ? <span style={{ color: "#1f2d28" }}>{said}</span> : <em style={{ color: "#9b2c2c" }}>needs transcription</em>}
+                    </p>
+                  );
+                })}
+                <div style={{ fontSize: 12, color: "#8a988f", margin: "16px 0 6px", borderTop: "1px solid #eef2f0", paddingTop: 10 }}>Conversation context (agent + user, read-only)</div>
                 {call.turns.map((t, i) => (
-                  <p key={i} style={{ fontSize: 12.5, lineHeight: 1.6, margin: "6px 0", color: t.role === "assistant" ? "#9aa8a1" : "#1f2d28", background: g && g.asr !== null && t.role !== "assistant" && t.text.trim() && asrText.includes(t.text.trim().slice(0, 20)) ? "#fdf3e3" : "transparent", borderRadius: 4, padding: "2px 4px" }}>
-                    <strong>{i + 1}. {t.role === "assistant" ? "agent" : "user"}:</strong> {t.text}
+                  <p key={i} style={{ fontSize: 12, lineHeight: 1.55, margin: "5px 0", color: t.role === "assistant" ? "#9aa8a1" : "#4a5568" }}>
+                    <strong>{t.role === "assistant" ? "agent" : "user"}:</strong> {t.text}
                   </p>
                 ))}
               </section>
