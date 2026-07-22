@@ -38,7 +38,11 @@ function queueIdForRow(row: any) {
 
 function queueModeForRow(row: any, mode: string) {
   const queueId = queueIdForRow(row);
-  return queueId ? `${mode}::${queueId}` : mode;
+  // A row's own audit_mode column wins — the sheet tabs mix tracks (e.g.
+  // Calls_Issues carries timing_transcription rows) and importing them all
+  // under the requested mode would duplicate queues under the wrong mode.
+  const rowMode = String(row.audit_mode || "").trim() || mode;
+  return queueId ? `${rowMode}::${queueId}` : rowMode;
 }
 
 function queueModeMatches(mode: string) {
@@ -72,7 +76,15 @@ export async function POST(request: Request) {
   }
   const mode = String(result.audit_mode || "pronunciation_tone");
   const archivedMode = `${mode}__archived`;
-  const callRows = dedupeByCallId(rows).map(({ audit_mode, queue_id, ...row }: any) => row);
+  // Blank cells mean "leave the stored value alone" — assignment sheets don't
+  // carry transcripts/telemetry, and upserting "" / null would wipe them.
+  const callRows = dedupeByCallId(rows).map(({ audit_mode, queue_id, ...row }: any) => {
+    for (const key of Object.keys(row)) {
+      if (key === "execution_id") continue;
+      if (row[key] === "" || row[key] === null || row[key] === undefined) delete row[key];
+    }
+    return row;
+  });
   const queueRows = dedupeByQueueKey(rows).map((row: any) => ({
     call_id: row.execution_id,
     audit_mode: queueModeForRow(row, mode),
@@ -109,14 +121,23 @@ export async function POST(request: Request) {
     !/::b\d/.test(String(row.audit_mode || ""))
   ));
 
-  let { error } = await supabase.from("calls").upsert(callRows, { onConflict: "execution_id" });
-  if (error && /telemetry_json/.test(error.message)) {
-    // telemetry column not added to the DB yet — import everything else
-    const stripped = callRows.map(({ telemetry_json, ...row }: any) => row);
-    ({ error } = await supabase.from("calls").upsert(stripped, { onConflict: "execution_id" }));
+  // Bulk upserts need identical columns per request; after dropping blank
+  // cells rows can differ, so upsert per column-signature group.
+  const callGroups = new Map<string, any[]>();
+  for (const row of callRows) {
+    const sig = Object.keys(row).sort().join(",");
+    callGroups.set(sig, [...(callGroups.get(sig) || []), row]);
   }
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  for (const group of callGroups.values()) {
+    let { error } = await supabase.from("calls").upsert(group, { onConflict: "execution_id" });
+    if (error && /telemetry_json/.test(error.message)) {
+      // telemetry column not added to the DB yet — import everything else
+      const stripped = group.map(({ telemetry_json, ...row }: any) => row);
+      ({ error } = await supabase.from("calls").upsert(stripped, { onConflict: "execution_id" }));
+    }
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   const { error: queueError } = await supabase
