@@ -42,6 +42,22 @@ export function applyEmailAlias(value: string) {
   return EMAIL_ALIASES[email] || value;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Bolna's raw S3/plivo recording URLs are pre-signed and expire (403 after a
+// while); the stable, always-live form is api.bolna.ai/recordings/call/{id}.
+// Sheets still carry the old S3 links, so canonicalize on import — otherwise an
+// import reverts the fixed links back to dead S3 URLs (the durability trap).
+export function canonicalRecordingUrl(url: string, executionId: string) {
+  const u = String(url || "").trim();
+  const id = String(executionId || "").trim();
+  if (!UUID_RE.test(id)) return u;
+  if (/bolna-recordings[^ ]*amazonaws/i.test(u) || /\/plivo\//i.test(u)) {
+    return `https://api.bolna.ai/recordings/call/${id}`;
+  }
+  return u;
+}
+
 const headerAliases: Record<string, string> = {
   row_id: "queue_id",
   queue_id: "queue_id",
@@ -166,6 +182,8 @@ export function normalizeCallRows(calls: Array<Record<string, unknown>>, auditMo
       }
       row.audit_mode = normalizeAuditMode(row.audit_mode || mode);
       if (row.assigned_reviewer) row.assigned_reviewer = applyEmailAlias(String(row.assigned_reviewer));
+      // rewrite expiring S3/plivo links to the stable canonical form
+      if (row.recording_url) row.recording_url = canonicalRecordingUrl(String(row.recording_url), String(row.execution_id));
       // keep only parseable telemetry blobs (sheet cells can truncate large JSON)
       if (row.telemetry_json) {
         try { JSON.parse(String(row.telemetry_json)); } catch { row.telemetry_json = null; }
