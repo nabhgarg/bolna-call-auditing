@@ -46,8 +46,8 @@ async function classifyWithHaiku(sentence: string, candidates: Array<{ index: nu
         max_tokens: 400,
         system:
           "You classify words in Roman-typed Hinglish call transcripts. " +
-          "For each listed word (given with its position in the sentence), answer whether it is a HINDI word the writer typed in Roman (should be transliterated to Devanagari) or an ENGLISH/brand/product/foreign word (stays in Roman). " +
-          "English words borrowed into Hindi speech (app, company, offer, salary, madam, ok) stay Roman. Hindi words stay Hindi even if they look like English words (kar, to, hai, the->थे when clearly Hindi past tense in context). " +
+          "For each listed word, answer whether it is a HINDI word typed in Roman (transliterate to Devanagari) or anything else that must STAY IN ROMAN: English words, English borrowed into Hindi speech (app, company, offer, salary, madam, ok, payment, pending), brand/company/product names (Paytm, Pronto, WhatsApp, Amazon), and foreign proper nouns. When unsure, keep Roman. " +
+          "Hindi words convert even if they look like English words (kar, to, hai — judge from sentence context). " +
           "Reply with ONLY a JSON array of 0/1, one per listed word in the same order: 1 = Hindi (convert), 0 = keep Roman. No other text.",
         messages: [{
           role: "user",
@@ -91,24 +91,23 @@ async function transliterateRun(words: string[]): Promise<string[]> {
   return words;
 }
 
-// Top-N Devanagari candidates for one word — used by the click-to-correct
-// popover in the transcription tool.
-async function alternativesFor(word: string): Promise<string[]> {
+// Best Devanagari form for one word — used when the reviewer flips a Roman
+// word to Hindi by clicking it.
+async function devanagariFor(word: string): Promise<string> {
   try {
-    const r = await fetch(`https://inputtools.google.com/request?text=${encodeURIComponent(word)}&itc=hi-t-i0-und&num=6`, { signal: AbortSignal.timeout(3500) });
+    const r = await fetch(`https://inputtools.google.com/request?text=${encodeURIComponent(word)}&itc=hi-t-i0-und&num=1`, { signal: AbortSignal.timeout(3500) });
     const j = await r.json();
-    const alts = (j?.[1]?.[0]?.[1] || []).map((x: unknown) => String(x)).filter(Boolean);
-    return [...new Set(alts)].slice(0, 6) as string[];
-  } catch { return []; }
+    return String(j?.[1]?.[0]?.[1]?.[0] || word);
+  } catch { return word; }
 }
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
 
-  // alternatives mode: { word } -> { alts: [...] }
+  // single-word mode: { word } -> { out } (best Devanagari form)
   if (body?.word) {
-    const alts = await alternativesFor(String(body.word));
-    return NextResponse.json({ alts }, { headers: { "Cache-Control": "no-store" } });
+    const out = await devanagariFor(String(body.word));
+    return NextResponse.json({ out }, { headers: { "Cache-Control": "no-store" } });
   }
 
   const raw = String(body?.text || "");
