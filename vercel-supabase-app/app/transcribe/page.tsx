@@ -91,7 +91,9 @@ function segmentsFromEnv(env: Float32Array, hop: number) {
     if (last && g.start - last.end < 0.55) last.end = g.end;
     else merged.push({ ...g });
   }
-  return merged.filter((g) => g.end - g.start >= 0.35);
+  // 0.25s floor: short "हां"/"जी" backchannels are real user speech and must
+  // become spikes — a 0.35s floor silently dropped them (seen on e8addc83).
+  return merged.filter((g) => g.end - g.start >= 0.25);
 }
 function alignSegs(segs: Array<{ start: number; end: number }>, turnWords: number[]) {
   const m = segs.length, n = turnWords.length;
@@ -248,12 +250,23 @@ export default function Transcribe() {
             if (overlap > best) { best = overlap; userIdx = ch; }
           }
         } else {
-          let best = Infinity;
-          for (let ch = 0; ch < 2; ch++) {
-            const gs = segmentsFromEnv(envs[ch].env, envs[ch].hop);
-            const matched = alignSegs(gs, wc).filter((x) => x !== null).length;
-            const score = Math.abs(gs.length - wc.length) * 2 - matched * 1.5;
-            if (score < best) { best = score; userIdx = ch; }
+          // These calls open with the agent greeting (first transcript turn is
+          // assistant), so the channel that speaks first is the AGENT — much
+          // sturdier than count-matching, which flips on backchannel-heavy calls.
+          const gs0 = segmentsFromEnv(envs[0].env, envs[0].hop);
+          const gs1 = segmentsFromEnv(envs[1].env, envs[1].hop);
+          const first0 = gs0[0]?.start ?? 1e9;
+          const first1 = gs1[0]?.start ?? 1e9;
+          if (d.turns[0]?.role === "assistant" && Math.abs(first0 - first1) > 0.7) {
+            userIdx = first0 < first1 ? 1 : 0;
+          } else {
+            let best = Infinity;
+            for (let ch = 0; ch < 2; ch++) {
+              const gs = ch === 0 ? gs0 : gs1;
+              const matched = alignSegs(gs, wc).filter((x) => x !== null).length;
+              const score = Math.abs(gs.length - wc.length) * 2 - matched * 1.5;
+              if (score < best) { best = score; userIdx = ch; }
+            }
           }
         }
       } else {
@@ -271,7 +284,7 @@ export default function Transcribe() {
         const official: Seg[] = anchors.map((a) => ({ start: a.startSec, end: a.endSec, asr: a.text, official: true }));
         const extra: Seg[] = spikes
           .filter((g) => !anchors.some((a) => Math.min(a.endSec, g.end) - Math.max(a.startSec, g.start) > 0.25))
-          .filter((g) => g.end - g.start >= 0.45)
+          .filter((g) => g.end - g.start >= 0.35)
           .map((g) => ({ start: Math.max(0, g.start - 0.15), end: g.end + 0.15, asr: null, official: false }));
         built = [...official, ...extra].sort((x, y) => x.start - y.start);
       } else {
