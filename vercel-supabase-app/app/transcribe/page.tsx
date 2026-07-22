@@ -149,6 +149,8 @@ export default function Transcribe() {
   const [states, setStates] = useState<Record<number, SegState>>({});
   const [rulesOpen, setRulesOpen] = useState(false);
   const [playhead, setPlayhead] = useState(0);
+  // click-a-word chooser: 3 Devanagari options + keep Roman
+  const [altPick, setAltPick] = useState<{ ti: number; alts: string[]; loading: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -338,6 +340,7 @@ export default function Transcribe() {
     const g = list[i];
     if (!g) return;
     setCur(i);
+    setAltPick(null);
     seekPlay(Math.max(0, g.start - 0.15), g.end + 0.15);
   }
   function onTime() {
@@ -388,6 +391,7 @@ export default function Transcribe() {
 
   function onRoman(i: number, value: string) {
     patch(i, { roman: value });
+    setAltPick(null); // tokens are about to refresh — stale chooser index
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
@@ -611,33 +615,47 @@ export default function Transcribe() {
                           <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 15.5, lineHeight: 1.9 }}>
                             {s.tokens.map((t, ti) => (
                               <span key={ti} onClick={async () => {
-                                // simple flip: Devanagari <-> Roman. When flipping a word
-                                // TO Hindi for the first time, fetch its Devanagari form.
-                                if (t.converted) {
-                                  const tk = [...s.tokens]; tk[ti] = { ...tk[ti], converted: false };
-                                  patch(cur, { tokens: tk });
-                                  return;
+                                if (altPick?.ti === ti) { setAltPick(null); return; }
+                                setAltPick({ ti, alts: [], loading: true });
+                                const core = t.src.replace(/^[^\wऀ-ॿ{]+|[^\wऀ-ॿ}]+$/g, "");
+                                try {
+                                  const d = await fetch("/api/transliterate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ word: core }) }).then((r) => r.json());
+                                  setAltPick((p) => (p && p.ti === ti ? { ...p, alts: d.alts || [], loading: false } : p));
+                                } catch {
+                                  setAltPick((p) => (p && p.ti === ti ? { ...p, loading: false } : p));
                                 }
-                                let out = t.out;
-                                if (!out || out === t.src) {
-                                  const core = t.src.replace(/^[^\wऀ-ॿ{]+|[^\wऀ-ॿ}]+$/g, "");
-                                  try {
-                                    const d = await fetch("/api/transliterate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ word: core }) }).then((r) => r.json());
-                                    out = d.out || t.src;
-                                  } catch { out = t.src; }
-                                }
-                                setStates((all) => {
-                                  const now = all[cur]; if (!now) return all;
-                                  const tk = [...now.tokens]; if (!tk[ti]) return all;
-                                  tk[ti] = { ...tk[ti], out, converted: true };
-                                  return { ...all, [cur]: { ...now, tokens: tk } };
-                                });
-                              }} title={t.converted ? `click to keep Roman: ${t.src}` : "click to convert to Devanagari"}
-                                style={{ cursor: "pointer", padding: "1px 3px", borderRadius: 4, marginRight: 3, background: t.converted ? "#fdecc8" : "transparent" }}>
+                              }} title="click to fix this word"
+                                style={{ cursor: "pointer", padding: "1px 3px", borderRadius: 4, marginRight: 3, background: altPick?.ti === ti ? "#f9dcae" : t.converted ? "#fdecc8" : "transparent" }}>
                                 {t.converted ? t.out : t.src}
                               </span>
                             ))}
-                            <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari — click any word to flip it</div>
+                            <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari — click any word to fix it</div>
+                            {altPick && s.tokens[altPick.ti] && (() => {
+                              const tk0 = s.tokens[altPick.ti];
+                              const apply = (out: string | null) => { // null = keep Roman
+                                const tk = [...s.tokens];
+                                tk[altPick.ti] = out === null ? { ...tk[altPick.ti], converted: false } : { ...tk[altPick.ti], out, converted: true };
+                                patch(cur, { tokens: tk });
+                                setAltPick(null);
+                              };
+                              return (
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderTop: "1px dashed #cfe3da", marginTop: 6, paddingTop: 7 }}>
+                                  <span style={{ fontSize: 12, color: "#5b6b64" }}>“{tk0.src}” =</span>
+                                  {altPick.loading && <span style={{ fontSize: 12, color: "#8a988f" }}>…</span>}
+                                  {altPick.alts.map((a) => (
+                                    <button key={a} onClick={() => apply(a)}
+                                      style={{ fontSize: 15, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: tk0.converted && tk0.out === a ? "2px solid #1f7a5c" : "1px solid #cfe3da", background: "#fff" }}>
+                                      {a}
+                                    </button>
+                                  ))}
+                                  <button onClick={() => apply(null)}
+                                    style={{ fontSize: 13, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: !tk0.converted ? "2px solid #1f7a5c" : "1px solid #cfd4d1", background: "#fff", color: "#4a5568" }}>
+                                    {tk0.src}
+                                  </button>
+                                  <button onClick={() => setAltPick(null)} style={{ fontSize: 12, border: "none", background: "transparent", color: "#8a988f", cursor: "pointer" }}>✕</button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                         {lint(goldOf(s.tokens, s.roman)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "#b7791f", marginTop: 3 }}>⚠ {w}</div>)}

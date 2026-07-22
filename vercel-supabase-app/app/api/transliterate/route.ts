@@ -91,23 +91,24 @@ async function transliterateRun(words: string[]): Promise<string[]> {
   return words;
 }
 
-// Best Devanagari form for one word — used when the reviewer flips a Roman
-// word to Hindi by clicking it.
-async function devanagariFor(word: string): Promise<string> {
+// Top-3 Devanagari forms for one word — the click-a-word chooser (kam can be
+// काम or कम; 3 options covers it without the choice overload of 6).
+async function devanagariOptions(word: string): Promise<string[]> {
   try {
-    const r = await fetch(`https://inputtools.google.com/request?text=${encodeURIComponent(word)}&itc=hi-t-i0-und&num=1`, { signal: AbortSignal.timeout(3500) });
+    const r = await fetch(`https://inputtools.google.com/request?text=${encodeURIComponent(word)}&itc=hi-t-i0-und&num=4`, { signal: AbortSignal.timeout(3500) });
     const j = await r.json();
-    return String(j?.[1]?.[0]?.[1]?.[0] || word);
-  } catch { return word; }
+    const alts = (j?.[1]?.[0]?.[1] || []).map((x: unknown) => String(x)).filter(Boolean);
+    return ([...new Set(alts)] as string[]).slice(0, 3);
+  } catch { return []; }
 }
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
 
-  // single-word mode: { word } -> { out } (best Devanagari form)
+  // single-word mode: { word } -> { alts: [top 3 Devanagari forms] }
   if (body?.word) {
-    const out = await devanagariFor(String(body.word));
-    return NextResponse.json({ out }, { headers: { "Cache-Control": "no-store" } });
+    const alts = await devanagariOptions(String(body.word));
+    return NextResponse.json({ alts, out: alts[0] || String(body.word) }, { headers: { "Cache-Control": "no-store" } });
   }
 
   const raw = String(body?.text || "");
