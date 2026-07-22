@@ -24,7 +24,7 @@ different remedies:
   ASR word-by-word)
 
 **Our process (the play):** rubric + process set up in days, not months →
-every call gets an overall "vibe" score (1–5) from a panel of trained
+every call gets an overall "vibe" score (1–4) from a panel of trained
 reviewers → calls rated 1–2 get deep human issue logging → an LLM judge runs
 over ALL calls → the portal shows exactly where humans were needed and where
 the LLM sufficed. Trust comes from measurement: reviewers are calibrated
@@ -57,6 +57,23 @@ everywhere. Sentence case. No stock-photo aesthetics.
 
 ---
 
+## Current screenshots (captured 2026-07-22, paired with prompts)
+For each screen below, a live screenshot exists in the working chat. When
+generating a wireframe, feed the CONTEXT block + the screen prompt + its
+screenshot so the design is a redesign of the real thing, not a guess.
+Observed current-state gaps to fix (from those screenshots):
+- Vibe scale is **1–4** (1 Major failure · 2 Noticeably broken · 3 Mostly
+  okay · 4 Clean call) — NOT 1–5. Use 1–4 everywhere.
+- Header still says "Combined audit" (vestigial label) — drop or rename.
+- Mobile: the app just stacks the desktop layout — the entire sidebar (Import,
+  Vibe/Issue tabs, Pending/Submitted, full call list) sits ABOVE the review
+  panel, so a phone user scrolls past everything to reach the score. This is
+  the core reason N3 (dedicated mobile flow) is needed.
+- A floating red "1 Issue" pill at bottom-left in screenshots is a dev-tool
+  artifact, not part of the product — ignore it.
+- /dashboard headings are ALL-CAPS ("PANEL TRUST — …") — convert to sentence
+  case in any redesign.
+
 ## SCREENS THAT EXIST TODAY (prompts = redesign/polish passes)
 
 ### S1 — Login
@@ -71,7 +88,7 @@ tabs, count strip ("50 pending · 30 submitted · 80 assigned"), scrollable
 call cards (short id, agent name, duration, language). Main area top: audio
 bar with native player + dual-channel waveform strip (agent up / user down)
 with a click-to-seek playhead. Below: a Review panel with (a) vibe score as
-five large tap targets 1–5, (b) required "why this score" text area,
+four large tap targets 1–4, (b) required "why this score" text area,
 (c) submit button that advances to the next pending call. Show a state where
 score 3 is selected. Optimise for: one call reviewed per 3 minutes, minimal
 eye travel, no scrolling to submit on a 13" laptop.
@@ -152,7 +169,7 @@ playable clip — credibility through evidence.
 
 ### N3 — Mobile vibe reviewer (one-thumb flow)
 Prompt: Wireframe a phone-width (375px) version of the vibe-scoring flow:
-sticky mini player + compact waveform at top, five large score buttons in
+sticky mini player + compact waveform at top, four large score buttons in
 one row (thumb-reachable), reason text box, full-width "Submit · next call"
 button pinned at the bottom, swipe or auto-advance to next call. No sidebar —
 calls advance linearly with a "12 left" counter. Optimise for: score a call
