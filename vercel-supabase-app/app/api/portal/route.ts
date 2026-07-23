@@ -11,6 +11,10 @@ export const dynamic = "force-dynamic";
 //   workbench (segments where the golden text differs from ASR)
 const EXPERTS = ["nabh", "manavi"];
 
+function normText(t: unknown) {
+  return String(t || "").toLowerCase().replace(/\u0901/g, "\u0902").replace(/\u093c/g, "").replace(/[^\w\s\u0900-\u097f]/g, " ").split(/\s+/).filter(Boolean).join(" ");
+}
+
 async function fetchAll<T>(fetchPage: (from: number, to: number) => Promise<{ data: T[] | null; error: any }>) {
   const pageSize = 1000;
   let rows: T[] = [];
@@ -42,7 +46,9 @@ export async function GET() {
       const t = i.type || "";
       if (r.review_mode === "timing_transcription") {
         // golden workbench: a human found the ASR wrong or missing speech
-        if (t === "transcription" && (i.verdict === "wrong" || i.verdict === "missing")) human.asr_transcription += 1;
+        if (t === "transcription" && (i.verdict === "wrong" || i.verdict === "missing")) {
+          if (!(i.verdict === "wrong" && normText(i.audio_said) === normText(i.transcripted))) human.asr_transcription += 1;
+        }
       } else {
         if (t === "response_appropriateness") { human.response_appropriateness += 1; issueLoggedCalls.add(r.call_id); }
         if (t === "pronunciation") { human.pronunciation += 1; issueLoggedCalls.add(r.call_id); }

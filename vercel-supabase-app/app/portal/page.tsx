@@ -21,17 +21,17 @@ function Stat({ n, l, green }: { n: React.ReactNode; l: string; green?: boolean 
   );
 }
 
-function BarRow({ label, purple, green, total, note }: { label: string; purple: number; green: number; total: number; note?: string }) {
+function BarRow({ label, purple, green, total, note, href }: { label: string; purple: number; green: number; total: number; note?: string; href?: string }) {
   const max = Math.max(total, 1);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+    <a href={href} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "inherit", textDecoration: "none" }}>
       <span style={{ width: 190, flex: "none" }}>{label}{note && <span style={{ color: MUT, fontSize: 10.5 }}> {note}</span>}</span>
       <div style={{ flex: 1, display: "flex", height: 14, borderRadius: 7, overflow: "hidden", background: "#eef2f6" }}>
         <div style={{ width: `${(purple / max) * 100}%`, background: PURPLE }} />
         <div style={{ width: `${(green / max) * 100}%`, background: GREEN }} />
       </div>
       <span className={grotesk.className} style={{ width: 46, textAlign: "right", fontSize: 13, fontWeight: 600 }}>{purple + green}</span>
-    </div>
+    </a>
   );
 }
 
@@ -101,14 +101,14 @@ export default function Portal() {
             <span style={{ fontSize: 11, color: PURPLE }}>● machine (telemetry)</span>
             <span style={{ fontSize: 11, color: GREEN }}>● human reviewers</span>
           </div>
-          <BarRow label="ASR / transcription" purple={0} green={h.asr_transcription} total={maxRow} />
-          <BarRow label="Response appropriateness" purple={0} green={h.response_appropriateness} total={maxRow} />
-          <BarRow label="Pronunciation" purple={0} green={h.pronunciation} total={maxRow} />
-          <BarRow label="Naturalness / tone" purple={0} green={h.naturalness_tone} total={maxRow} />
-          <BarRow label="Slow responses" note={`>3s (${m.latency_calls} calls)`} purple={m.latency_turns} green={0} total={maxRow} />
-          <BarRow label="Barge-ins" note={`(${m.bargein_calls} calls)`} purple={m.bargein_events} green={0} total={maxRow} />
+          <BarRow label="ASR / transcription" purple={0} green={h.asr_transcription} total={maxRow} href="/portal/issues?type=asr" />
+          <BarRow label="Response appropriateness" purple={0} green={h.response_appropriateness} total={maxRow} href="/portal/issues?type=response" />
+          <BarRow label="Pronunciation" purple={0} green={h.pronunciation} total={maxRow} href="/portal/issues?type=pronunciation" />
+          <BarRow label="Naturalness / tone" purple={0} green={h.naturalness_tone} total={maxRow} href="/portal/issues?type=tone" />
+          <BarRow label="Slow responses" note={`>3s (${m.latency_calls} calls)`} purple={m.latency_turns} green={0} total={maxRow} href="/portal/issues?type=latency" />
+          <BarRow label="Barge-ins" note={`(${m.bargein_calls} calls)`} purple={m.bargein_events} green={0} total={maxRow} href="/portal/issues?type=bargein" />
           <div style={{ fontSize: 12.5, color: MUT }}>
-            Latency and barge-ins are machine-detectable from telemetry; transcription, appropriateness, pronunciation and naturalness only surface through trained human review — that split is the service.
+            Latency and barge-ins are machine-detectable from telemetry; transcription, appropriateness, pronunciation and naturalness only surface through trained human review — that split is the service. Every row opens its evidence.
           </div>
         </div>
 

@@ -1292,8 +1292,8 @@ export default function Page() {
                             flex: 1,
                             padding: "12px 4px",
                             borderRadius: 10,
-                            border: vibeScore === value ? "2px solid #1f7a5c" : "1px solid #d5ddda",
-                            background: vibeScore === value ? "#1f7a5c" : "#fff",
+                            border: vibeScore === value ? "2px solid var(--accent)" : "1px solid var(--line)",
+                            background: vibeScore === value ? "var(--accent)" : "#fff",
                             color: vibeScore === value ? "#fff" : "#2b3a35",
                             cursor: "pointer",
                             textAlign: "center"

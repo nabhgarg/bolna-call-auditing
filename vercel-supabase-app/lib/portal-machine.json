@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-23T17:24:55.747726Z",
+ "generated_at": "2026-07-23T17:48:31.672558Z",
  "method": {
   "latency": "calls with any user->bot response latency > 3000ms (telemetry user_bot_latencies)",
   "barge_in": "calls with >=1 barge-in (user interrupted agent; telemetry interruption_stats.user_interrupted_agent_count)"
@@ -10,5 +10,1449 @@
  "turns_measured": 6315,
  "bargein_calls": 592,
  "bargein_events": 1759,
- "errors": 0
+ "errors": 0,
+ "latency_evidence": [
+  {
+   "call_id": "49b413df-059f-42c6-99a8-d58c2958bb95",
+   "agent": "",
+   "ts": 17.5,
+   "latency_ms": 24354
+  },
+  {
+   "call_id": "1cb94be1-6af8-4244-9ab0-b2a8f20f03f7",
+   "agent": "",
+   "ts": 33.2,
+   "latency_ms": 23810
+  },
+  {
+   "call_id": "2f003701-cf5e-47d9-854f-6a070cb2e6e9",
+   "agent": "",
+   "ts": 2.3,
+   "latency_ms": 22396
+  },
+  {
+   "call_id": "08f0b6c8-7299-46e2-85b4-d55307c6af1b",
+   "agent": "",
+   "ts": 171.7,
+   "latency_ms": 22382
+  },
+  {
+   "call_id": "fc7d2b43-aa89-4f3b-8867-2a84b8065da0",
+   "agent": "",
+   "ts": 38.0,
+   "latency_ms": 21855
+  },
+  {
+   "call_id": "33e489e3-ac44-4f89-bd12-5324d8ba9030",
+   "agent": "",
+   "ts": 158.1,
+   "latency_ms": 20567
+  },
+  {
+   "call_id": "04cba31e-4a99-4e42-84e8-2e195c374c5a",
+   "agent": "",
+   "ts": 25.0,
+   "latency_ms": 20537
+  },
+  {
+   "call_id": "3f6ad75a-1b40-4625-be62-803ca969a150",
+   "agent": "",
+   "ts": 1.2,
+   "latency_ms": 19611
+  },
+  {
+   "call_id": "49e93f61-64bc-4285-a0f5-76faf6a08a70",
+   "agent": "",
+   "ts": 19.4,
+   "latency_ms": 19204
+  },
+  {
+   "call_id": "cc00f84c-52f2-4593-9502-058bb4a9f5f2",
+   "agent": "",
+   "ts": 40.7,
+   "latency_ms": 19148
+  },
+  {
+   "call_id": "dd8c3741-b943-433b-8553-909776bb79cc",
+   "agent": "",
+   "ts": 54.1,
+   "latency_ms": 19117
+  },
+  {
+   "call_id": "e799faa7-9a34-4043-87b5-6ff359085a37",
+   "agent": "",
+   "ts": 13.4,
+   "latency_ms": 18860
+  },
+  {
+   "call_id": "34484b29-a45c-4218-8ff8-a4e122de63e7",
+   "agent": "[thedermaco.myshopify.com] abandoned-checkout",
+   "ts": 67.8,
+   "latency_ms": 18803
+  },
+  {
+   "call_id": "5a5b5195-123b-4cb3-a574-a7124950b3a9",
+   "agent": "",
+   "ts": 60.0,
+   "latency_ms": 18640
+  },
+  {
+   "call_id": "8d4895eb-dbcd-4faf-8bc7-8d897a9db137",
+   "agent": "",
+   "ts": 9.2,
+   "latency_ms": 18138
+  },
+  {
+   "call_id": "f09c32a2-2a24-432b-a2ad-a35c8e47b4a0",
+   "agent": "",
+   "ts": 5.0,
+   "latency_ms": 17723
+  },
+  {
+   "call_id": "8c2b88e7-2a49-48e9-81ab-26a334eb2e67",
+   "agent": "",
+   "ts": 32.1,
+   "latency_ms": 17694
+  },
+  {
+   "call_id": "2c54dc69-7f43-4d5c-aa81-1daebcf42c14",
+   "agent": "",
+   "ts": 40.5,
+   "latency_ms": 17276
+  },
+  {
+   "call_id": "ce940ff9-c987-41fb-8907-5eaae710f359",
+   "agent": "",
+   "ts": 3.5,
+   "latency_ms": 17266
+  },
+  {
+   "call_id": "3b174802-8e6c-4883-a03c-e3717b72b4b3",
+   "agent": "",
+   "ts": 94.6,
+   "latency_ms": 17148
+  },
+  {
+   "call_id": "87e9a9bd-15e7-4d05-a113-c978c5166d7b",
+   "agent": "",
+   "ts": 148.4,
+   "latency_ms": 17018
+  },
+  {
+   "call_id": "dc89b28a-8e95-448f-9b71-d5613287008f",
+   "agent": "",
+   "ts": 18.7,
+   "latency_ms": 16837
+  },
+  {
+   "call_id": "277648c3-9112-4289-89c8-c39162dfcf4a",
+   "agent": "",
+   "ts": 32.6,
+   "latency_ms": 16556
+  },
+  {
+   "call_id": "17e7c406-0e73-4436-b791-cc40faab61b2",
+   "agent": "",
+   "ts": 6.8,
+   "latency_ms": 16372
+  },
+  {
+   "call_id": "08acd3a1-1d07-4d02-8cbd-2cb0f8c1ce80",
+   "agent": "",
+   "ts": 2.4,
+   "latency_ms": 16357
+  },
+  {
+   "call_id": "0f98651a-3368-4fb6-b9c1-7f3285a8de0d",
+   "agent": "pocketly-bkt0-due-reminder-priya-vobiz",
+   "ts": 11.4,
+   "latency_ms": 16332
+  },
+  {
+   "call_id": "4d64b09a-a6bc-43f0-9207-cc85ade2fe39",
+   "agent": "",
+   "ts": 16.1,
+   "latency_ms": 15874
+  },
+  {
+   "call_id": "d27bf464-d43e-4ca8-a18d-91e61941220d",
+   "agent": "",
+   "ts": 180.5,
+   "latency_ms": 15781
+  },
+  {
+   "call_id": "1980a6e1-f508-4699-bf60-95d22fd495e6",
+   "agent": "",
+   "ts": 6.3,
+   "latency_ms": 15386
+  },
+  {
+   "call_id": "2753dde9-d517-4348-b751-1da61d00187d",
+   "agent": "",
+   "ts": 74.9,
+   "latency_ms": 15206
+  },
+  {
+   "call_id": "4a5d2d07-f461-435e-ad87-f3145eade722",
+   "agent": "",
+   "ts": 17.6,
+   "latency_ms": 14969
+  },
+  {
+   "call_id": "69d18204-3075-4b42-9bd5-5fcde5e0cbcd",
+   "agent": "",
+   "ts": 3.9,
+   "latency_ms": 14925
+  },
+  {
+   "call_id": "a2ed9e21-8a7f-4d59-a754-906f77e59f37",
+   "agent": "",
+   "ts": 46.3,
+   "latency_ms": 14578
+  },
+  {
+   "call_id": "c8dfc779-a463-4d4b-b616-773f90fba5d9",
+   "agent": "",
+   "ts": 12.3,
+   "latency_ms": 14395
+  },
+  {
+   "call_id": "20e51033-9f8c-4964-ba85-29a49798f0b1",
+   "agent": "Ananya",
+   "ts": 85.5,
+   "latency_ms": 14360
+  },
+  {
+   "call_id": "177acc6c-0313-4911-9388-09016773373a",
+   "agent": "",
+   "ts": 3.1,
+   "latency_ms": 14292
+  },
+  {
+   "call_id": "48cbd2e6-fc08-4fe5-9fb3-a15ea9103b25",
+   "agent": "",
+   "ts": 8.7,
+   "latency_ms": 14225
+  },
+  {
+   "call_id": "aa0a78c1-88c8-4942-b3f3-a9af73c24f15",
+   "agent": "",
+   "ts": 110.4,
+   "latency_ms": 14122
+  },
+  {
+   "call_id": "08f0b6c8-7299-46e2-85b4-d55307c6af1b",
+   "agent": "",
+   "ts": 258.5,
+   "latency_ms": 14025
+  },
+  {
+   "call_id": "2fd82981-477e-4614-868e-9a08a3ffbd90",
+   "agent": "",
+   "ts": 14.0,
+   "latency_ms": 13948
+  },
+  {
+   "call_id": "44647fa3-4af2-4d2e-a68b-4d52d8ea4385",
+   "agent": "",
+   "ts": 31.5,
+   "latency_ms": 13830
+  },
+  {
+   "call_id": "e21613dd-966e-4cc7-93eb-5c5076b8a4ce",
+   "agent": "",
+   "ts": 8.0,
+   "latency_ms": 13763
+  },
+  {
+   "call_id": "9d207e05-5dc3-4fdd-bcfc-6bc765fe393a",
+   "agent": "",
+   "ts": 16.1,
+   "latency_ms": 13681
+  },
+  {
+   "call_id": "e2dd02ed-381d-4ba2-afe5-9aeae75a99da",
+   "agent": "",
+   "ts": 17.5,
+   "latency_ms": 13590
+  },
+  {
+   "call_id": "08f0b6c8-7299-46e2-85b4-d55307c6af1b",
+   "agent": "",
+   "ts": 199.5,
+   "latency_ms": 13453
+  },
+  {
+   "call_id": "bc91ac47-b6f2-40b0-bf02-490751565a02",
+   "agent": "",
+   "ts": 12.8,
+   "latency_ms": 13410
+  },
+  {
+   "call_id": "b30e2c07-b46f-4a5f-abc3-756887ae11f2",
+   "agent": "",
+   "ts": 47.3,
+   "latency_ms": 13270
+  },
+  {
+   "call_id": "970c0ee9-37d7-401b-98e7-172e9d797a72",
+   "agent": "",
+   "ts": 20.5,
+   "latency_ms": 13055
+  },
+  {
+   "call_id": "b3b0adae-a162-483f-a581-cb2e5c804235",
+   "agent": "",
+   "ts": 19.0,
+   "latency_ms": 12974
+  },
+  {
+   "call_id": "95a6b32a-b6e3-4ac5-83a4-2deb919afed1",
+   "agent": "",
+   "ts": 54.6,
+   "latency_ms": 12969
+  },
+  {
+   "call_id": "e1d4023b-4561-4e1a-b3d8-b7dc442c73ff",
+   "agent": "",
+   "ts": 10.2,
+   "latency_ms": 12869
+  },
+  {
+   "call_id": "6d644eb3-19ab-4c3e-ab7d-f550aed032c2",
+   "agent": "",
+   "ts": 5.0,
+   "latency_ms": 12605
+  },
+  {
+   "call_id": "4d10aaca-01da-489f-a817-0e70089ac0da",
+   "agent": "",
+   "ts": 1.2,
+   "latency_ms": 12568
+  },
+  {
+   "call_id": "4480da6c-0425-48f7-bc0c-ccc1cad150b2",
+   "agent": "",
+   "ts": 19.2,
+   "latency_ms": 12530
+  },
+  {
+   "call_id": "08f0b6c8-7299-46e2-85b4-d55307c6af1b",
+   "agent": "",
+   "ts": 150.7,
+   "latency_ms": 12497
+  },
+  {
+   "call_id": "0ee7daff-64b4-476e-95b2-4d99fba33308",
+   "agent": "",
+   "ts": 2.3,
+   "latency_ms": 12408
+  },
+  {
+   "call_id": "fa2447e4-2629-44c2-9ad8-c0f23fe486e4",
+   "agent": "",
+   "ts": 8.5,
+   "latency_ms": 12137
+  },
+  {
+   "call_id": "d5345482-53c9-49e3-8acb-eb58dd334d6b",
+   "agent": "",
+   "ts": 24.6,
+   "latency_ms": 12089
+  },
+  {
+   "call_id": "33e489e3-ac44-4f89-bd12-5324d8ba9030",
+   "agent": "",
+   "ts": 329.4,
+   "latency_ms": 12012
+  },
+  {
+   "call_id": "b28e4cc5-e6de-4744-8783-702419a68414",
+   "agent": "",
+   "ts": 62.9,
+   "latency_ms": 11995
+  },
+  {
+   "call_id": "99dfb5dc-7087-4afe-bbfe-c0dd5784d762",
+   "agent": "",
+   "ts": 49.0,
+   "latency_ms": 11942
+  },
+  {
+   "call_id": "682f9a22-590f-4623-ae8f-11164b1afc7b",
+   "agent": "",
+   "ts": 21.1,
+   "latency_ms": 11906
+  },
+  {
+   "call_id": "15bfde1d-05a6-422f-89bf-9dc0a5382844",
+   "agent": "",
+   "ts": 18.9,
+   "latency_ms": 11860
+  },
+  {
+   "call_id": "9b952b5a-966e-47ae-9219-e37fe5498cdd",
+   "agent": "",
+   "ts": 10.4,
+   "latency_ms": 11444
+  },
+  {
+   "call_id": "ee279f8f-8926-4350-b33b-c607b8f84dd4",
+   "agent": "",
+   "ts": 13.1,
+   "latency_ms": 11367
+  },
+  {
+   "call_id": "3f2d3960-6f74-46db-9a08-bfd8fb2115cd",
+   "agent": "",
+   "ts": 3.6,
+   "latency_ms": 11199
+  },
+  {
+   "call_id": "08f0b6c8-7299-46e2-85b4-d55307c6af1b",
+   "agent": "",
+   "ts": 235.1,
+   "latency_ms": 11055
+  },
+  {
+   "call_id": "dfcd0920-2461-47ee-94ad-418c1f4de66c",
+   "agent": "",
+   "ts": 26.9,
+   "latency_ms": 11047
+  },
+  {
+   "call_id": "d9657ce6-49c5-495a-9951-818d6cb37545",
+   "agent": "",
+   "ts": 1.7,
+   "latency_ms": 11029
+  },
+  {
+   "call_id": "7a217190-7d12-42f3-81e6-0dc082b5f87d",
+   "agent": "",
+   "ts": 3.0,
+   "latency_ms": 10845
+  },
+  {
+   "call_id": "925184fd-f34b-43df-b734-1bdc42e3a066",
+   "agent": "",
+   "ts": 5.6,
+   "latency_ms": 10665
+  },
+  {
+   "call_id": "112ca23e-a093-4bae-ae4e-8f82b7eafb1d",
+   "agent": "",
+   "ts": 37.0,
+   "latency_ms": 10662
+  },
+  {
+   "call_id": "e90350be-337a-43e9-af7d-1aff4999cec3",
+   "agent": "",
+   "ts": 9.2,
+   "latency_ms": 10651
+  },
+  {
+   "call_id": "b3a05a83-0609-4ef0-971f-33fb2f4937fd",
+   "agent": "",
+   "ts": 15.2,
+   "latency_ms": 10623
+  },
+  {
+   "call_id": "d5345482-53c9-49e3-8acb-eb58dd334d6b",
+   "agent": "",
+   "ts": 3.2,
+   "latency_ms": 10536
+  },
+  {
+   "call_id": "1980a6e1-f508-4699-bf60-95d22fd495e6",
+   "agent": "",
+   "ts": 28.2,
+   "latency_ms": 10475
+  },
+  {
+   "call_id": "89146758-3b91-4123-870e-c632a26c19d5",
+   "agent": "",
+   "ts": 69.6,
+   "latency_ms": 10390
+  },
+  {
+   "call_id": "b3536d50-f158-4c81-9d95-62c7525f13da",
+   "agent": "",
+   "ts": 8.3,
+   "latency_ms": 10313
+  },
+  {
+   "call_id": "3ca54ec7-c74f-4aa5-ab48-3ba4cb19d86d",
+   "agent": "",
+   "ts": 0.8,
+   "latency_ms": 9927
+  },
+  {
+   "call_id": "7961e239-f88a-4fd7-9851-6d9166a4556b",
+   "agent": "",
+   "ts": 39.6,
+   "latency_ms": 9662
+  },
+  {
+   "call_id": "52a1118b-15ac-4356-bbea-2b1b33d31162",
+   "agent": "",
+   "ts": 36.8,
+   "latency_ms": 9616
+  },
+  {
+   "call_id": "fe47f398-cfba-4017-9438-07f22681b2a5",
+   "agent": "",
+   "ts": 242.1,
+   "latency_ms": 9615
+  },
+  {
+   "call_id": "b0991d50-e7c2-4a2d-8544-690d66d78bb0",
+   "agent": "",
+   "ts": 31.1,
+   "latency_ms": 9594
+  },
+  {
+   "call_id": "684ba88a-fb30-4c0d-bacc-641e47eaff0f",
+   "agent": "",
+   "ts": 16.1,
+   "latency_ms": 9565
+  },
+  {
+   "call_id": "b30e2c07-b46f-4a5f-abc3-756887ae11f2",
+   "agent": "",
+   "ts": 95.0,
+   "latency_ms": 9525
+  },
+  {
+   "call_id": "d0134df7-75b0-428d-b4e4-d36c5d2a3663",
+   "agent": "",
+   "ts": 17.2,
+   "latency_ms": 9452
+  },
+  {
+   "call_id": "d2a0ab23-09f0-4341-845f-35a8524ffd10",
+   "agent": "",
+   "ts": 57.8,
+   "latency_ms": 9334
+  },
+  {
+   "call_id": "369817df-3ee7-4729-b987-896163c67e26",
+   "agent": "",
+   "ts": 8.6,
+   "latency_ms": 9188
+  },
+  {
+   "call_id": "84d5189e-27f3-4185-a940-23f9989726d9",
+   "agent": "",
+   "ts": 60.2,
+   "latency_ms": 9169
+  },
+  {
+   "call_id": "15a9feb9-0de0-4e08-846b-887381cd62a0",
+   "agent": "",
+   "ts": 8.8,
+   "latency_ms": 9130
+  },
+  {
+   "call_id": "232b1c9c-baf9-4472-9d5b-da3cb1823f23",
+   "agent": "",
+   "ts": 29.5,
+   "latency_ms": 9100
+  },
+  {
+   "call_id": "b4ff859c-dedc-498e-8d9c-272cf776e1fc",
+   "agent": "",
+   "ts": 116.4,
+   "latency_ms": 9034
+  },
+  {
+   "call_id": "e00dfd48-0e54-4dc0-bb16-eca1cd1f85df",
+   "agent": "",
+   "ts": 5.4,
+   "latency_ms": 8623
+  },
+  {
+   "call_id": "ce9279dd-40fa-41d0-b30e-a183099baaf2",
+   "agent": "",
+   "ts": 36.3,
+   "latency_ms": 8566
+  },
+  {
+   "call_id": "021d0d04-004d-41f6-a045-2b1aae84d378",
+   "agent": "",
+   "ts": 13.6,
+   "latency_ms": 8562
+  },
+  {
+   "call_id": "e4c71319-e43e-435c-b4a5-3245b62c21aa",
+   "agent": "",
+   "ts": 9.5,
+   "latency_ms": 8558
+  },
+  {
+   "call_id": "5cf8ba38-f2a1-44c1-99f2-c6f1c5eafca9",
+   "agent": "",
+   "ts": 15.7,
+   "latency_ms": 8506
+  },
+  {
+   "call_id": "2f003701-cf5e-47d9-854f-6a070cb2e6e9",
+   "agent": "",
+   "ts": 2.3,
+   "latency_ms": 8329
+  },
+  {
+   "call_id": "387307a7-b5f3-4368-b256-ab777d185a82",
+   "agent": "",
+   "ts": 60.8,
+   "latency_ms": 8227
+  },
+  {
+   "call_id": "50dc2974-13a5-40cc-9a3e-c115a9749659",
+   "agent": "",
+   "ts": 11.8,
+   "latency_ms": 8219
+  },
+  {
+   "call_id": "2d6ef93c-c8e6-43e7-8597-5a3844fe23d3",
+   "agent": "",
+   "ts": 40.6,
+   "latency_ms": 8190
+  },
+  {
+   "call_id": "6bdf36a6-35ce-4e83-b19a-95f897023136",
+   "agent": "[giva-jewelry.myshopify.com] abandoned-checkout",
+   "ts": 27.5,
+   "latency_ms": 8041
+  },
+  {
+   "call_id": "3f6ad75a-1b40-4625-be62-803ca969a150",
+   "agent": "",
+   "ts": 26.7,
+   "latency_ms": 8033
+  },
+  {
+   "call_id": "ec46a6df-d077-4d81-a8f1-74d7900ca4f9",
+   "agent": "",
+   "ts": 51.3,
+   "latency_ms": 7961
+  },
+  {
+   "call_id": "c3abe2e8-33f3-4a12-8483-b1a8f1f62b84",
+   "agent": "",
+   "ts": 164.5,
+   "latency_ms": 7917
+  },
+  {
+   "call_id": "33e489e3-ac44-4f89-bd12-5324d8ba9030",
+   "agent": "",
+   "ts": 396.9,
+   "latency_ms": 7907
+  },
+  {
+   "call_id": "38d1c236-57cf-4d4f-a645-4046ae51bb29",
+   "agent": "",
+   "ts": 19.0,
+   "latency_ms": 7834
+  },
+  {
+   "call_id": "5ae4303e-39c6-4536-98e4-b95b7fda591f",
+   "agent": "",
+   "ts": 52.8,
+   "latency_ms": 7699
+  },
+  {
+   "call_id": "b236a0b6-2fd1-4ac3-bcb9-3f66f59f3e12",
+   "agent": "",
+   "ts": 5.0,
+   "latency_ms": 7670
+  },
+  {
+   "call_id": "52207436-9886-4ab4-aa95-e62bbde2e03f",
+   "agent": "",
+   "ts": 164.8,
+   "latency_ms": 7662
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 476.9,
+   "latency_ms": 7654
+  },
+  {
+   "call_id": "9ca86685-9912-4c5d-951b-c42f2a015325",
+   "agent": "[bblunt-com.myshopify.com] abandoned-checkout",
+   "ts": 0.7,
+   "latency_ms": 7473
+  },
+  {
+   "call_id": "42705af1-772a-4a35-ac36-368f50cf2901",
+   "agent": "",
+   "ts": 20.2,
+   "latency_ms": 7462
+  },
+  {
+   "call_id": "6d36ff49-ad9c-4e18-a18f-1183589d4c97",
+   "agent": "",
+   "ts": 24.2,
+   "latency_ms": 7453
+  },
+  {
+   "call_id": "371de166-a9a6-4bda-955f-ae619b9195d0",
+   "agent": "",
+   "ts": 15.4,
+   "latency_ms": 7402
+  },
+  {
+   "call_id": "0ceb5204-1ffb-4053-ab67-6fe91ae8771f",
+   "agent": "[thedermaco.myshopify.com] abandoned-checkout",
+   "ts": 0.9,
+   "latency_ms": 7375
+  },
+  {
+   "call_id": "97f60fef-8988-487f-84e0-a9427ef8c4fb",
+   "agent": "",
+   "ts": 18.4,
+   "latency_ms": 7232
+  },
+  {
+   "call_id": "139b944e-37d8-4fa1-bdc1-5714f7f8f872",
+   "agent": "",
+   "ts": 16.0,
+   "latency_ms": 7191
+  },
+  {
+   "call_id": "d750d733-0793-461b-9b5a-62c77a23f5f7",
+   "agent": "",
+   "ts": 95.4,
+   "latency_ms": 7091
+  },
+  {
+   "call_id": "fe47f398-cfba-4017-9438-07f22681b2a5",
+   "agent": "",
+   "ts": 293.4,
+   "latency_ms": 7077
+  }
+ ],
+ "bargein_evidence": [
+  {
+   "call_id": "f1d3cce5-eb47-454e-8f49-cb69ae17d0be",
+   "agent": "",
+   "ts": 65.7,
+   "dur_ms": 28232
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 95.2,
+   "dur_ms": 27426
+  },
+  {
+   "call_id": "a0b50296-ca83-439d-a032-5b989a91bb8e",
+   "agent": "",
+   "ts": 81.6,
+   "dur_ms": 23627
+  },
+  {
+   "call_id": "45f7c025-13b3-4f3d-beab-8926eb25aa12",
+   "agent": "",
+   "ts": 86.4,
+   "dur_ms": 20444
+  },
+  {
+   "call_id": "bf63194f-c195-4d52-a317-99507390a767",
+   "agent": "",
+   "ts": 114.4,
+   "dur_ms": 17590
+  },
+  {
+   "call_id": "3aac5062-2f32-40e3-bff9-7f320b4da069",
+   "agent": "",
+   "ts": 131.4,
+   "dur_ms": 16217
+  },
+  {
+   "call_id": "33e489e3-ac44-4f89-bd12-5324d8ba9030",
+   "agent": "",
+   "ts": 66.2,
+   "dur_ms": 16005
+  },
+  {
+   "call_id": "d27bf464-d43e-4ca8-a18d-91e61941220d",
+   "agent": "",
+   "ts": 33.6,
+   "dur_ms": 15607
+  },
+  {
+   "call_id": "d27bf464-d43e-4ca8-a18d-91e61941220d",
+   "agent": "",
+   "ts": 92.2,
+   "dur_ms": 15415
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 208.8,
+   "dur_ms": 14241
+  },
+  {
+   "call_id": "def5423c-6af0-41c8-8477-b68ea876a8c1",
+   "agent": "",
+   "ts": 156.2,
+   "dur_ms": 13059
+  },
+  {
+   "call_id": "3070a891-03db-4714-9d31-e3dfe12856f2",
+   "agent": "",
+   "ts": 81.6,
+   "dur_ms": 13033
+  },
+  {
+   "call_id": "832eb604-95d9-46ed-b01b-ae87a42844b3",
+   "agent": "",
+   "ts": 56.6,
+   "dur_ms": 12836
+  },
+  {
+   "call_id": "747e70b8-9335-46f3-b089-01c47d5f0b7d",
+   "agent": "",
+   "ts": 21.2,
+   "dur_ms": 11633
+  },
+  {
+   "call_id": "3aac5062-2f32-40e3-bff9-7f320b4da069",
+   "agent": "",
+   "ts": 67.0,
+   "dur_ms": 11605
+  },
+  {
+   "call_id": "d27bf464-d43e-4ca8-a18d-91e61941220d",
+   "agent": "",
+   "ts": 113.0,
+   "dur_ms": 11226
+  },
+  {
+   "call_id": "a29f6015-1729-4163-88bc-4103a5d8220c",
+   "agent": "",
+   "ts": 42.1,
+   "dur_ms": 10969
+  },
+  {
+   "call_id": "dae645ae-ab4c-455b-bdf5-9149a7dcf8b1",
+   "agent": "",
+   "ts": 6.4,
+   "dur_ms": 10802
+  },
+  {
+   "call_id": "182f8300-9ecd-4f44-bc99-d82b8be2e2d8",
+   "agent": "",
+   "ts": 19.0,
+   "dur_ms": 10769
+  },
+  {
+   "call_id": "fd47a122-6df2-4be5-bb82-b24a56100c46",
+   "agent": "",
+   "ts": 124.8,
+   "dur_ms": 10628
+  },
+  {
+   "call_id": "def5423c-6af0-41c8-8477-b68ea876a8c1",
+   "agent": "",
+   "ts": 139.7,
+   "dur_ms": 10562
+  },
+  {
+   "call_id": "5dbbc9ec-74f7-4e9c-ac94-5b7d31524bde",
+   "agent": "[giva-jewelry.myshopify.com] abandoned-checkout",
+   "ts": 104.4,
+   "dur_ms": 10407
+  },
+  {
+   "call_id": "4a484d5b-6dab-4751-ac52-7371311908a2",
+   "agent": "",
+   "ts": 262.8,
+   "dur_ms": 10236
+  },
+  {
+   "call_id": "5dbbc9ec-74f7-4e9c-ac94-5b7d31524bde",
+   "agent": "[giva-jewelry.myshopify.com] abandoned-checkout",
+   "ts": 65.0,
+   "dur_ms": 10216
+  },
+  {
+   "call_id": "e491a514-65cb-4d72-8b75-77ee5f094931",
+   "agent": "",
+   "ts": 23.4,
+   "dur_ms": 10034
+  },
+  {
+   "call_id": "37111b07-8231-486e-a5ac-e422e8cf9d36",
+   "agent": "",
+   "ts": 53.8,
+   "dur_ms": 10013
+  },
+  {
+   "call_id": "f89550e4-04e5-4ba2-bc9d-2fce17cf56ef",
+   "agent": "",
+   "ts": 27.6,
+   "dur_ms": 9876
+  },
+  {
+   "call_id": "ea8b67b8-fb62-49b9-851d-9757bf24497c",
+   "agent": "",
+   "ts": 66.5,
+   "dur_ms": 9809
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 67.6,
+   "dur_ms": 9764
+  },
+  {
+   "call_id": "0ca8b01f-3dd1-4548-bfc7-cb05f8a9de84",
+   "agent": "",
+   "ts": 56.2,
+   "dur_ms": 9680
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 226.0,
+   "dur_ms": 9562
+  },
+  {
+   "call_id": "ba1fdff6-0954-47dd-a473-3a2b3f5e0dbb",
+   "agent": "",
+   "ts": 94.4,
+   "dur_ms": 9420
+  },
+  {
+   "call_id": "ea8b67b8-fb62-49b9-851d-9757bf24497c",
+   "agent": "",
+   "ts": 200.6,
+   "dur_ms": 9411
+  },
+  {
+   "call_id": "3212312f-2819-4ade-ab5c-b154e59b78a7",
+   "agent": "",
+   "ts": 15.8,
+   "dur_ms": 9159
+  },
+  {
+   "call_id": "e4cddd64-40ef-4b7d-aa51-5cc1b1a0a877",
+   "agent": "",
+   "ts": 35.8,
+   "dur_ms": 9059
+  },
+  {
+   "call_id": "de957d77-8b00-45a8-925f-4b79f073fe16",
+   "agent": "",
+   "ts": 3.2,
+   "dur_ms": 9032
+  },
+  {
+   "call_id": "893bc23a-ae72-4616-8ff7-ecf27879dc3d",
+   "agent": "",
+   "ts": 22.8,
+   "dur_ms": 9025
+  },
+  {
+   "call_id": "8d52b6a1-5f20-4d8f-9e35-23216f429c9d",
+   "agent": "[giva-jewelry.myshopify.com] abandoned-checkout",
+   "ts": 50.8,
+   "dur_ms": 9010
+  },
+  {
+   "call_id": "832eb604-95d9-46ed-b01b-ae87a42844b3",
+   "agent": "",
+   "ts": 121.2,
+   "dur_ms": 8624
+  },
+  {
+   "call_id": "def5423c-6af0-41c8-8477-b68ea876a8c1",
+   "agent": "",
+   "ts": 189.5,
+   "dur_ms": 8609
+  },
+  {
+   "call_id": "3070a891-03db-4714-9d31-e3dfe12856f2",
+   "agent": "",
+   "ts": 63.6,
+   "dur_ms": 8432
+  },
+  {
+   "call_id": "28d83b0d-9803-4117-bacf-b4f0126dd030",
+   "agent": "",
+   "ts": 35.2,
+   "dur_ms": 8409
+  },
+  {
+   "call_id": "5d8ca84e-e1f7-4a9e-af48-784e5c920e4c",
+   "agent": "",
+   "ts": 94.4,
+   "dur_ms": 8392
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 135.8,
+   "dur_ms": 8239
+  },
+  {
+   "call_id": "ea8b67b8-fb62-49b9-851d-9757bf24497c",
+   "agent": "",
+   "ts": 235.8,
+   "dur_ms": 8230
+  },
+  {
+   "call_id": "5d8ca84e-e1f7-4a9e-af48-784e5c920e4c",
+   "agent": "",
+   "ts": 85.2,
+   "dur_ms": 8223
+  },
+  {
+   "call_id": "44106a47-1bf3-4634-80a4-e2be4a254642",
+   "agent": "",
+   "ts": 26.8,
+   "dur_ms": 8213
+  },
+  {
+   "call_id": "9a4bd2ee-a8ac-4d1a-aba0-ca25b1e7f6d1",
+   "agent": "",
+   "ts": 51.2,
+   "dur_ms": 8021
+  },
+  {
+   "call_id": "def5423c-6af0-41c8-8477-b68ea876a8c1",
+   "agent": "",
+   "ts": 103.4,
+   "dur_ms": 7986
+  },
+  {
+   "call_id": "e2b5bfc4-a960-4ccd-836b-542ceb7fb56f",
+   "agent": "",
+   "ts": 107.7,
+   "dur_ms": 7810
+  },
+  {
+   "call_id": "37111b07-8231-486e-a5ac-e422e8cf9d36",
+   "agent": "",
+   "ts": 86.6,
+   "dur_ms": 7801
+  },
+  {
+   "call_id": "4938a9a6-1720-4b36-9cac-49108e55b6e5",
+   "agent": "",
+   "ts": 32.2,
+   "dur_ms": 7791
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 127.2,
+   "dur_ms": 7616
+  },
+  {
+   "call_id": "ea8b67b8-fb62-49b9-851d-9757bf24497c",
+   "agent": "",
+   "ts": 131.4,
+   "dur_ms": 7441
+  },
+  {
+   "call_id": "d7e9d065-4d0a-4c54-8654-ffd9ab99aa0f",
+   "agent": "",
+   "ts": 27.4,
+   "dur_ms": 7430
+  },
+  {
+   "call_id": "2d64e29c-f47d-4c3d-b2a8-7265d268d794",
+   "agent": "",
+   "ts": 32.2,
+   "dur_ms": 7427
+  },
+  {
+   "call_id": "17a9c42e-965c-4415-844f-14f3dfcb3758",
+   "agent": "",
+   "ts": 113.5,
+   "dur_ms": 7424
+  },
+  {
+   "call_id": "d27bf464-d43e-4ca8-a18d-91e61941220d",
+   "agent": "",
+   "ts": 125.2,
+   "dur_ms": 7418
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 78.4,
+   "dur_ms": 7374
+  },
+  {
+   "call_id": "dee71b06-d805-4ae2-bdc4-f2864b229a90",
+   "agent": "",
+   "ts": 11.0,
+   "dur_ms": 7264
+  },
+  {
+   "call_id": "b30e2c07-b46f-4a5f-abc3-756887ae11f2",
+   "agent": "",
+   "ts": 63.0,
+   "dur_ms": 7246
+  },
+  {
+   "call_id": "def5423c-6af0-41c8-8477-b68ea876a8c1",
+   "agent": "",
+   "ts": 206.1,
+   "dur_ms": 7222
+  },
+  {
+   "call_id": "1fd7f092-5dbe-4301-942c-414d053be081",
+   "agent": "",
+   "ts": 66.8,
+   "dur_ms": 7208
+  },
+  {
+   "call_id": "4a484d5b-6dab-4751-ac52-7371311908a2",
+   "agent": "",
+   "ts": 207.0,
+   "dur_ms": 7158
+  },
+  {
+   "call_id": "a17ab490-8e2b-444f-91a6-021416ed2b6b",
+   "agent": "",
+   "ts": 107.6,
+   "dur_ms": 6997
+  },
+  {
+   "call_id": "590170cc-c55e-493c-96d8-5bc63985b791",
+   "agent": "",
+   "ts": 112.2,
+   "dur_ms": 6831
+  },
+  {
+   "call_id": "ba1fdff6-0954-47dd-a473-3a2b3f5e0dbb",
+   "agent": "",
+   "ts": 134.0,
+   "dur_ms": 6829
+  },
+  {
+   "call_id": "6af613ae-50a4-4c47-944b-f29c5b5d0592",
+   "agent": "",
+   "ts": 41.8,
+   "dur_ms": 6825
+  },
+  {
+   "call_id": "4a0b9ec3-a9e1-4c55-b766-bf9e4e77e688",
+   "agent": "",
+   "ts": 126.8,
+   "dur_ms": 6824
+  },
+  {
+   "call_id": "a0b50296-ca83-439d-a032-5b989a91bb8e",
+   "agent": "",
+   "ts": 235.0,
+   "dur_ms": 6810
+  },
+  {
+   "call_id": "a75d2975-9e48-4843-a56f-7842b2976c8f",
+   "agent": "",
+   "ts": 74.0,
+   "dur_ms": 6787
+  },
+  {
+   "call_id": "a0b50296-ca83-439d-a032-5b989a91bb8e",
+   "agent": "",
+   "ts": 30.8,
+   "dur_ms": 6780
+  },
+  {
+   "call_id": "01ec5479-edae-44d7-9e39-85c64b0d6258",
+   "agent": "",
+   "ts": 59.5,
+   "dur_ms": 6700
+  },
+  {
+   "call_id": "5560e327-02c6-4be7-b148-a1b81f526e44",
+   "agent": "",
+   "ts": 55.6,
+   "dur_ms": 6630
+  },
+  {
+   "call_id": "ca065ecc-0f8a-40ce-90a8-b7b89636a3da",
+   "agent": "",
+   "ts": 66.6,
+   "dur_ms": 6624
+  },
+  {
+   "call_id": "15c12dda-b053-4917-bece-94118817ec31",
+   "agent": "[Prod] Abandoned Cart",
+   "ts": 25.4,
+   "dur_ms": 6623
+  },
+  {
+   "call_id": "7961e239-f88a-4fd7-9851-6d9166a4556b",
+   "agent": "",
+   "ts": 53.8,
+   "dur_ms": 6608
+  },
+  {
+   "call_id": "661806af-f605-47e1-a00e-c14591ac67d5",
+   "agent": "",
+   "ts": 132.0,
+   "dur_ms": 6581
+  },
+  {
+   "call_id": "4813e71b-bcc2-471b-ab20-3735c49b5888",
+   "agent": "",
+   "ts": 40.0,
+   "dur_ms": 6435
+  },
+  {
+   "call_id": "d2a9465a-1c77-408f-b75b-f780a44c04dd",
+   "agent": "",
+   "ts": 150.8,
+   "dur_ms": 6429
+  },
+  {
+   "call_id": "c1c67198-d3ee-4a18-8153-17530650a5cc",
+   "agent": "IIT K || T+30",
+   "ts": 18.2,
+   "dur_ms": 6423
+  },
+  {
+   "call_id": "1fd7f092-5dbe-4301-942c-414d053be081",
+   "agent": "",
+   "ts": 75.0,
+   "dur_ms": 6418
+  },
+  {
+   "call_id": "9ca86685-9912-4c5d-951b-c42f2a015325",
+   "agent": "[bblunt-com.myshopify.com] abandoned-checkout",
+   "ts": 27.0,
+   "dur_ms": 6414
+  },
+  {
+   "call_id": "def5423c-6af0-41c8-8477-b68ea876a8c1",
+   "agent": "",
+   "ts": 128.3,
+   "dur_ms": 6412
+  },
+  {
+   "call_id": "832eb604-95d9-46ed-b01b-ae87a42844b3",
+   "agent": "",
+   "ts": 42.4,
+   "dur_ms": 6410
+  },
+  {
+   "call_id": "e1ad5871-6f25-41fc-968c-91cd04e97a69",
+   "agent": "",
+   "ts": 7.6,
+   "dur_ms": 6393
+  },
+  {
+   "call_id": "8396f4f6-2a7e-4e43-a520-22b730a4e048",
+   "agent": "",
+   "ts": 56.8,
+   "dur_ms": 6389
+  },
+  {
+   "call_id": "39728b99-1da1-4e5e-8273-9f85b31d6aa4",
+   "agent": "",
+   "ts": 61.0,
+   "dur_ms": 6310
+  },
+  {
+   "call_id": "def5423c-6af0-41c8-8477-b68ea876a8c1",
+   "agent": "",
+   "ts": 172.0,
+   "dur_ms": 6247
+  },
+  {
+   "call_id": "0d0220c6-6312-4465-8fd9-4b0b53ca07f5",
+   "agent": "",
+   "ts": 39.8,
+   "dur_ms": 6226
+  },
+  {
+   "call_id": "34484b29-a45c-4218-8ff8-a4e122de63e7",
+   "agent": "[thedermaco.myshopify.com] abandoned-checkout",
+   "ts": 96.8,
+   "dur_ms": 6222
+  },
+  {
+   "call_id": "c371a210-6aa6-4b7e-baca-3d4a136578e0",
+   "agent": "",
+   "ts": 36.0,
+   "dur_ms": 6220
+  },
+  {
+   "call_id": "854c81d3-ff13-45ec-b237-0c231acae082",
+   "agent": "",
+   "ts": 64.5,
+   "dur_ms": 6154
+  },
+  {
+   "call_id": "8396f4f6-2a7e-4e43-a520-22b730a4e048",
+   "agent": "",
+   "ts": 46.7,
+   "dur_ms": 6149
+  },
+  {
+   "call_id": "15bfde1d-05a6-422f-89bf-9dc0a5382844",
+   "agent": "",
+   "ts": 24.0,
+   "dur_ms": 6103
+  },
+  {
+   "call_id": "3d3843a8-936f-449f-89b6-8fc43fe2fcfa",
+   "agent": "",
+   "ts": 71.0,
+   "dur_ms": 6041
+  },
+  {
+   "call_id": "6f2c04fc-3390-47f6-afdd-8413b0d8cfe4",
+   "agent": "Ananya",
+   "ts": 42.6,
+   "dur_ms": 6008
+  },
+  {
+   "call_id": "1084bc17-b3df-44f1-ab21-80cdde9f37f2",
+   "agent": "",
+   "ts": 82.0,
+   "dur_ms": 5979
+  },
+  {
+   "call_id": "c3b6069d-d478-46f6-859f-09e427032b97",
+   "agent": "",
+   "ts": 57.4,
+   "dur_ms": 5976
+  },
+  {
+   "call_id": "ea8b67b8-fb62-49b9-851d-9757bf24497c",
+   "agent": "",
+   "ts": 193.6,
+   "dur_ms": 5976
+  },
+  {
+   "call_id": "4b3579ec-dc2d-4c16-8e81-396aa9d42be6",
+   "agent": "",
+   "ts": 180.0,
+   "dur_ms": 5971
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 424.7,
+   "dur_ms": 5907
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 336.0,
+   "dur_ms": 5814
+  },
+  {
+   "call_id": "87e9a9bd-15e7-4d05-a113-c978c5166d7b",
+   "agent": "",
+   "ts": 125.2,
+   "dur_ms": 5799
+  },
+  {
+   "call_id": "dd8c3741-b943-433b-8553-909776bb79cc",
+   "agent": "",
+   "ts": 48.5,
+   "dur_ms": 5794
+  },
+  {
+   "call_id": "9717795b-29d2-4d6a-ac2a-dbecfa3efb17",
+   "agent": "",
+   "ts": 55.7,
+   "dur_ms": 5775
+  },
+  {
+   "call_id": "1fd7f092-5dbe-4301-942c-414d053be081",
+   "agent": "",
+   "ts": 59.1,
+   "dur_ms": 5755
+  },
+  {
+   "call_id": "b28e4cc5-e6de-4744-8783-702419a68414",
+   "agent": "",
+   "ts": 58.7,
+   "dur_ms": 5640
+  },
+  {
+   "call_id": "d27bf464-d43e-4ca8-a18d-91e61941220d",
+   "agent": "",
+   "ts": 83.8,
+   "dur_ms": 5635
+  },
+  {
+   "call_id": "387033cb-a4ca-45d0-b4dd-91968cf27c13",
+   "agent": "",
+   "ts": 43.9,
+   "dur_ms": 5633
+  },
+  {
+   "call_id": "a0b50296-ca83-439d-a032-5b989a91bb8e",
+   "agent": "",
+   "ts": 217.4,
+   "dur_ms": 5612
+  },
+  {
+   "call_id": "c03b2e6f-9cc5-4200-8833-c2f38aa540e0",
+   "agent": "",
+   "ts": 73.6,
+   "dur_ms": 5611
+  },
+  {
+   "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
+   "agent": "",
+   "ts": 359.4,
+   "dur_ms": 5602
+  },
+  {
+   "call_id": "d674f33e-0894-4e2d-b178-be679cc5767d",
+   "agent": "",
+   "ts": 119.0,
+   "dur_ms": 5589
+  },
+  {
+   "call_id": "d37058e5-f90b-4dd1-b152-904e921d1343",
+   "agent": "",
+   "ts": 198.5,
+   "dur_ms": 5587
+  },
+  {
+   "call_id": "4480da6c-0425-48f7-bc0c-ccc1cad150b2",
+   "agent": "",
+   "ts": 22.5,
+   "dur_ms": 5538
+  },
+  {
+   "call_id": "4b4daaa8-af07-41ef-b802-6465d5ec7da3",
+   "agent": "",
+   "ts": 21.8,
+   "dur_ms": 5432
+  },
+  {
+   "call_id": "3235ec72-1f13-4fe9-a436-a4ca80fc3649",
+   "agent": "",
+   "ts": 169.0,
+   "dur_ms": 5427
+  },
+  {
+   "call_id": "7c11be9a-169d-4d3c-8c8b-fbfbbeceb3d2",
+   "agent": "",
+   "ts": 70.6,
+   "dur_ms": 5427
+  },
+  {
+   "call_id": "b64eafec-4992-4854-95c5-6c337ae2aa9f",
+   "agent": "",
+   "ts": 56.0,
+   "dur_ms": 5424
+  }
+ ]
 }

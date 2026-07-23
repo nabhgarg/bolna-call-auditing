@@ -821,3 +821,19 @@ audio {
     color: var(--accent) !important;
   }
 }
+
+/* N3 — phone-first reviewer flow (from hi-fi 3i): the review panel leads,
+   the queue collapses below it, controls sized for one thumb. */
+@media (max-width: 640px) {
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+  }
+  .workspace { order: 1; }
+  .sidebar { order: 2; border-top: 1px solid var(--line); }
+  .call-list { max-height: 26vh; }
+  .vibe-buttons button { min-height: 64px; }
+  .vibe-buttons button > div:first-child { font-size: 24px !important; }
+  .review-actions, .submit-row { position: sticky; bottom: 0; background: var(--panel); padding-bottom: env(safe-area-inset-bottom); }
+  .audio-bar { position: sticky; top: 0; z-index: 5; background: var(--panel); }
+}
