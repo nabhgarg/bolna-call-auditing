@@ -4,17 +4,13 @@ import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-// Batch 3 is a re-review batch: reviewers re-score calls, including ones they
-// already did in earlier batches. A ::b3 assignment is "done" only when there
-// is a review submitted at/after the batch was created (2026-07-21 14:06 UTC),
-// so prior-batch reviews don't auto-satisfy it. A constant (not imported_at) is
-// used so a sheet re-import can't shift the cutoff.
-// Each re-review batch pairs a queue-id pattern with the moment it was
-// assigned; only reviews submitted after that count as done for those rows.
+// Re-review batches require a FRESH review (submitted after the batch was
+// assigned) before a call counts as done, so prior-batch reviews don't
+// auto-satisfy them. Batch 4 no longer re-reviews — any existing review counts
+// as done (reviewers keep credit for calls they already scored). Batch 3 was a
+// re-review batch; its rows are archived now, but the rule is kept for history.
 const REREVIEW_RULES: Array<{ re: RegExp; cutoff: string }> = [
-  { re: /::b3/, cutoff: "2026-07-21T14:06:00.000Z" },
-  // batch 4 (initially assigned under the s4 prefix — both spellings match)
-  { re: /::[sb]4/, cutoff: "2026-07-22T09:00:00.000Z" }
+  { re: /::b3/, cutoff: "2026-07-21T14:06:00.000Z" }
 ];
 function rereviewCutoff(auditMode: string) {
   return REREVIEW_RULES.find((r) => r.re.test(auditMode))?.cutoff || "";
