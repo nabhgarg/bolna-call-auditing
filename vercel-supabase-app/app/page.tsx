@@ -990,7 +990,7 @@ export default function Page() {
     try {
       setImportingCalls(true);
       setImportStatus(`Importing ${modeLabel(auditMode).toLowerCase()} calls from Google Sheets...`);
-      const result = await api("/api/import-sheets", { method: "POST", body: JSON.stringify({ audit_mode: auditMode }) });
+      const result = await api("/api/import-sheets", { method: "POST", headers: { "Content-Type": "application/json", "x-reviewer-email": reviewerEmail }, body: JSON.stringify({ audit_mode: auditMode }) });
       await loadCalls(reviewerEmail, auditMode);
       setImportStatus(`Imported ${result.imported} ${modeLabel(auditMode).toLowerCase()} call(s) from ${result.sheet_name || "Google Sheets"}.`);
       setStatusMessage(`Imported ${result.imported} ${modeLabel(auditMode).toLowerCase()} call(s).`);
@@ -1072,11 +1072,15 @@ export default function Page() {
             </div>
           </div>
           <div className="single-mode-pill sidebar-mode">Combined audit</div>
-          <div className="import-actions">
-            <button className="ghost" onClick={importSheets} disabled={importingCalls}>
-              {importingCalls ? "Importing..." : "Import calls"}
-            </button>
-          </div>
+          {/* Import rewrites queues from the sheet — experts only (a stale sheet
+              import has reverted live assignments before). Enforced server-side too. */}
+          {reviewerRole === "expert" && (
+            <div className="import-actions">
+              <button className="ghost" onClick={importSheets} disabled={importingCalls}>
+                {importingCalls ? "Importing..." : "Import calls"}
+              </button>
+            </div>
+          )}
           {importStatus && <div className="import-status">{importStatus}</div>}
 
           {hasIssueQueue && (

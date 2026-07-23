@@ -61,6 +61,18 @@ function dedupeByQueueKey(rows: any[]) {
 }
 
 export async function POST(request: Request) {
+  // Experts only: an import rewrites live queues from the sheet, and a stale
+  // sheet has reverted assignments before. The button is expert-only in the UI;
+  // this check backs it server-side.
+  const supabaseAuth = supabaseAdmin();
+  const requesterEmail = String(request.headers.get("x-reviewer-email") || "").trim().toLowerCase();
+  const { data: requester } = requesterEmail
+    ? await supabaseAuth.from("reviewers").select("role,is_active").eq("email", requesterEmail).maybeSingle()
+    : { data: null };
+  if (!requester || requester.role !== "expert" || requester.is_active === false) {
+    return NextResponse.json({ error: "Only experts can import calls." }, { status: 403 });
+  }
+
   const payload = await request.json().catch(() => ({}));
   const result = await importCallsFromSheets(payload.audit_mode || payload.review_mode || "pronunciation_tone");
   if (!result.ok) {
