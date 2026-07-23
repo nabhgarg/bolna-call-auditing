@@ -1,0 +1,339 @@
+{
+ "generated_at": "2026-07-23T22:14:50.308741+00:00",
+ "totals": {
+  "reviewers": 25,
+  "reviews": 5090,
+  "roles": {
+   "AI Call Expert": 3,
+   "AI Call Reviewer": 18,
+   "Hindi Transcriber": 4
+  }
+ },
+ "reviewers": [
+  {
+   "code": "RL-01",
+   "role": "AI Call Expert",
+   "persona": "Hindi-first · ground truth & vetting · since May 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 95,
+   "agreement": 81,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-02",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since May 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 357,
+   "agreement": 93,
+   "tier": "Tier 1 · calibrated",
+   "active": false
+  },
+  {
+   "code": "RL-03",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since May 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 379,
+   "agreement": 93,
+   "tier": "Tier 1 · calibrated",
+   "active": false
+  },
+  {
+   "code": "RL-04",
+   "role": "AI Call Expert",
+   "persona": "Hindi-first · ground truth & vetting · since May 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 718,
+   "agreement": 72,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-05",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since May 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 230,
+   "agreement": 86,
+   "tier": "Tier 1 · calibrated",
+   "active": false
+  },
+  {
+   "code": "RL-06",
+   "role": "AI Call Expert",
+   "persona": "Hindi-first · ground truth & vetting · since May 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 172,
+   "agreement": 72,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-07",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jun 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 586,
+   "agreement": 78,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-08",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jun 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 174,
+   "agreement": 81,
+   "tier": "Tier 1 · calibrated",
+   "active": false
+  },
+  {
+   "code": "RL-09",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 20,
+   "agreement": 80,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-10",
+   "role": "Hindi Transcriber",
+   "persona": "Hindi-first · golden transcription · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 287,
+   "agreement": 90,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-11",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 20,
+   "agreement": 85,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-12",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 21,
+   "agreement": 95,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-13",
+   "role": "Hindi Transcriber",
+   "persona": "Hindi-first · golden transcription · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 219,
+   "agreement": 82,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-14",
+   "role": "Hindi Transcriber",
+   "persona": "Hindi-first · golden transcription · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 241,
+   "agreement": 86,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-15",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 21,
+   "agreement": 75,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-16",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 323,
+   "agreement": 81,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-17",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 298,
+   "agreement": 88,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-18",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 20,
+   "agreement": 89,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-19",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 20,
+   "agreement": 80,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-20",
+   "role": "Hindi Transcriber",
+   "persona": "Hindi-first · golden transcription · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 267,
+   "agreement": 78,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-21",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 20,
+   "agreement": 60,
+   "tier": "Tier 2 · supervised",
+   "active": true
+  },
+  {
+   "code": "RL-22",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 235,
+   "agreement": 81,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-23",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 20,
+   "agreement": 75,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-24",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 190,
+   "agreement": 80,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  },
+  {
+   "code": "RL-25",
+   "role": "AI Call Reviewer",
+   "persona": "Hindi-first · call scoring & issue logging · since Jul 2026",
+   "languages": [
+    "Hindi",
+    "English"
+   ],
+   "reviews": 154,
+   "agreement": 91,
+   "tier": "Tier 1 · calibrated",
+   "active": true
+  }
+ ]
+}

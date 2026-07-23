@@ -86,7 +86,7 @@ export default function Agents() {
             return (
               <button key={org.org} onClick={() => setSel(i)}
                 style={{ display: "flex", alignItems: "center", gap: 8, textAlign: "left", border: "none", cursor: "pointer", borderRadius: 8, padding: "9px 10px", background: active ? "#e7f4ee" : "transparent", color: INK }}>
-                <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{org.org}</span>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{org.label || org.org}</span>
                 <span className={grotesk.className} style={{ fontSize: 12, fontWeight: 600, color: pct >= 40 ? GREEN : AMBER }}>{pct}%</span>
               </button>
             );
@@ -97,7 +97,7 @@ export default function Agents() {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ ...card, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{o.org}</span>
+              <span className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{o.label || o.org}</span>
               <span style={{ fontSize: 12, color: MUT }}>{o.calls} production calls · avg {o.avg_duration_sec ?? "—"}s</span>
               <span style={{ flex: 1 }} />
               <span className={grotesk.className} style={{ fontSize: 22, fontWeight: 600, color: completedPct >= 40 ? GREEN : AMBER }}>{completedPct}%</span>
