@@ -38,6 +38,7 @@ function BarRow({ label, purple, green, total, note, href }: { label: string; pu
 export default function Portal() {
   const [dash, setDash] = useState<any>(null);
   const [portal, setPortal] = useState<any>(null);
+  const [judge, setJudge] = useState<any>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [error, setError] = useState("");
 
@@ -45,8 +46,9 @@ export default function Portal() {
     setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert");
     Promise.all([
       fetch("/api/dashboard").then((r) => r.json()),
-      fetch("/api/portal").then((r) => r.json())
-    ]).then(([d, p]) => { setDash(d); setPortal(p); }).catch((e) => setError(String(e)));
+      fetch("/api/portal").then((r) => r.json()),
+      fetch("/api/portal/judge").then((r) => r.json()).catch(() => null)
+    ]).then(([d, p, j]) => { setDash(d); setPortal(p); setJudge(j); }).catch((e) => setError(String(e)));
   }, []);
 
   if (allowed === false) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The portal is available to experts. Log in on the <a href="/" style={{ color: GREEN }}>main app</a> first.</main>;
@@ -54,7 +56,11 @@ export default function Portal() {
 
   const t = dash.trust || {}; const th = dash.throughput || {};
   const m = portal.machine || {}; const h = portal.human || {}; const f = portal.funnel || {}; const c = portal.corpus || {};
-  const maxRow = Math.max(h.asr_transcription, h.response_appropriateness, h.pronunciation, h.naturalness_tone, m.latency_turns, m.bargein_events, 1);
+  const ji = (judge && judge.issue_types) || {}; const jf = (judge && judge.frustration) || {};
+  const jn = (k: string) => (ji[k] ? ji[k].count : 0);
+  const frusTotal = Object.values(jf).reduce((s: number, v: any) => s + (v.count || 0), 0);
+  const maxRow = Math.max(h.asr_transcription, h.response_appropriateness, h.pronunciation, h.naturalness_tone, m.latency_turns, m.bargein_events,
+    jn("language_error"), jn("context_not_carried"), jn("loop_repetition") + jn("irrelevant_response"), jn("rule_violation") + jn("input_capture_error"), frusTotal, 1);
 
   return (
     <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", color: INK }}>
@@ -62,7 +68,7 @@ export default function Portal() {
         <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>realloop</span>
         <span style={{ display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eef2f6", padding: "4px 11px", fontSize: 12, color: "#4d5a66" }}>Bolna · live</span>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 12.5, color: MUT }}>Portal · <a href="/dashboard" style={{ color: MUT }}>Calibration</a></span>
+        <span style={{ fontSize: 12.5, color: MUT }}>Portal · <a href="/portal/agents" style={{ color: MUT }}>Agents</a> · <a href="/dashboard" style={{ color: MUT }}>Calibration</a></span>
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13.5, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer" }}>Download report</button>
       </div>
 
@@ -77,10 +83,17 @@ export default function Portal() {
         <div style={{ ...card, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
           <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Triage — humans only where needed</span>
           <div style={{ display: "flex", alignItems: "center" }}>
-            <div style={{ flex: 1.4, background: "#f5f7f9", borderRadius: 8, padding: "13px 15px" }}>
+            <div style={{ flex: 1.2, background: "#f5f7f9", borderRadius: 8, padding: "13px 15px" }}>
               <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>All calls · {c.total_calls}</div>
               <div style={{ fontSize: 11.5, color: MUT }}>telemetry auto-analysis on {c.telemetry_calls}</div>
             </div>
+            {judge && <>
+              <div style={{ width: 34, textAlign: "center", color: PURPLE }}>→</div>
+              <div style={{ flex: 1.1, background: "#f1ecfa", borderRadius: 8, padding: "13px 15px" }}>
+                <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600, color: PURPLE }}>LLM judged · {judge.judged}</div>
+                <div style={{ fontSize: 11.5, color: MUT }}>{judge.flagged_calls} flagged high-severity</div>
+              </div>
+            </>}
             <div style={{ width: 34, textAlign: "center", color: GREEN }}>→</div>
             <div style={{ flex: 1.1, background: "#e7f4ee", borderRadius: 8, padding: "13px 15px" }}>
               <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600, color: GREEN }}>Panel scored · {f.panel_scored}</div>
@@ -98,7 +111,7 @@ export default function Portal() {
           <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
             <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Who caught what</span>
             <span style={{ flex: 1 }} />
-            <span style={{ fontSize: 11, color: PURPLE }}>● machine (telemetry)</span>
+            <span style={{ fontSize: 11, color: PURPLE }}>● machine (telemetry + LLM judge)</span>
             <span style={{ fontSize: 11, color: GREEN }}>● human reviewers</span>
           </div>
           <BarRow label="ASR / transcription" purple={0} green={h.asr_transcription} total={maxRow} href="/portal/issues?type=asr" />
@@ -107,8 +120,15 @@ export default function Portal() {
           <BarRow label="Naturalness / tone" purple={0} green={h.naturalness_tone} total={maxRow} href="/portal/issues?type=tone" />
           <BarRow label="Slow responses" note={`>3s (${m.latency_calls} calls)`} purple={m.latency_turns} green={0} total={maxRow} href="/portal/issues?type=latency" />
           <BarRow label="Barge-ins" note={`(${m.bargein_calls} calls)`} purple={m.bargein_events} green={0} total={maxRow} href="/portal/issues?type=bargein" />
+          {judge && <>
+            <BarRow label="Language errors" note={`LLM (${ji.language_error?.calls ?? 0} calls)`} purple={jn("language_error")} green={0} total={maxRow} href="/portal/agents" />
+            <BarRow label="Ignored context" note={`LLM (${ji.context_not_carried?.calls ?? 0} calls)`} purple={jn("context_not_carried")} green={0} total={maxRow} href="/portal/agents" />
+            <BarRow label="Loops & irrelevant replies" note="LLM" purple={jn("loop_repetition") + jn("irrelevant_response")} green={0} total={maxRow} href="/portal/agents" />
+            <BarRow label="Rule violations & input capture" note="LLM" purple={jn("rule_violation") + jn("input_capture_error")} green={0} total={maxRow} href="/portal/agents" />
+            <BarRow label="User frustration signals" note={`LLM (${jf.suspects_ai?.count ?? 0} suspected AI)`} purple={frusTotal} green={0} total={maxRow} href="/portal/agents" />
+          </>}
           <div style={{ fontSize: 12.5, color: MUT }}>
-            Latency and barge-ins are machine-detectable from telemetry; transcription, appropriateness, pronunciation and naturalness only surface through trained human review — that split is the service. Every row opens its evidence.
+            Telemetry catches latency and barge-ins deterministically; our LLM judge reads every transcript for behavioural issues; transcription accuracy, pronunciation and naturalness only surface through trained human review — the judge reads the ASR transcript, so when the transcript is wrong, only a human ear catches it. Every layer is verified by the calibrated panel.
           </div>
         </div>
 
