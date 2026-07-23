@@ -165,8 +165,6 @@ export default function Page() {
   const [startedAt, setStartedAt] = useState("");
   const [notes, setNotes] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
-  const [importStatus, setImportStatus] = useState("");
-  const [importingCalls, setImportingCalls] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [submittedCallId, setSubmittedCallId] = useState("");
 
@@ -985,22 +983,6 @@ export default function Page() {
     }
   }
 
-  async function importSheets() {
-    if (importingCalls) return;
-    try {
-      setImportingCalls(true);
-      setImportStatus(`Importing ${modeLabel(auditMode).toLowerCase()} calls from Google Sheets...`);
-      const result = await api("/api/import-sheets", { method: "POST", headers: { "Content-Type": "application/json", "x-reviewer-email": reviewerEmail }, body: JSON.stringify({ audit_mode: auditMode }) });
-      await loadCalls(reviewerEmail, auditMode);
-      setImportStatus(`Imported ${result.imported} ${modeLabel(auditMode).toLowerCase()} call(s) from ${result.sheet_name || "Google Sheets"}.`);
-      setStatusMessage(`Imported ${result.imported} ${modeLabel(auditMode).toLowerCase()} call(s).`);
-    } catch (error) {
-      setImportStatus(`Sheet import failed: ${(error as Error).message}`);
-      setStatusMessage(`Sheet import failed: ${(error as Error).message}`);
-    } finally {
-      setImportingCalls(false);
-    }
-  }
 
   return (
     <>
@@ -1072,16 +1054,8 @@ export default function Page() {
             </div>
           </div>
           <div className="single-mode-pill sidebar-mode">Combined audit</div>
-          {/* Import rewrites queues from the sheet — experts only (a stale sheet
-              import has reverted live assignments before). Enforced server-side too. */}
-          {reviewerRole === "expert" && (
-            <div className="import-actions">
-              <button className="ghost" onClick={importSheets} disabled={importingCalls}>
-                {importingCalls ? "Importing..." : "Import calls"}
-              </button>
-            </div>
-          )}
-          {importStatus && <div className="import-status">{importStatus}</div>}
+          {/* Sheet import is retired: calls are loaded directly into Supabase;
+              the sheet only receives review syncs (one-way, DB -> sheet). */}
 
           {hasIssueQueue && (
             <div className="queue-tabs" role="tablist" aria-label="Assignment type" style={{ marginBottom: 6 }}>
