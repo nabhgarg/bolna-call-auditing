@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-23T19:53:17.592088+00:00",
+ "generated_at": "2026-07-23T21:30:19.920919+00:00",
  "judged": 1263,
  "model": "claude-haiku-4-5",
  "outcomes": {
@@ -1741,7 +1741,34 @@
     "quote": "समझ सकती हूँ — बस दो minute लगेंगे, क्या ये ठीक रहेगा?",
     "description": "Agent ignored user's explicit statement that they are in traffic and cannot talk now; pushed for immediate resolution instead of scheduling callback.",
     "call_id": "834307ad-0af1-4a3b-a0b1-78f7b166bb55"
-   }
+   },
+   "human": {
+    "asr_corrections": 42,
+    "pronunciation": 0,
+    "tone_low": 0,
+    "response_issues": 0,
+    "golden_calls": 11
+   },
+   "examples": [
+    {
+     "type": "context_not_carried",
+     "quote": "समझ सकती हूँ — बस दो minute लगेंगे, क्या ये ठीक रहेगा?",
+     "description": "Agent ignored user's explicit statement that they are in traffic and cannot talk now; pushed for immediate resolution instead of scheduling callback.",
+     "call_id": "834307ad-0af1-4a3b-a0b1-78f7b166bb55"
+    },
+    {
+     "type": "rule_violation",
+     "quote": "बस दो minute लगेंगे, क्या ये ठीक रहेगा?",
+     "description": "Agent attempted to continue the call despite user clearly requesting callback later; did not honor user's stated unavailability.",
+     "call_id": "834307ad-0af1-4a3b-a0b1-78f7b166bb55"
+    },
+    {
+     "type": "input_capture_error",
+     "quote": "आपने Astro-talk store पर Aries Zodiac Bracelet अपनी cart में add किया था, पर order complete नहीं हुआ",
+     "description": "Agent states order was incomplete, but user immediately corrects that order is already completed; agent acted on wrong assumption about user's status.",
+     "call_id": "7c8bb9ca-5709-4b06-ba58-5729a9a2fec9"
+    }
+   ]
   },
   {
    "org": "BiteSpeed",
@@ -1787,7 +1814,34 @@
     "quote": "क्या आप अभी भी लाइन पर हैं? [asked again after user said 'hello']",
     "description": "Agent repeated the exact same Hindi question ('Are you still on the line?') twice without progression or acknowledgment of user's 'hello' response.",
     "call_id": "ae0da8da-9aab-47da-8ffe-0913bcb9f0f5"
-   }
+   },
+   "human": {
+    "asr_corrections": 66,
+    "pronunciation": 0,
+    "tone_low": 0,
+    "response_issues": 0,
+    "golden_calls": 17
+   },
+   "examples": [
+    {
+     "type": "loop_repetition",
+     "quote": "क्या आप अभी भी लाइन पर हैं? [asked again after user said 'hello']",
+     "description": "Agent repeated the exact same Hindi question ('Are you still on the line?') twice without progression or acknowledgment of user's 'hello' response.",
+     "call_id": "ae0da8da-9aab-47da-8ffe-0913bcb9f0f5"
+    },
+    {
+     "type": "irrelevant_response",
+     "quote": "Just so I can help",
+     "description": "Agent's final turn is incomplete and does not respond to user's 'no' — sentence trails off without addressing the declined offer or providing alternative next s",
+     "call_id": "3091c228-f9ae-4e8c-aeb2-c2206a3a036d"
+    },
+    {
+     "type": "irrelevant_response",
+     "quote": "I understand your concern, many people trust our quality very much. Is there anything else you'd",
+     "description": "User states 'never bought Indian made brand' — agent's generic assurance about quality does not address the specific trust/credibility concern about Indian bran",
+     "call_id": "893bc23a-ae72-4616-8ff7-ecf27879dc3d"
+    }
+   ]
   },
   {
    "org": "Unicommerce",
@@ -1833,7 +1887,34 @@
     "quote": "Hmm, मैं पूरी तरह समझती हूँ। मैं बस आपको बताना चाहती हूँ कि फिलहाल इस product पर सबसे अच्छी",
     "description": "Agent continues pushing product after user explicitly declined ('नहीं नहीं रहने दीजिए') instead of respecting the refusal.",
     "call_id": "a5891eee-3ed4-43bf-98f6-c099909c8f7e"
-   }
+   },
+   "human": {
+    "asr_corrections": 31,
+    "pronunciation": 0,
+    "tone_low": 0,
+    "response_issues": 0,
+    "golden_calls": 13
+   },
+   "examples": [
+    {
+     "type": "rule_violation",
+     "quote": "Hmm, मैं पूरी तरह समझती हूँ। मैं बस आपको बताना चाहती हूँ कि फिलहाल इस product पर सबसे अच्छी",
+     "description": "Agent continues pushing product after user explicitly declined ('नहीं नहीं रहने दीजिए') instead of respecting the refusal.",
+     "call_id": "a5891eee-3ed4-43bf-98f6-c099909c8f7e"
+    },
+    {
+     "type": "hallucination",
+     "quote": "मैं Meera बात कर रही हूँ Snapdeal से",
+     "description": "Agent claims to be calling from Snapdeal when org is Unicommerce; critical trust breach.",
+     "call_id": "c242e0dd-67c8-4d89-a6e7-09d3752a51bb"
+    },
+    {
+     "type": "irrelevant_response",
+     "quote": "Hello, क्या आपको आवाज सुनाई दे रही है?",
+     "description": "Agent ignores user's direct question ('कहां से बोल रहे हो') and shifts to technical check instead of clarifying organization.",
+     "call_id": "c242e0dd-67c8-4d89-a6e7-09d3752a51bb"
+    }
+   ]
   },
   {
    "org": "Alibaba India",
@@ -1880,7 +1961,34 @@
     "quote": "जी, मेहनत तो बहुत ज़रूरी है, और fitness sector में भी export के अच्छे मौके हैं",
     "description": "Agent ignores user's clear statement 'नहीं हम पर नहीं लेना है' (we don't want export) and pivots to fitness exports unprompted.",
     "call_id": "d195afaf-afff-45a9-b741-1de260f4a5ea"
-   }
+   },
+   "human": {
+    "asr_corrections": 28,
+    "pronunciation": 0,
+    "tone_low": 0,
+    "response_issues": 0,
+    "golden_calls": 14
+   },
+   "examples": [
+    {
+     "type": "context_not_carried",
+     "quote": "जी, मेहनत तो बहुत ज़रूरी है, और fitness sector में भी export के अच्छे मौके हैं",
+     "description": "Agent ignores user's clear statement 'नहीं हम पर नहीं लेना है' (we don't want export) and pivots to fitness exports unprompted.",
+     "call_id": "d195afaf-afff-45a9-b741-1de260f4a5ea"
+    },
+    {
+     "type": "input_capture_error",
+     "quote": "तो क्या आप खुद का business शुरू करने या export के बारे में जानना चाहते हैं?",
+     "description": "User's garbled speech likely due to ASR errors, but agent fails to clarify what user actually needs; appears to assume user wants export info despite earlier re",
+     "call_id": "d195afaf-afff-45a9-b741-1de260f4a5ea"
+    },
+    {
+     "type": "loop_repetition",
+     "quote": "This is Pooja calling from Alibaba dot com, would you like to speak in English या आप हिन्दी में बात करना चाहते हैं? ... This is Pooja callin",
+     "description": "Agent repeats identical greeting/language selection prompt without acknowledging user's 'hello' or attempting alternative engagement strategy.",
+     "call_id": "c16621cc-888e-45d6-a5bf-ebd184cb5145"
+    }
+   ]
   },
   {
    "org": "[Prod] Abandoned Cart",
@@ -1926,7 +2034,34 @@
     "quote": "Just give me a moment, I'll be back with you.",
     "description": "Agent went offline without completing the conversation, leaving user hanging and no follow-up stated.",
     "call_id": "ad51ca67-e276-4b57-bbee-72ad49c279b4"
-   }
+   },
+   "human": {
+    "asr_corrections": 7,
+    "pronunciation": 6,
+    "tone_low": 0,
+    "response_issues": 22,
+    "golden_calls": 7
+   },
+   "examples": [
+    {
+     "type": "rule_violation",
+     "quote": "Just give me a moment, I'll be back with you.",
+     "description": "Agent went offline without completing the conversation, leaving user hanging and no follow-up stated.",
+     "call_id": "ad51ca67-e276-4b57-bbee-72ad49c279b4"
+    },
+    {
+     "type": "input_capture_error",
+     "quote": "Hello, am i speaking with Dr?",
+     "description": "Agent never captured or verified the actual customer's name/identity; asked a vague incomplete question.",
+     "call_id": "f264f2dc-5959-4762-84ca-ce88f830a99d"
+    },
+    {
+     "type": "context_not_carried",
+     "quote": "user: if you registered your name and written for calling i'll see if this person is available",
+     "description": "Agent ignored user's indication that they are screening a call and proceeded as if speaking to the actual customer.",
+     "call_id": "f264f2dc-5959-4762-84ca-ce88f830a99d"
+    }
+   ]
   },
   {
    "org": "Indian Online Version",
@@ -1971,7 +2106,28 @@
     "quote": "Hey, can you hear me?",
     "description": "Call appears to have dropped or experienced critical connectivity issue; agent re-engages with connection check but no resolution shown in transcript.",
     "call_id": "0eb1e8f2-f9b6-4f2d-8a2f-c7e6162d98c0"
-   }
+   },
+   "human": {
+    "asr_corrections": 10,
+    "pronunciation": 2,
+    "tone_low": 0,
+    "response_issues": 24,
+    "golden_calls": 6
+   },
+   "examples": [
+    {
+     "type": "other",
+     "quote": "Hey, can you hear me?",
+     "description": "Call appears to have dropped or experienced critical connectivity issue; agent re-engages with connection check but no resolution shown in transcript.",
+     "call_id": "0eb1e8f2-f9b6-4f2d-8a2f-c7e6162d98c0"
+    },
+    {
+     "type": "input_capture_error",
+     "quote": "बहुत बढ़िया. क्या आप चाहेंगे कि मैं इसी number पर Export Basics का एक guide WhatsApp कर दूँ?",
+     "description": "Agent assumes 'इसी number' (this number) without explicitly capturing or confirming the user's phone number for WhatsApp contact.",
+     "call_id": "32526c0c-fe2f-49af-bf4f-6f85c913ea54"
+    }
+   ]
   },
   {
    "org": "[giva-jewelry.myshopify.com] abandoned-checkout",
@@ -2016,7 +2172,22 @@
     "quote": "बस एक मिनट दीजिए, मैं अभी वापस आती हूँ। [pause] क्या आप अभी भी लाइन पर हैं?",
     "description": "Agent places user on hold without clear timeframe and returns with a check-in rather than delivering the promised action (WhatsApp link), indicating failure to ",
     "call_id": "ac48a2ed-3d1b-46fa-97e3-73b194c02a8b"
-   }
+   },
+   "human": {
+    "asr_corrections": 1,
+    "pronunciation": 8,
+    "tone_low": 0,
+    "response_issues": 7,
+    "golden_calls": 2
+   },
+   "examples": [
+    {
+     "type": "rule_violation",
+     "quote": "बस एक मिनट दीजिए, मैं अभी वापस आती हूँ। [pause] क्या आप अभी भी लाइन पर हैं?",
+     "description": "Agent places user on hold without clear timeframe and returns with a check-in rather than delivering the promised action (WhatsApp link), indicating failure to ",
+     "call_id": "ac48a2ed-3d1b-46fa-97e3-73b194c02a8b"
+    }
+   ]
   },
   {
    "org": "pocketly-bkt0-due-reminder-priya-vobiz",
@@ -2061,7 +2232,28 @@
     "quote": "बहुत अच्छा. आज किस time तक payment कर पाएँगे? [followed immediately by disconnection]",
     "description": "Agent asked for payment time but did not wait for or capture user's response before ending call.",
     "call_id": "91a47775-82fc-4acf-bc0a-bcf902f6a0fc"
-   }
+   },
+   "human": {
+    "asr_corrections": 6,
+    "pronunciation": 3,
+    "tone_low": 0,
+    "response_issues": 9,
+    "golden_calls": 2
+   },
+   "examples": [
+    {
+     "type": "context_not_carried",
+     "quote": "बहुत अच्छा. आज किस time तक payment कर पाएँगे? [followed immediately by disconnection]",
+     "description": "Agent asked for payment time but did not wait for or capture user's response before ending call.",
+     "call_id": "91a47775-82fc-4acf-bc0a-bcf902f6a0fc"
+    },
+    {
+     "type": "input_capture_error",
+     "quote": "आज किस time तक payment कर पाएँगे? ... धन्यवाद और नमस्कार!",
+     "description": "Agent failed to capture the time commitment user was asked to provide—critical data for follow-up.",
+     "call_id": "91a47775-82fc-4acf-bc0a-bcf902f6a0fc"
+    }
+   ]
   },
   {
    "org": "[thedermaco.myshopify.com] abandoned-checkout",
@@ -2101,7 +2293,15 @@
      "count": 1
     }
    ],
-   "example": null
+   "example": null,
+   "human": {
+    "asr_corrections": 9,
+    "pronunciation": 1,
+    "tone_low": 0,
+    "response_issues": 3,
+    "golden_calls": 3
+   },
+   "examples": []
   },
   {
    "org": "Zara - [Prod] Abandon Cart",
@@ -2137,7 +2337,15 @@
      "count": 1
     }
    ],
-   "example": null
+   "example": null,
+   "human": {
+    "asr_corrections": 0,
+    "pronunciation": 4,
+    "tone_low": 0,
+    "response_issues": 1,
+    "golden_calls": 2
+   },
+   "examples": []
   },
   {
    "org": "iGolf Final AI Agent Phone Today",
@@ -2178,7 +2386,22 @@
     "quote": "Please give me a moment. I will transfer the call to a human agent.",
     "description": "Agent abruptly transferred call without acknowledging or addressing the user's sudden request about a 'red alert in Pune range'—a topic completely unrelated to ",
     "call_id": "19368bce-f95d-4a69-86af-0d3d6102d4f7"
-   }
+   },
+   "human": {
+    "asr_corrections": 1,
+    "pronunciation": 1,
+    "tone_low": 0,
+    "response_issues": 4,
+    "golden_calls": 1
+   },
+   "examples": [
+    {
+     "type": "irrelevant_response",
+     "quote": "Please give me a moment. I will transfer the call to a human agent.",
+     "description": "Agent abruptly transferred call without acknowledging or addressing the user's sudden request about a 'red alert in Pune range'—a topic completely unrelated to ",
+     "call_id": "19368bce-f95d-4a69-86af-0d3d6102d4f7"
+    }
+   ]
   },
   {
    "org": "Neha",
@@ -2223,7 +2446,34 @@
     "quote": "delivery आमतौर पर seven to ten days में हो जाती है",
     "description": "Agent ignored user's explicit statement that address was wrong and package never arrived, instead giving generic delivery timeline advice.",
     "call_id": "87418287-ec13-4bdb-aa1c-62beafa9c842"
-   }
+   },
+   "human": {
+    "asr_corrections": 7,
+    "pronunciation": 1,
+    "tone_low": 0,
+    "response_issues": 3,
+    "golden_calls": 3
+   },
+   "examples": [
+    {
+     "type": "context_not_carried",
+     "quote": "delivery आमतौर पर seven to ten days में हो जाती है",
+     "description": "Agent ignored user's explicit statement that address was wrong and package never arrived, instead giving generic delivery timeline advice.",
+     "call_id": "87418287-ec13-4bdb-aa1c-62beafa9c842"
+    },
+    {
+     "type": "irrelevant_response",
+     "quote": "For return, exchange, or warranty details, please check the official thedeconstruct website.",
+     "description": "User asked about delivery status tracking; agent pivoted to return/warranty info instead of answering the question.",
+     "call_id": "ade44f5e-9e7e-4c22-b569-939e12f3cc9c"
+    }
+   ]
   }
- ]
+ ],
+ "golden_dataset": {
+  "calls": 247,
+  "segments_verified": 10020,
+  "asr_corrections": 1093,
+  "dual_transcribed": 113
+ }
 }
