@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { normalizeReviewMode, ReviewRow } from "../../../lib/audit";
 import { syncReviewsToSheets } from "../../../lib/sheetsSync";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
@@ -19,20 +19,23 @@ export async function POST(request: Request) {
 
   // Replace any prior submission by this reviewer for this call+mode. RLS blocks
   // deletes, so prior rows are voided by setting review_mode to "cleared".
-  if (reviewerEmail) {
-    await supabase
+  // Both identity variants cleared in parallel — no need to serialize.
+  await Promise.all([
+    reviewerEmail
+      ? supabase
+          .from("reviews")
+          .update({ review_mode: "cleared" })
+          .eq("call_id", callId)
+          .eq("reviewer_email", reviewerEmail)
+          .eq("review_mode", reviewMode)
+      : Promise.resolve(),
+    supabase
       .from("reviews")
       .update({ review_mode: "cleared" })
       .eq("call_id", callId)
-      .eq("reviewer_email", reviewerEmail)
-      .eq("review_mode", reviewMode);
-  }
-  await supabase
-    .from("reviews")
-    .update({ review_mode: "cleared" })
-    .eq("call_id", callId)
-    .eq("reviewer_name", reviewerName)
-    .eq("review_mode", reviewMode);
+      .eq("reviewer_name", reviewerName)
+      .eq("review_mode", reviewMode)
+  ]);
 
   const { data: inserted, error } = await supabase
     .from("reviews")
@@ -57,18 +60,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error?.message || "Could not save review" }, { status: 500 });
   }
 
-  const syncResult = await syncReviewsToSheets([inserted as ReviewRow]);
-  if (syncResult.ok) {
-    await supabase
-      .from("reviews")
-      .update({ sheets_synced_at: new Date().toISOString(), sheets_sync_error: null })
-      .eq("id", inserted.id);
-  } else {
-    await supabase
-      .from("reviews")
-      .update({ sheets_sync_error: syncResult.error || "Sheets sync failed" })
-      .eq("id", inserted.id);
-  }
+  // The reviewer's submit must not wait on the Google Apps Script webhook
+  // (2-8s, cold starts) — that made every submit feel stuck. Respond as soon
+  // as the review is saved; sync to Sheets after the response. Failures are
+  // recorded in sheets_sync_error and picked up by the batch /api/sync-sheets.
+  after(async () => {
+    const syncResult = await syncReviewsToSheets([inserted as ReviewRow]);
+    if (syncResult.ok) {
+      await supabase
+        .from("reviews")
+        .update({ sheets_synced_at: new Date().toISOString(), sheets_sync_error: null })
+        .eq("id", inserted.id);
+    } else {
+      await supabase
+        .from("reviews")
+        .update({ sheets_sync_error: syncResult.error || "Sheets sync failed" })
+        .eq("id", inserted.id);
+    }
+  });
 
-  return NextResponse.json({ ok: true, review_id: inserted.id, sheets_sync: syncResult });
+  return NextResponse.json({ ok: true, review_id: inserted.id, sheets_sync: { ok: true, queued: true } });
 }
