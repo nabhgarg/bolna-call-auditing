@@ -198,6 +198,8 @@ export default function Transcribe() {
   const [states, setStates] = useState<Record<number, SegState>>({});
   const [rulesOpen, setRulesOpen] = useState(false);
   const [playhead, setPlayhead] = useState(0);
+  const [rate, setRate] = useState(1); // playback speed — 0.5x/0.75x help catch fast/slurred speech
+  const rateRef = useRef(1);
   // click-a-word chooser: 3 Devanagari options + keep Roman
   const [altPick, setAltPick] = useState<{ ti: number; alts: string[]; loading: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -212,7 +214,7 @@ export default function Transcribe() {
   const ctxRef = useRef<AudioContext | null>(null);
   const bufRef = useRef<AudioBuffer | null>(null);
   const srcRef = useRef<AudioBufferSourceNode | null>(null);
-  const playInfoRef = useRef<{ startedAt: number; offset: number; until: number } | null>(null);
+  const playInfoRef = useRef<{ startedAt: number; offset: number; until: number; rate: number } | null>(null);
   const rafRef = useRef<number>(0);
 
   function stopSpikeAudio() {
@@ -229,16 +231,18 @@ export default function Transcribe() {
     if (ctx.state === "suspended") ctx.resume().catch(() => {});
     const src = ctx.createBufferSource();
     src.buffer = buf;
+    src.playbackRate.value = rateRef.current;
     src.connect(ctx.destination);
     const start = Math.max(0, Math.min(from, buf.duration));
     const stop = Math.max(start, Math.min(until, buf.duration));
     src.start(0, start, stop - start);
     srcRef.current = src;
-    playInfoRef.current = { startedAt: ctx.currentTime, offset: start, until: stop };
+    playInfoRef.current = { startedAt: ctx.currentTime, offset: start, until: stop, rate: rateRef.current };
     const tick = () => {
       const info = playInfoRef.current;
       if (!info || !ctxRef.current) return;
-      const pos = info.offset + (ctxRef.current.currentTime - info.startedAt);
+      // at rate<1 the buffer advances slower than wall-clock, so scale elapsed
+      const pos = info.offset + (ctxRef.current.currentTime - info.startedAt) * info.rate;
       setPlayhead(Math.min(pos, info.until));
       // keep the visible <audio> player in step with spike playback (it stays
       // paused — we just move its position so the time display follows)
@@ -383,11 +387,24 @@ export default function Transcribe() {
     if (!a) return;
     const go = () => {
       try { a.currentTime = target; } catch { /* not seekable yet */ }
+      a.playbackRate = rateRef.current;
       stopAtRef.current = stopAt;
       a.play().catch(() => {});
     };
     if (a.readyState >= 1 && !Number.isNaN(a.duration)) go();
     else a.addEventListener("loadedmetadata", go, { once: true });
+  }
+  function changeRate(r: number) {
+    rateRef.current = r;
+    setRate(r);
+    // apply live: to the buffer source (rescale playhead math) and native player
+    if (srcRef.current && playInfoRef.current) {
+      const info = playInfoRef.current;
+      const nowPos = info.offset + (ctxRef.current!.currentTime - info.startedAt) * info.rate;
+      try { srcRef.current.playbackRate.value = r; } catch {}
+      playInfoRef.current = { ...info, startedAt: ctxRef.current!.currentTime, offset: nowPos, rate: r };
+    }
+    if (audioRef.current) audioRef.current.playbackRate = r;
   }
   function playSeg(i: number, list: Seg[] = segs) {
     const g = list[i];
@@ -579,6 +596,15 @@ export default function Transcribe() {
             <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
               <audio ref={audioRef} controls preload="auto" onTimeUpdate={onTime} onPlay={stopSpikeAudio}
                 src={call ? `/api/audio?url=${encodeURIComponent(call.recording_url || "")}` : undefined} style={{ height: 32, width: "100%", maxWidth: 380 }} />
+              <div style={{ display: "inline-flex", gap: 2, border: "1px solid #cfd9d4", borderRadius: 7, overflow: "hidden" }} title="Playback speed">
+                {[0.5, 0.75, 1].map((r) => (
+                  <button key={r} onClick={() => changeRate(r)}
+                    style={{ fontSize: 12, padding: "5px 9px", border: "none", cursor: "pointer",
+                      background: rate === r ? "#1f7a5c" : "#fff", color: rate === r ? "#fff" : "#5b6b64" }}>
+                    {r}×
+                  </button>
+                ))}
+              </div>
               <button onClick={() => setRulesOpen(!rulesOpen)} style={{ fontSize: 12 }}>{rulesOpen ? "rules ▴" : "rules ▾"}</button>
               {approxMode && <span style={{ fontSize: 11, color: "#b7791f" }}>~approx timing</span>}
             </div>
