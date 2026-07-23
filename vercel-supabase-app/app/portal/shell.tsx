@@ -14,9 +14,9 @@ const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", 
 const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f";
 
 const NAV = [
-  { href: "/portal", label: "Overview", icon: "◎" },
-  { href: "/portal/agents", label: "Agents", icon: "▤" },
-  { href: "/portal/datasets", label: "Datasets", icon: "▦" }
+  { href: "/portal", label: "Overall", icon: "◍" },
+  { href: "/portal/agents", label: "By agent", icon: "◐" },
+  { href: "/portal/datasets", label: "Datasets", icon: "▤" }
 ];
 
 export default function PortalShell({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {

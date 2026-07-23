@@ -1,0 +1,179 @@
+{
+ "generated_at": "2026-07-23T23:17:51.435429+00:00",
+ "evaluated_calls": 736,
+ "summary": {
+  "occurrences": 1863,
+  "calls_with_issue": 340,
+  "pct_calls": 46,
+  "human_only_pct": 71
+ },
+ "l2": [
+  {
+   "key": "transcription",
+   "label": "Wrong / missing transcription",
+   "occ": 1093,
+   "calls": 167
+  },
+  {
+   "key": "response",
+   "label": "Response appropriateness",
+   "occ": 541,
+   "calls": 197
+  },
+  {
+   "key": "pronunciation",
+   "label": "Pronunciation misses",
+   "occ": 150,
+   "calls": 84
+  },
+  {
+   "key": "naturalness",
+   "label": "Naturalness of the call",
+   "occ": 33,
+   "calls": 21
+  },
+  {
+   "key": "proper_noun",
+   "label": "Proper nouns & city names",
+   "occ": 46,
+   "calls": 35
+  }
+ ],
+ "vbl": {
+  "agent": "Visi Cooler Support v5.1 | Prod",
+  "calls": 14,
+  "bad_pct": 50,
+  "top_issues": [
+   [
+    "response",
+    67
+   ],
+   [
+    "pronunciation",
+    5
+   ],
+   [
+    "proper_noun",
+    3
+   ]
+  ],
+  "resp_subtypes": [
+   [
+    "User input capture errors",
+    34
+   ],
+   [
+    "Repetition",
+    14
+   ],
+   [
+    "Irrelevant response / others",
+    13
+   ]
+  ],
+  "example": {
+   "call_id": "8ba3abab-4c74-44a6-af62-c1c3be1a9f00",
+   "ts": "01:25",
+   "note": "user says 'barcode', ASR hears 'vargoor' — 6 reviewers caught it"
+  }
+ },
+ "agents": [
+  {
+   "agent": "Visi Cooler Support v5.1 | Prod",
+   "avg": 2.5,
+   "dist": [
+    29,
+    19,
+    23,
+    29
+   ],
+   "calls": 14,
+   "avg_raters": 3.4,
+   "issues_per_100": 536
+  },
+  {
+   "agent": "Unicommerce",
+   "avg": 2.8,
+   "dist": [
+    9,
+    32,
+    29,
+    29
+   ],
+   "calls": 51,
+   "avg_raters": 1.5,
+   "issues_per_100": 61
+  },
+  {
+   "agent": "[Prod] Abandoned Cart",
+   "avg": 2.9,
+   "dist": [
+    14,
+    16,
+    31,
+    39
+   ],
+   "calls": 15,
+   "avg_raters": 5.5,
+   "issues_per_100": 233
+  },
+  {
+   "agent": "GoKwik 2",
+   "avg": 2.9,
+   "dist": [
+    12,
+    27,
+    25,
+    37
+   ],
+   "calls": 40,
+   "avg_raters": 1.3,
+   "issues_per_100": 105
+  },
+  {
+   "agent": "NCR v6 - onboarding",
+   "avg": 3.0,
+   "dist": [
+    8,
+    24,
+    27,
+    41
+   ],
+   "calls": 11,
+   "avg_raters": 4.5,
+   "issues_per_100": 1036
+  },
+  {
+   "agent": "Indian Online Version",
+   "avg": 3.1,
+   "dist": [
+    8,
+    16,
+    30,
+    46
+   ],
+   "calls": 15,
+   "avg_raters": 4.9,
+   "issues_per_100": 240
+  }
+ ],
+ "healthy": {
+  "agent": "Referral-Hindi",
+  "avg": 3.4,
+  "dist": [
+   1,
+   13,
+   25,
+   60
+  ],
+  "calls": 18,
+  "avg_raters": 3.7,
+  "issues_per_100": 900
+ },
+ "trust": {
+  "gt_agreement": 74,
+  "gt_n": 2182,
+  "internal_agreement": 76,
+  "internal_n": 134
+ }
+}
