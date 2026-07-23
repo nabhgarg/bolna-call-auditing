@@ -18,7 +18,7 @@ type Seg = { start: number; end: number; asr: string | null; official: boolean }
 type Tok = { src: string; out: string; converted: boolean };
 type SegState = {
   status: "pending" | "done";
-  kind: "correct" | "wrong" | "missing" | "noise" | null;
+  kind: "correct" | "wrong" | "missing" | "noise" | "deleted" | null;
   wrongLang: "same" | "different";
   roman: string;
   tokens: Tok[];
@@ -459,8 +459,10 @@ export default function Transcribe() {
 
   function resolve(i: number, kind: SegState["kind"]) {
     const s = st(i);
-    if (kind === "correct" || kind === "noise") {
-      patch(i, { kind, status: "done", tokens: kind === "noise" ? [] : s.tokens, roman: kind === "noise" ? "{noise}" : s.roman });
+    if (kind === "correct" || kind === "noise" || kind === "deleted") {
+      // "deleted" = the detector was wrong, this spike is not a user turn at all
+      // (agent bleed / line click) — resolve it and drop it from the transcript.
+      patch(i, { kind, status: "done", tokens: kind === "correct" ? s.tokens : [], roman: kind === "noise" ? "{noise}" : kind === "deleted" ? "" : s.roman });
       next(i);
     } else if (kind === "wrong") {
       // Prefill with the ASR so the reviewer edits the wrong words instead of
@@ -484,7 +486,7 @@ export default function Transcribe() {
       const issues = segs.map((g, i) => {
         const s = st(i);
         const asr = g.asr || "";
-        const gold = s.kind === "correct" ? asr : s.kind === "noise" ? "{noise}" : goldOf(s.tokens, s.roman) || "{noise}";
+        const gold = s.kind === "correct" ? asr : s.kind === "noise" ? "{noise}" : s.kind === "deleted" ? "(not a user turn — wrongly detected)" : goldOf(s.tokens, s.roman) || "{noise}";
         return {
           type: "transcription",
           timestamp: fmt(g.start),
@@ -499,6 +501,7 @@ export default function Transcribe() {
           transcription_error_type:
             s.kind === "correct" ? "Correct" :
             s.kind === "noise" ? "Noise" :
+            s.kind === "deleted" ? "Wrongly detected (delete turn)" :
             s.kind === "missing" ? "Missing" :
             s.wrongLang === "same" ? "Wrong Transcription same language" : "Wrong Transcription different language",
           audio_unclear: s.unclear ? "Yes" : "No",
@@ -647,6 +650,7 @@ export default function Transcribe() {
                         <button onClick={() => resolve(cur, "missing")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "missing" ? "#c05621" : "#fff", color: s.kind === "missing" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Write it</button>
                       )}
                       <button onClick={() => resolve(cur, "noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #4a5568", background: s.kind === "noise" ? "#4a5568" : "#fff", color: s.kind === "noise" ? "#fff" : "#4a5568", cursor: "pointer" }}>{"{noise}"}</button>
+                      <button onClick={() => resolve(cur, "deleted")} title="This isn't a user turn — the detector was wrong. Removes it from the transcript." style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #b03636", background: s.kind === "deleted" ? "#b03636" : "#fff", color: s.kind === "deleted" ? "#fff" : "#b03636", cursor: "pointer" }}>🗑 Not a user turn</button>
                       <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto" }}>
                         <input type="checkbox" checked={s.unclear} onChange={(e) => patch(cur, { unclear: e.target.checked })} /> audio unclear
                       </label>
@@ -735,16 +739,20 @@ export default function Transcribe() {
                     agent-context transcript, so the segment list is authoritative. */}
                 <div style={{ fontSize: 12, color: "#8a988f", marginBottom: 8 }}>User turns ({segs.length}) — click to jump</div>
                 {segs.map((sg, i) => {
+                  const deleted = st(i).kind === "deleted";
                   const said = st(i).status === "done"
-                    ? (st(i).kind === "correct" ? (sg.asr || "") : st(i).kind === "noise" ? "{noise}" : goldOf(st(i).tokens, st(i).roman))
+                    ? (st(i).kind === "correct" ? (sg.asr || "") : st(i).kind === "noise" ? "{noise}" : deleted ? "" : goldOf(st(i).tokens, st(i).roman))
                     : (sg.asr ?? "");
                   return (
                     <p key={i} onClick={() => playSeg(i)}
                       style={{ fontSize: 12.5, lineHeight: 1.5, margin: "5px 0", padding: "3px 5px", borderRadius: 4, cursor: "pointer",
-                        background: i === cur ? "#fdf3e3" : "transparent",
-                        borderLeft: `3px solid ${st(i).status === "done" ? "#1f7a5c" : sg.official ? "#c8d6d0" : "#c05621"}` }}>
+                        background: i === cur ? "#fdf3e3" : "transparent", opacity: deleted ? 0.5 : 1,
+                        textDecoration: deleted ? "line-through" : "none",
+                        borderLeft: `3px solid ${deleted ? "#b03636" : st(i).status === "done" ? "#1f7a5c" : sg.official ? "#c8d6d0" : "#c05621"}` }}>
                       <strong style={{ color: "#5b6b64" }}>{i + 1}. @{fmt(sg.start)}{sg.official ? "" : " · spike"}:</strong>{" "}
-                      {said ? <span style={{ color: "#1f2d28" }}>{said}</span> : <em style={{ color: "#9b2c2c" }}>needs transcription</em>}
+                      {deleted ? <em style={{ color: "#b03636" }}>not a user turn (removed)</em>
+                        : said ? <span style={{ color: "#1f2d28" }}>{said}</span>
+                        : <em style={{ color: "#9b2c2c" }}>needs transcription</em>}
                     </p>
                   );
                 })}
