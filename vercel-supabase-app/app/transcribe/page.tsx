@@ -486,7 +486,8 @@ export default function Transcribe() {
       // retyping the whole segment. Run conversion so the preview shows at once.
       const asr = segs[i]?.asr || "";
       patch(i, { kind });
-      if (!s.roman.trim() && asr) onRoman(i, asr);
+      const isBlind = currentQueueId.startsWith("txb_");
+      if (!isBlind && !s.roman.trim() && asr) onRoman(i, asr);
     } else patch(i, { kind });
   }
   function saveEdit(i: number) {
@@ -531,7 +532,7 @@ export default function Transcribe() {
         body: JSON.stringify({
           call_id: call.execution_id, reviewer_name: display, reviewer_email: email, review_mode: MODE,
           vibe_score: "", flow_score: "", llm_rating: "", llm_error_type: "",
-          notes: `golden transcription | ${segs.length} spikes | approx=${approxMode}`,
+          notes: `golden transcription | ${segs.length} spikes | approx=${approxMode} | blind=${blind}`,
           issues, started_at: new Date().toISOString(), duration_taken_sec: 0
         })
       }).then((r) => r.json());
@@ -561,6 +562,9 @@ export default function Transcribe() {
   }
 
   const pendingCount = queue.filter((c) => !c.reviewed).length;
+  // Blind arm of the transcript-visibility experiment: txb_* queue rows hide
+  // the ASR everywhere — the reviewer transcribes from audio alone.
+  const blind = currentQueueId.startsWith("txb_");
   const g = segs[cur];
   const s = g ? st(cur) : null;
   const asrText = g?.asr || "";
@@ -656,24 +660,26 @@ export default function Transcribe() {
                       </span>
                     </div>
 
-                    {g.asr !== null ? (
+                    {g.asr !== null && !blind ? (
                       <>
                         <div style={{ fontSize: 11.5, color: "#8a988f", marginTop: 10 }}>ASR heard {g.official ? "(official Bolna turn)" : ""}:</div>
                         <p style={{ fontSize: 16, margin: "4px 0 10px", color: "#1f2d28", lineHeight: 1.6 }}>{asrText}</p>
                       </>
+                    ) : g.asr !== null && blind ? (
+                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "#4a5568" }}>Listen and write what the user said.</p>
                     ) : (
                       <p style={{ fontSize: 13.5, margin: "10px 0", color: "#9b2c2c" }}>No official transcript for this spike — listen and write what was said.</p>
                     )}
 
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {g.asr !== null && (
+                      {g.asr !== null && !blind && (
                         <>
                           <button onClick={() => resolve(cur, "correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #1f7a5c", background: s.kind === "correct" ? "#1f7a5c" : "#fff", color: s.kind === "correct" ? "#fff" : "#1f7a5c", cursor: "pointer" }}>✓ Correct</button>
                           <button onClick={() => resolve(cur, "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "wrong" ? "#c05621" : "#fff", color: s.kind === "wrong" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Edit — ASR is wrong</button>
                         </>
                       )}
-                      {g.asr === null && (
-                        <button onClick={() => resolve(cur, "missing")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "missing" ? "#c05621" : "#fff", color: s.kind === "missing" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Write it</button>
+                      {(g.asr === null || blind) && (
+                        <button onClick={() => resolve(cur, g.asr === null ? "missing" : "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: (s.kind === "missing" || (blind && s.kind === "wrong")) ? "#c05621" : "#fff", color: (s.kind === "missing" || (blind && s.kind === "wrong")) ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Write it</button>
                       )}
                       <button onClick={() => resolve(cur, "noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #4a5568", background: s.kind === "noise" ? "#4a5568" : "#fff", color: s.kind === "noise" ? "#fff" : "#4a5568", cursor: "pointer" }}>{"{noise}"}</button>
                       <button onClick={() => resolve(cur, "deleted")} title="This isn't a user turn — the detector was wrong. Removes it from the transcript." style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #b03636", background: s.kind === "deleted" ? "#b03636" : "#fff", color: s.kind === "deleted" ? "#fff" : "#b03636", cursor: "pointer" }}>🗑 Not a user turn</button>
@@ -684,7 +690,7 @@ export default function Transcribe() {
 
                     {editorOpen && (
                       <div style={{ marginTop: 10 }}>
-                        {g.asr !== null && (
+                        {g.asr !== null && !blind && (
                           <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#5b6b64", marginBottom: 6 }}>
                             wrong in:
                             <label><input type="radio" checked={s.wrongLang === "same"} onChange={() => patch(cur, { wrongLang: "same" })} /> same language</label>
@@ -772,7 +778,7 @@ export default function Transcribe() {
                   const deleted = st(i).kind === "deleted";
                   const said = st(i).status === "done"
                     ? (st(i).kind === "correct" ? (sg.asr || "") : st(i).kind === "noise" ? "{noise}" : deleted ? "" : goldOf(st(i).tokens, st(i).roman))
-                    : (sg.asr ?? "");
+                    : (blind ? "" : (sg.asr ?? ""));
                   return (
                     <p key={i} onClick={() => playSeg(i)}
                       style={{ fontSize: 12.5, lineHeight: 1.5, margin: "5px 0", padding: "3px 5px", borderRadius: 4, cursor: "pointer",
@@ -786,8 +792,8 @@ export default function Transcribe() {
                     </p>
                   );
                 })}
-                <div style={{ fontSize: 12, color: "#8a988f", margin: "16px 0 6px", borderTop: "1px solid #eef2f0", paddingTop: 10 }}>Conversation context (agent + user, read-only)</div>
-                {call.turns.map((t, i) => (
+                {!blind && <div style={{ fontSize: 12, color: "#8a988f", margin: "16px 0 6px", borderTop: "1px solid #eef2f0", paddingTop: 10 }}>Conversation context (agent + user, read-only)</div>}
+                {!blind && call.turns.map((t, i) => (
                   <p key={i} style={{ fontSize: 12, lineHeight: 1.55, margin: "5px 0", color: t.role === "assistant" ? "#9aa8a1" : "#4a5568" }}>
                     <strong>{t.role === "assistant" ? "agent" : "user"}:</strong> {t.text}
                   </p>
