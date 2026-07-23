@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
+import PortalShell from "../shell";
 
 // N2 — issue drill-down, evidence-backed. Every count on the portal home
 // opens here as playable rows: call + timestamp + finding + who caught it.
@@ -47,13 +48,14 @@ function Inner() {
   if (allowed === false) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The portal is available to experts. Log in on the <a href="/" style={{ color: GREEN }}>main app</a> first.</main>;
 
   return (
-    <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", color: INK }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "12px 20px" }}>
-        <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>realloop</span>
-        <a href="/portal" style={{ fontSize: 12.5, color: MUT, textDecoration: "none" }}>← Portal home</a>
+    <PortalShell right={
+      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px" }}>
+        <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issue evidence</span>
+        <a href="/portal" style={{ fontSize: 12, color: MUT, textDecoration: "none" }}>← Overview</a>
         <span style={{ flex: 1 }} />
-        <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13.5, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer" }}>Download report</button>
+        <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
+    }>
       <div style={{ maxWidth: 1020, margin: "0 auto", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {TYPES.map(([t, label]) => (
@@ -103,7 +105,7 @@ function Inner() {
         )}
         <audio ref={audioRef} controls style={{ width: "100%", height: 34 }} />
       </div>
-    </div>
+    </PortalShell>
   );
 }
 

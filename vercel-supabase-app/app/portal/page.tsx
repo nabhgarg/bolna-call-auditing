@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
+import PortalShell from "./shell";
 
 // Client portal (N1 "money shot") — Console design language from the hi-fi
 // wireframes: cool off-white canvas, white 12px-radius cards, Space Grotesk
@@ -63,15 +64,13 @@ export default function Portal() {
     jn("language_error"), jn("context_not_carried"), jn("loop_repetition") + jn("irrelevant_response"), jn("rule_violation") + jn("input_capture_error"), frusTotal, 1);
 
   return (
-    <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", color: INK }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "12px 20px" }}>
-        <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>realloop</span>
-        <span style={{ display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eef2f6", padding: "4px 11px", fontSize: 12, color: "#4d5a66" }}>Bolna · live</span>
+    <PortalShell right={
+      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px" }}>
+        <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Overview</span>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 12.5, color: MUT }}>Portal · <a href="/portal/agents" style={{ color: MUT }}>Agents</a> · <a href="/dashboard" style={{ color: MUT }}>Calibration</a></span>
-        <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13.5, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer" }}>Download report</button>
+        <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
-
+    }>
       <div style={{ maxWidth: 1020, margin: "0 auto", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", gap: 12 }}>
           <Stat n={c.total_calls} l="calls in evaluation corpus" />
@@ -136,6 +135,6 @@ export default function Portal() {
           Live · computed {new Date(portal.generated_at).toLocaleString()} · machine metrics from Bolna telemetry ({m.basis_calls} calls, {String(m.computed_at || "").slice(0, 10)}) · human metrics from {th.reviews_total} reviews
         </div>
       </div>
-    </div>
+    </PortalShell>
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
+import PortalShell from "../shell";
 
 // Agent dashboard — one-screen master-detail. Agents on the left; clicking one
 // shows its full picture: outcomes, issue graph split by who caught it
@@ -67,14 +68,13 @@ export default function Agents() {
   const gd = judge.golden_dataset || {};
 
   return (
-    <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", color: INK }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "12px 20px" }}>
-        <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>realloop</span>
-        <span style={{ display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eef2f6", padding: "4px 11px", fontSize: 12, color: "#4d5a66" }}>Agent dashboard</span>
+    <PortalShell right={
+      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px" }}>
+        <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Agents</span>
+        <span style={{ fontSize: 12, color: MUT }}>anonymized archetypes · click to drill in</span>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 12.5, color: MUT }}><a href="/portal" style={{ color: MUT }}>Portal</a> · Agents · <a href="/dashboard" style={{ color: MUT }}>Calibration</a></span>
       </div>
-
+    }>
       <div style={{ maxWidth: 1080, margin: "0 auto", padding: "16px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
         {/* Sidebar: agent list */}
         <div style={{ ...card, width: 230, flex: "none", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -157,6 +157,6 @@ export default function Agents() {
           </div>
         </div>
       </div>
-    </div>
+    </PortalShell>
   );
 }
