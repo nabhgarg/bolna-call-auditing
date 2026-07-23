@@ -579,15 +579,36 @@ export default function Transcribe() {
         </div>
         <div className="queue-stats">{pendingCount} pending · {queue.length - pendingCount} submitted · {queue.length} assigned</div>
         <nav className="call-list">
-          {queue.map((c) => (
-            <button key={`${c.queue_id}:${c.execution_id}`}
-              className={`call-card ${c.reviewed ? "reviewed submitted" : ""} ${currentQueueId === `${c.queue_id}:${c.execution_id}` ? "active" : ""}`}
-              onClick={() => !c.reviewed && openCall(c)}>
-              <span className="call-id">ID {c.execution_id.slice(0, 8)}</span>
-              <strong>{c.agent_name || "call"}</strong>
-              <span>· {fmt(Number(c.duration_sec || 0))} · {c.reviewed ? "Done ✓" : "Open"}</span>
-            </button>
-          ))}
+          {/* Experiment queues render as two labeled sections: with transcript
+              (txv) first, then blind (txb). Everything else renders flat. */}
+          {(() => {
+            const vis = queue.filter((c) => String(c.queue_id || "").startsWith("txv_"));
+            const bl = queue.filter((c) => String(c.queue_id || "").startsWith("txb_"));
+            const rest = queue.filter((c) => !String(c.queue_id || "").startsWith("txv_") && !String(c.queue_id || "").startsWith("txb_"));
+            const card = (c: QueueItem) => (
+              <button key={`${c.queue_id}:${c.execution_id}`}
+                className={`call-card ${c.reviewed ? "reviewed submitted" : ""} ${currentQueueId === `${c.queue_id}:${c.execution_id}` ? "active" : ""}`}
+                onClick={() => !c.reviewed && openCall(c)}>
+                <span className="call-id">ID {c.execution_id.slice(0, 8)}</span>
+                <strong>{c.agent_name || "call"}</strong>
+                <span>· {fmt(Number(c.duration_sec || 0))} · {c.reviewed ? "Done ✓" : "Open"}</span>
+              </button>
+            );
+            const header = (label: string, done: number, total: number, color: string) => (
+              <div style={{ padding: "10px 6px 4px", fontSize: 12, fontWeight: 600, color, borderBottom: "1px solid #e2e8e5", marginBottom: 6 }}>
+                {label} · {done}/{total} done
+              </div>
+            );
+            return (
+              <>
+                {vis.length > 0 && header("PART 1 — transcript shown", vis.filter((c) => c.reviewed).length, vis.length, "#1f7a5c")}
+                {vis.map(card)}
+                {bl.length > 0 && header("PART 2 — no transcript (listen & write)", bl.filter((c) => c.reviewed).length, bl.length, "#9b2c2c")}
+                {bl.map(card)}
+                {rest.map(card)}
+              </>
+            );
+          })()}
           {queue.length === 0 && <div className="queue-empty"><p>No calls assigned yet.</p></div>}
         </nav>
       </aside>
