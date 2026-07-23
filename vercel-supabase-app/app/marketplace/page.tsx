@@ -21,9 +21,9 @@ const ROLE_BLURB: Record<string, string> = {
   "AI Call Expert": "sets ground truth, vets the panel, calibrates new reviewers"
 };
 
-function ReviewerCard({ r }: { r: any }) {
+function ReviewerCard({ r, selected, onToggle }: { r: any; selected: boolean; onToggle: (code: string) => void }) {
   return (
-    <div style={{ ...card, width: 250, flex: "none", padding: "13px 14px", display: "flex", flexDirection: "column", gap: 7 }}>
+    <div style={{ ...card, width: 250, flex: "none", padding: "13px 14px", display: "flex", flexDirection: "column", gap: 7, borderColor: selected ? GREEN : "#e2e8ee" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span className={mono.className} style={{ fontSize: 13.5, fontWeight: 600 }}>{r.code}</span>
         <span style={{ flex: 1 }} />
@@ -50,8 +50,8 @@ function ReviewerCard({ r }: { r: any }) {
           <div style={{ width: `${r.agreement}%`, height: "100%", background: GREEN, borderRadius: 3 }} />
         </div>
       )}
-      <button style={{ marginTop: 2, border: `1px solid ${GREEN}`, color: GREEN, background: "transparent", borderRadius: 8, padding: "7px 0", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-        Add to panel
+      <button onClick={() => onToggle(r.code)} style={{ marginTop: 2, border: `1px solid ${GREEN}`, color: selected ? "#fff" : GREEN, background: selected ? GREEN : "transparent", borderRadius: 8, padding: "7px 0", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+        {selected ? "✓ In panel" : "Add to panel"}
       </button>
     </div>
   );
@@ -62,13 +62,23 @@ export default function Marketplace() {
   const [error, setError] = useState("");
   const [openRoles, setOpenRoles] = useState<Record<string, boolean>>({});
   const [mobile, setMobile] = useState(false);
+  const [panel, setPanel] = useState<string[]>([]);
 
   useEffect(() => {
     const m = window.matchMedia("(max-width: 640px)").matches;
     setMobile(m);
     setOpenRoles(m ? {} : { "AI Call Reviewer": true, "Hindi Transcriber": true, "AI Call Expert": true });
+    try { setPanel(JSON.parse(window.localStorage.getItem("rlPanel") || "[]")); } catch {}
     fetch("/api/marketplace").then((r) => r.json()).then(setMk).catch((e) => setError(String(e)));
   }, []);
+
+  function togglePanel(code: string) {
+    setPanel((prev) => {
+      const next = prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code];
+      window.localStorage.setItem("rlPanel", JSON.stringify(next));
+      return next;
+    });
+  }
 
   if (!mk) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>{error || "Loading live supply…"}</main>;
 
@@ -119,7 +129,7 @@ export default function Marketplace() {
               </button>
               {open && (
                 <div style={{ display: "flex", gap: 10, flexWrap: mobile ? "nowrap" : "wrap", overflowX: mobile ? "auto" : "visible" }}>
-                  {list.map((r: any) => <ReviewerCard key={r.code} r={r} />)}
+                  {list.map((r: any) => <ReviewerCard key={r.code} r={r} selected={panel.includes(r.code)} onToggle={togglePanel} />)}
                 </div>
               )}
             </div>
@@ -138,6 +148,16 @@ export default function Marketplace() {
           Live supply · profiles anonymized (codes, no names) · stats computed from {"1,733+"} real reviews · updated {String(mk.generated_at || "").slice(0, 10)}
         </div>
       </div>
+
+      {/* floating panel tray — carries selection into the wizard */}
+      {panel.length > 0 && (
+        <div style={{ position: "fixed", right: 20, bottom: 20, zIndex: 40, ...card, display: "flex", alignItems: "center", gap: 12, padding: "10px 12px 10px 16px", boxShadow: "0 8px 28px rgba(16,24,31,.16)" }}>
+          <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>Panel</span>
+          <span style={{ fontSize: 12.5, color: MUT }}>{panel.length} reviewer{panel.length === 1 ? "" : "s"} selected</span>
+          <button onClick={() => { setPanel([]); window.localStorage.setItem("rlPanel", "[]"); }} style={{ fontSize: 11.5, color: MUT, background: "transparent", border: "none", cursor: "pointer" }}>clear</button>
+          <a href={`/marketplace/start?panel=${panel.join(",")}`} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, borderRadius: 8, padding: "9px 15px", textDecoration: "none" }}>Start a program →</a>
+        </div>
+      )}
     </div>
   );
 }

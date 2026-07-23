@@ -23,7 +23,6 @@ function Inner() {
   const [open, setOpen] = useState<string>(params.get("l2") || "response");
   const [picker, setPicker] = useState(false);
   const [q, setQ] = useState("");
-  const [copied, setCopied] = useState(false);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -86,8 +85,6 @@ function Inner() {
         </div>
         {needsAttention && <span style={{ borderRadius: 999, background: "#fbeaea", color: RED, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>needs attention</span>}
         <span style={{ flex: 1 }} />
-        <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/agents?agent=${encodeURIComponent(a.agent)}`).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }); }}
-          style={{ fontWeight: 500, fontSize: 13, color: copied ? GREEN : INK, background: "#fff", border: `1px solid ${copied ? GREEN : "#d6dee6"}`, borderRadius: 8, padding: "7px 13px", cursor: "pointer" }}>{copied ? "Link copied ✓" : "Share scorecard ↗"}</button>
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
     }>

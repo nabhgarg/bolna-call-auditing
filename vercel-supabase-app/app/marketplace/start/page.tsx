@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 
 // Client onboarding wizard — rubric-first (design review D4): the buyer's
@@ -37,6 +37,12 @@ export default function StartProgram() {
   const [panelSize, setPanelSize] = useState(3);
   const [dual, setDual] = useState(true);
   const [gtPct, setGtPct] = useState(10);
+  const [picked, setPicked] = useState<string[]>([]);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("panel");
+    if (p) setPicked(p.split(",").filter(Boolean));
+  }, []);
 
   const Layer = ({ f }: { f: string }) => (
     <div style={{ display: "flex", gap: 6 }}>
@@ -110,6 +116,13 @@ export default function StartProgram() {
           {step === 2 && (
             <div style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
               <div className={grotesk.className} style={{ fontSize: 18, fontWeight: 600 }}>Pick your panel</div>
+              {picked.length > 0 && (
+                <div style={{ background: "#e7f4ee", borderRadius: 8, padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12.5, color: GREEN, fontWeight: 600 }}>From the marketplace:</span>
+                  {picked.map((c) => <span key={c} style={{ borderRadius: 999, background: "#fff", border: `1px solid ${GREEN}`, color: GREEN, fontSize: 11.5, fontWeight: 600, padding: "2px 9px" }}>{c}</span>)}
+                  <span style={{ fontSize: 11.5, color: MUT }}>· the rest are auto-assigned from calibrated supply</span>
+                </div>
+              )}
               <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13.5 }}>
                 <span style={{ width: 200 }}>Reviewers per call</span>
                 {[1, 3, 5].map((n) => (
@@ -139,7 +152,7 @@ export default function StartProgram() {
               {[
                 ["Rubric", `${Object.values(layers).filter((l) => l === "human").length} human-routed failure types · rest automated`],
                 ["Calls", "connected via CSV / API"],
-                ["Panel", `${panelSize} reviewers per call · dual transcription ${dual ? "on" : "off"} · ${gtPct}% hidden ground truth`],
+                ["Panel", `${panelSize} reviewers per call · dual transcription ${dual ? "on" : "off"} · ${gtPct}% hidden ground truth${picked.length ? ` · ${picked.length} hand-picked (${picked.join(", ")})` : ""}`],
                 ["Reporting", "live portal · agent scorecards · reliability published every batch"]
               ].map(([k, v]) => (
                 <div key={k} style={{ display: "flex", gap: 12, fontSize: 13, borderTop: "1px solid #eef2f6", paddingTop: 8 }}>
