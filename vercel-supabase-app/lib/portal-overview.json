@@ -1,18 +1,18 @@
 {
- "generated_at": "2026-07-23T23:17:51.435429+00:00",
+ "generated_at": "2026-07-23T23:28:49.838681+00:00",
  "evaluated_calls": 736,
  "summary": {
-  "occurrences": 1863,
-  "calls_with_issue": 340,
-  "pct_calls": 46,
-  "human_only_pct": 71
+  "occurrences": 5329,
+  "calls_with_issue": 426,
+  "pct_calls": 58,
+  "human_only_pct": 90
  },
  "l2": [
   {
    "key": "transcription",
    "label": "Wrong / missing transcription",
-   "occ": 1093,
-   "calls": 167
+   "occ": 4559,
+   "calls": 354
   },
   {
    "key": "response",
@@ -44,6 +44,10 @@
   "calls": 14,
   "bad_pct": 50,
   "top_issues": [
+   [
+    "transcription",
+    392
+   ],
    [
     "response",
     67
@@ -89,7 +93,7 @@
    ],
    "calls": 14,
    "avg_raters": 3.4,
-   "issues_per_100": 536
+   "issues_per_100": 3336
   },
   {
    "agent": "Unicommerce",
@@ -102,7 +106,7 @@
    ],
    "calls": 51,
    "avg_raters": 1.5,
-   "issues_per_100": 61
+   "issues_per_100": 104
   },
   {
    "agent": "[Prod] Abandoned Cart",
@@ -115,7 +119,7 @@
    ],
    "calls": 15,
    "avg_raters": 5.5,
-   "issues_per_100": 233
+   "issues_per_100": 1353
   },
   {
    "agent": "GoKwik 2",
@@ -128,7 +132,7 @@
    ],
    "calls": 40,
    "avg_raters": 1.3,
-   "issues_per_100": 105
+   "issues_per_100": 175
   },
   {
    "agent": "NCR v6 - onboarding",
@@ -141,7 +145,7 @@
    ],
    "calls": 11,
    "avg_raters": 4.5,
-   "issues_per_100": 1036
+   "issues_per_100": 2155
   },
   {
    "agent": "Indian Online Version",
@@ -154,7 +158,7 @@
    ],
    "calls": 15,
    "avg_raters": 4.9,
-   "issues_per_100": 240
+   "issues_per_100": 1533
   }
  ],
  "healthy": {
@@ -168,7 +172,7 @@
   ],
   "calls": 18,
   "avg_raters": 3.7,
-  "issues_per_100": 900
+  "issues_per_100": 1961
  },
  "trust": {
   "gt_agreement": 74,

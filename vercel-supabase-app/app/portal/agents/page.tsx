@@ -1,162 +1,197 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Space_Grotesk, Instrument_Sans } from "next/font/google";
+import React, { useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
 
-// Agent dashboard — one-screen master-detail. Agents on the left; clicking one
-// shows its full picture: outcomes, issue graph split by who caught it
-// (purple = LLM judge, green = human reviewers), evidence quotes, and the
-// golden-transcript dataset block. All real data from the judge sweep +
-// human reviews (lib/portal-judge.json).
+// By agent (wireframe 7a) — one agent at a time, same L2 vocabulary as the
+// Overall page. Stat row → expandable L2 rows (human/LLM split, subtype
+// chips, playable evidence) → daily vibe chart + what-to-fix-first.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
+const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", PURPLE = "#7c5cbf", AMBER = "#b07a15", RED = "#c0392b";
+const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", PURPLE = "#7c5cbf", RED = "#d6484f", AMBER = "#b07a15";
 const card: React.CSSProperties = { background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 1px 2px rgba(16,24,31,.04)" };
+const CANON = "https://api.bolna.ai/recordings/call/";
 
-const ISSUE_LABEL: Record<string, string> = {
-  language_error: "Language errors", context_not_carried: "Ignored context", irrelevant_response: "Irrelevant replies",
-  loop_repetition: "Loops / repetition", rule_violation: "Rule violations", input_capture_error: "Input capture", hallucination: "Hallucination", other: "Other"
-};
-
-function OutcomeBar({ o }: { o: Record<string, number> }) {
-  const total = Object.values(o).reduce((s, v) => s + v, 0) || 1;
-  const seg = (k: string, color: string) => (o[k] ? <div key={k} title={`${k}: ${o[k]}`} style={{ width: `${(o[k] / total) * 100}%`, background: color }} /> : null);
-  return (
-    <div style={{ display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "#eef2f6" }}>
-      {seg("completed", GREEN)}{seg("partial", AMBER)}{seg("failed", RED)}{seg("unclear", "#93a1ae")}
-    </div>
-  );
-}
-
-function IssueRow({ label, n, max, color, who }: { label: string; n: number; max: number; color: string; who: string }) {
-  if (!n) return null;
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5 }}>
-      <span style={{ width: 150, flex: "none" }}>{label}</span>
-      <div style={{ flex: 1, height: 13, borderRadius: 7, background: "#eef2f6", overflow: "hidden" }}>
-        <div style={{ width: `${(n / max) * 100}%`, height: "100%", background: color, borderRadius: 7 }} />
-      </div>
-      <span className={grotesk.className} style={{ width: 34, textAlign: "right", fontWeight: 600, fontSize: 13 }}>{n}</span>
-      <span style={{ width: 52, fontSize: 10, color: MUT }}>{who}</span>
-    </div>
-  );
-}
-
-export default function Agents() {
-  const [judge, setJudge] = useState<any>(null);
+function Inner() {
+  const params = useSearchParams();
+  const [data, setData] = useState<any>(null);
   const [sel, setSel] = useState(0);
+  const [open, setOpen] = useState<string>(params.get("l2") || "response");
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [error, setError] = useState("");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert");
-    fetch("/api/portal/judge").then((r) => r.json()).then(setJudge).catch((e) => setError(String(e)));
+    fetch("/api/portal/byagent").then((r) => r.json()).then(setData).catch(() => {});
   }, []);
 
   if (allowed === false) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The portal is available to experts. Log in on the <a href="/" style={{ color: GREEN }}>main app</a> first.</main>;
-  if (!judge) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>{error || "Loading agent dashboard…"}</main>;
+  if (!data) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>Loading agent detail…</main>;
 
-  const orgs = (judge.orgs || []).filter((o: any) => o.calls >= 3);
-  const o = orgs[Math.min(sel, orgs.length - 1)] || {};
-  const total = Object.values((o.outcomes || {}) as Record<string, number>).reduce((s: number, v: number) => s + v, 0) || 1;
-  const completedPct = Math.round(((o.outcomes?.completed || 0) / total) * 100);
-  const h = o.human || {};
-  const llmIssues: Array<{ type: string; count: number }> = o.top_issues || [];
-  const maxBar = Math.max(...llmIssues.map((i) => i.count), h.asr_corrections || 0, h.pronunciation || 0, h.tone_low || 0, 1);
-  const gd = judge.golden_dataset || {};
+  const agents = data.agents || [];
+  const a = agents[Math.min(sel, agents.length - 1)] || {};
+  const needsAttention = a.avg <= 2.9;
+  const maxL2 = Math.max(...(a.l2 || []).map((r: any) => r.human_calls + r.llm_calls), 1);
+  const maxDaily = 4;
+
+  function play(callId: string, ts: string) {
+    const el = audioRef.current; if (!el) return;
+    el.src = `/api/audio?url=${encodeURIComponent(CANON + callId)}`;
+    const [m2, s2] = String(ts || "0:0").split(":");
+    const go = () => { try { el.currentTime = Math.max(0, Number(m2) * 60 + Number(s2 || 0) - 2); } catch {} el.play().catch(() => {}); };
+    if (el.readyState >= 1) go(); else el.addEventListener("loadedmetadata", go, { once: true });
+  }
 
   return (
     <PortalShell right={
-      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px" }}>
-        <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Agents</span>
-        <span style={{ fontSize: 12, color: MUT }}>anonymized archetypes · click to drill in</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12.5, color: MUT }}>By agent /</span>
+        <select value={sel} onChange={(e) => { setSel(Number(e.target.value)); setOpen("response"); }}
+          className={grotesk.className}
+          style={{ fontSize: 13, fontWeight: 600, color: INK, border: "1px solid #d6dee6", borderRadius: 8, padding: "6px 10px", background: "#fff", cursor: "pointer" }}>
+          {agents.map((x: any, i: number) => <option key={x.agent} value={i}>{x.agent}</option>)}
+        </select>
+        {needsAttention && <span style={{ borderRadius: 999, background: "#fbeaea", color: RED, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>needs attention</span>}
         <span style={{ flex: 1 }} />
+        <button style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "7px 13px", cursor: "pointer" }}>Share scorecard ↗</button>
+        <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
     }>
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "16px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-        {/* Sidebar: agent list */}
-        <div style={{ ...card, width: 230, flex: "none", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-          <div style={{ fontSize: 11, color: MUT, padding: "6px 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>Agents · {orgs.length}</div>
-          {orgs.map((org: any, i: number) => {
-            const t = Object.values((org.outcomes || {}) as Record<string, number>).reduce((s: number, v: number) => s + v, 0) || 1;
-            const pct = Math.round(((org.outcomes?.completed || 0) / t) * 100);
-            const active = i === Math.min(sel, orgs.length - 1);
+      <div className={instrument.className} style={{ maxWidth: 1020, margin: "0 auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
+        <audio ref={audioRef} style={{ display: "none" }} />
+
+        {/* stat row */}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ ...card, flex: 1, minWidth: 170, padding: "14px 16px" }}>
+            <div className={grotesk.className} style={{ fontSize: 24, fontWeight: 600, color: a.avg <= 2.5 ? RED : a.avg <= 2.9 ? AMBER : GREEN }}>{a.avg} / 4</div>
+            <div style={{ fontSize: 11.5, color: MUT }}>avg human vibe · {a.calls} calls, avg {a.avg_raters} raters</div>
+          </div>
+          <div style={{ ...card, flex: 1, minWidth: 170, padding: "14px 16px" }}>
+            <div style={{ display: "flex", height: 11, borderRadius: 6, overflow: "hidden", margin: "7px 0 5px" }}>
+              <span style={{ width: `${a.dist?.[0] ?? 0}%`, background: RED }} />
+              <span style={{ width: `${a.dist?.[1] ?? 0}%`, background: "#e89b9b" }} />
+              <span style={{ width: `${a.dist?.[2] ?? 0}%`, background: "#c9e9db" }} />
+              <span style={{ width: `${a.dist?.[3] ?? 0}%`, background: GREEN }} />
+            </div>
+            <div style={{ fontSize: 11.5, color: MUT }}>score distribution · {a.dist?.[0] ?? 0}% rated 1</div>
+          </div>
+          <div style={{ ...card, flex: 1, minWidth: 150, padding: "14px 16px" }}>
+            <div className={grotesk.className} style={{ fontSize: 24, fontWeight: 600 }}>{a.calls_with_issue} <span style={{ fontSize: 14, color: MUT, fontWeight: 400 }}>of {a.reviewed}</span></div>
+            <div style={{ fontSize: 11.5, color: MUT }}>calls with ≥1 issue · panel-verified</div>
+          </div>
+          <div style={{ ...card, flex: 1, minWidth: 170, padding: "14px 16px" }}>
+            <div className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>
+              {a.trend?.first} → {a.trend?.last}
+              <span style={{ fontSize: 13, color: (a.trend?.last ?? 0) >= (a.trend?.first ?? 0) ? GREEN : RED }}> {(a.trend?.last ?? 0) >= (a.trend?.first ?? 0) ? "↗" : "↘"}</span>
+            </div>
+            <div style={{ fontSize: 11.5, color: MUT }}>avg vibe, first half → latest · {(a.trend?.last ?? 0) >= (a.trend?.first ?? 0) ? "improving" : "declining"}</div>
+          </div>
+        </div>
+
+        {/* L2 rows */}
+        <div style={{ ...card, padding: "16px 18px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, paddingBottom: 10, flexWrap: "wrap" }}>
+            <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Issues on this agent</span>
+            <span style={{ fontSize: 12, color: MUT }}>how many of this agent&apos;s <b style={{ color: INK }}>{a.calls} calls</b> have each issue · click a row to expand</span>
+            <span style={{ flex: 1 }} />
+            <span style={{ fontSize: 11, color: GREEN }}>● found by human reviewers</span>
+            <span style={{ fontSize: 11, color: PURPLE }}>● found by LLM judge</span>
+          </div>
+          {(a.l2 || []).map((r: any) => {
+            const isOpen = open === r.key;
+            const total = r.human_calls + r.llm_calls;
             return (
-              <button key={org.org} onClick={() => setSel(i)}
-                style={{ display: "flex", alignItems: "center", gap: 8, textAlign: "left", border: "none", cursor: "pointer", borderRadius: 8, padding: "9px 10px", background: active ? "#e7f4ee" : "transparent", color: INK }}>
-                <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{org.label || org.org}</span>
-                <span className={grotesk.className} style={{ fontSize: 12, fontWeight: 600, color: pct >= 40 ? GREEN : AMBER }}>{pct}%</span>
-              </button>
+              <div key={r.key} style={{ borderTop: "1px solid #eef2f6", background: isOpen ? "#fbfcfd" : "transparent", margin: "0 -18px", padding: "0 18px" }}>
+                <button onClick={() => setOpen(isOpen ? "" : r.key)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, padding: "10px 0", width: "100%", background: "transparent", border: "none", cursor: "pointer", textAlign: "left", color: INK }}>
+                  <span style={{ width: 14, color: isOpen ? GREEN : MUT }}>{isOpen ? "▾" : "▸"}</span>
+                  <span style={{ width: 225, fontWeight: 600, flex: "none" }}>{r.label}</span>
+                  <div style={{ flex: 1, display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "#eef2f6" }}>
+                    <div style={{ width: `${(r.human_calls / Math.max(a.calls, maxL2)) * 100}%`, background: GREEN }} />
+                    <div style={{ width: `${(r.llm_calls / Math.max(a.calls, maxL2)) * 100}%`, background: PURPLE }} />
+                  </div>
+                  <span style={{ width: 150, textAlign: "right", lineHeight: 1.25, fontSize: 12.5, flex: "none" }}>
+                    <b>{total} of {a.reviewed} calls</b><br />
+                    <span style={{ fontSize: 11 }}>
+                      <span style={{ color: GREEN }}>{r.human_calls} by humans ({r.occ} findings)</span>{r.llm_calls ? <> · <span style={{ color: PURPLE }}>{r.llm_calls} by LLM</span></> : null}
+                    </span>
+                  </span>
+                </button>
+                {isOpen && (
+                  <div style={{ padding: "2px 0 12px 24px", display: "flex", flexDirection: "column", gap: 7 }}>
+                    {r.subtypes?.length > 0 && (
+                      <div style={{ display: "flex", gap: 8, fontSize: 12, flexWrap: "wrap" }}>
+                        {r.subtypes.map(([st, n]: [string, number], i: number) => (
+                          <span key={st} style={{ borderRadius: 999, padding: "4px 11px", fontSize: 11.5, fontWeight: i === 0 ? 600 : 400, background: i === 0 ? "#fbeaea" : "#eef2f6", color: i === 0 ? RED : "#4d5a66" }}>
+                            {st} · {n}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {(r.evidence || []).map((e: any, i: number) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "8px 10px", fontSize: 12.5 }}>
+                        <button onClick={() => play(e.call_id, e.ts)} style={{ width: 24, height: 24, borderRadius: 12, background: GREEN, color: "#fff", border: "none", fontSize: 9, cursor: "pointer", flex: "none" }}>▶</button>
+                        <span className={mono.className} style={{ fontSize: 11.5, flex: "none" }}>{String(e.call_id).slice(0, 8)} @{e.ts}</span>
+                        <span style={{ borderRadius: 999, fontSize: 10, background: "#e7f4ee", color: GREEN, padding: "2px 8px", flex: "none" }}>human</span>
+                        <span style={{ color: MUT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.note}</span>
+                      </div>
+                    ))}
+                    <a href={`/portal/issues?type=${r.key === "transcription" ? "asr" : r.key === "response" ? "response" : r.key === "naturalness" ? "tone" : "pronunciation"}`}
+                      style={{ fontSize: 12, color: GREEN, textDecoration: "none" }}>all {r.human_calls} calls with evidence →</a>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
 
-        {/* Detail: one screen */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ ...card, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{o.label || o.org}</span>
-              <span style={{ fontSize: 12, color: MUT }}>{o.calls} production calls · avg {o.avg_duration_sec ?? "—"}s</span>
-              <span style={{ flex: 1 }} />
-              <span className={grotesk.className} style={{ fontSize: 22, fontWeight: 600, color: completedPct >= 40 ? GREEN : AMBER }}>{completedPct}%</span>
-              <span style={{ fontSize: 11.5, color: MUT }}>completed the task</span>
+        {/* daily chart + fix first */}
+        <div style={{ display: "flex", gap: 14, alignItems: "stretch", flexWrap: "wrap" }}>
+          <div style={{ ...card, flex: 1, minWidth: 320, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+            <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>
+              Agent performance, daily <span style={{ color: MUT, fontWeight: 400, fontSize: 11.5 }}>avg human vibe, out of 4</span>
+            </span>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 84, padding: "0 2px" }}>
+              {(a.daily || []).map((d: any, i: number) => {
+                const last = i === (a.daily || []).length - 1;
+                return (
+                  <div key={d.d} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, height: "100%", justifyContent: "flex-end" }}>
+                    {last && <span className={mono.className} style={{ fontSize: 10, color: INK, fontWeight: 600 }}>{d.avg}</span>}
+                    <div title={`${d.avg}/4 · ${d.n} scores`} style={{ width: "100%", height: `${(d.avg / maxDaily) * 100}%`, background: d.avg <= 2 ? RED : d.avg <= 2.9 ? "#e89b9b" : "#8fd0b4", borderRadius: "3px 3px 0 0" }} />
+                    <span className={mono.className} style={{ fontSize: 9, color: MUT }}>{d.d.slice(3)}</span>
+                  </div>
+                );
+              })}
             </div>
-            <OutcomeBar o={o.outcomes || {}} />
-            <div style={{ display: "flex", gap: 14, fontSize: 12, color: MUT }}>
-              <span><span style={{ color: GREEN }}>■</span> completed {o.outcomes?.completed || 0}</span>
-              <span><span style={{ color: AMBER }}>■</span> partial {o.outcomes?.partial || 0}</span>
-              <span><span style={{ color: RED }}>■</span> failed {o.outcomes?.failed || 0}</span>
-              <span style={{ flex: 1 }} />
-              <span>{o.flagged_calls} calls flagged · {o.frustration_signals} frustration signals</span>
+            <div style={{ fontSize: 11.5, color: MUT }}>
+              scored same-day by the panel · {a.trend?.first} → {a.trend?.last}{(a.trend?.last ?? 0) < 4 ? ", still far from a clean call (4)" : ""}
             </div>
           </div>
-
-          <div style={{ ...card, padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issues on this agent — and who caught them</span>
-              <span style={{ flex: 1 }} />
-              <span style={{ fontSize: 10.5, color: PURPLE }}>● LLM judge</span>
-              <span style={{ fontSize: 10.5, color: GREEN }}>● human reviewers</span>
-            </div>
-            {llmIssues.map((i) => <IssueRow key={i.type} label={ISSUE_LABEL[i.type] || i.type} n={i.count} max={maxBar} color={PURPLE} who="LLM" />)}
-            <IssueRow label="ASR corrections" n={h.asr_corrections || 0} max={maxBar} color={GREEN} who="human" />
-            <IssueRow label="Pronunciation" n={h.pronunciation || 0} max={maxBar} color={GREEN} who="human" />
-            <IssueRow label="Low tone rating" n={h.tone_low || 0} max={maxBar} color={GREEN} who="human" />
-            <div style={{ fontSize: 11.5, color: MUT }}>ASR, pronunciation and tone never appear in the transcript the LLM reads — they only surface through trained human ears.</div>
-          </div>
-
-          {(o.examples || []).length > 0 && (
-            <div style={{ ...card, padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-              <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Evidence — real moments from real calls</span>
-              {(o.examples || []).map((e: any, i: number) => (
-                <div key={i} style={{ background: "#f5f7f9", borderRadius: 8, padding: "9px 12px", fontSize: 12.5 }}>
-                  <span style={{ color: PURPLE, fontWeight: 600 }}>{ISSUE_LABEL[e.type] || e.type}: </span>
-                  <span style={{ color: MUT }}>“{e.quote}” — {e.description}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{ ...card, padding: 16, borderLeft: `3px solid ${GREEN}`, display: "flex", alignItems: "center", gap: 20 }}>
-            <div style={{ flex: 1 }}>
-              <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Golden transcript dataset</div>
-              <div style={{ fontSize: 12, color: MUT, marginTop: 3 }}>
-                {h.golden_calls || 0} calls from this agent transcribed to expert golden standard — part of a {gd.calls}-call dataset ({gd.segments_verified?.toLocaleString()} segments verified, {gd.asr_corrections?.toLocaleString()} ASR corrections, {gd.dual_transcribed} dual-transcribed) delivered for ASR fine-tuning.
+          <div style={{ ...card, flex: 1.4, minWidth: 340, padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+            <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>What to fix first</span>
+            {(a.fixes || []).length === 0 && <span style={{ fontSize: 12.5, color: MUT }}>No response-appropriateness subtypes logged for this agent yet.</span>}
+            {(a.fixes || []).map((f: any, i: number) => (
+              <div key={f.title} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12.5 }}>
+                <span style={{ borderRadius: 999, fontSize: 11, padding: "3px 9px", background: i === 0 ? INK : "#eef2f6", color: i === 0 ? "#fff" : "#4d5a66", fontWeight: 600 }}>{i + 1}</span>
+                <span><b>{f.title}</b> — {f.count} findings by the human panel</span>
               </div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div className={grotesk.className} style={{ fontSize: 24, fontWeight: 600, color: GREEN }}>{h.golden_calls || 0}</div>
-              <div style={{ fontSize: 10.5, color: MUT }}>golden calls</div>
-            </div>
+            ))}
+            <div style={{ fontSize: 11.5, color: MUT }}>Ranked by findings · severity weighting comes from the human ratings on those calls.</div>
           </div>
+        </div>
 
-          <div style={{ fontSize: 11, color: MUT }}>
-            LLM layer: {judge.judged} calls judged ({judge.model}) · human layer: calibrated panel, agreement published on the <a href="/portal" style={{ color: GREEN }}>portal</a> · judge findings verified against the panel on a sampled basis.
-          </div>
+        <div style={{ fontSize: 11, color: MUT }}>
+          Same L2 vocabulary as <a href="/portal" style={{ color: GREEN }}>Overall</a> · golden transcripts for this agent are under <a href="/portal/datasets" style={{ color: GREEN }}>Datasets</a>
         </div>
       </div>
     </PortalShell>
   );
+}
+
+export default function ByAgent() {
+  return <Suspense fallback={null}><Inner /></Suspense>;
 }
