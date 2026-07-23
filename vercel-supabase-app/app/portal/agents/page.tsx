@@ -21,12 +21,23 @@ function Inner() {
   const [data, setData] = useState<any>(null);
   const [sel, setSel] = useState(0);
   const [open, setOpen] = useState<string>(params.get("l2") || "response");
+  const [picker, setPicker] = useState(false);
+  const [q, setQ] = useState("");
+  const [copied, setCopied] = useState(false);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert");
-    fetch("/api/portal/byagent").then((r) => r.json()).then(setData).catch(() => {});
+    fetch("/api/portal/byagent").then((r) => r.json()).then((d) => {
+      setData(d);
+      const want = params.get("agent");
+      if (want && d?.agents) {
+        const i = d.agents.findIndex((x: any) => String(x.agent).toLowerCase().includes(want.toLowerCase()));
+        if (i >= 0) setSel(i);
+      }
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (allowed === false) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The portal is available to experts. Log in on the <a href="/" style={{ color: GREEN }}>main app</a> first.</main>;
@@ -50,14 +61,33 @@ function Inner() {
     <PortalShell right={
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px", flexWrap: "wrap" }}>
         <span style={{ fontSize: 12.5, color: MUT }}>By agent /</span>
-        <select value={sel} onChange={(e) => { setSel(Number(e.target.value)); setOpen("response"); }}
-          className={grotesk.className}
-          style={{ fontSize: 13, fontWeight: 600, color: INK, border: "1px solid #d6dee6", borderRadius: 8, padding: "6px 10px", background: "#fff", cursor: "pointer" }}>
-          {agents.map((x: any, i: number) => <option key={x.agent} value={i}>{x.agent}</option>)}
-        </select>
+        <div style={{ position: "relative" }}>
+          <button onClick={() => setPicker(!picker)} className={grotesk.className}
+            style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: INK, border: "1px solid #d6dee6", borderRadius: 8, padding: "7px 12px", background: "#fff", cursor: "pointer" }}>
+            {a.agent} <span style={{ color: MUT, fontSize: 11 }}>▾</span>
+          </button>
+          {picker && (
+            <div style={{ position: "absolute", top: "110%", left: 0, zIndex: 30, width: 340, background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 8px 24px rgba(16,24,31,.12)", padding: 8 }}>
+              <div style={{ fontSize: 11, color: MUT, padding: "4px 8px", textTransform: "uppercase", letterSpacing: 0.5 }}>Your agents · {agents.length}</div>
+              <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search agents…"
+                style={{ width: "100%", boxSizing: "border-box", fontSize: 12.5, padding: "7px 10px", border: "1px solid #e2e8ee", borderRadius: 8, margin: "2px 0 6px", fontFamily: "inherit" }} />
+              <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                {agents.map((x: any, i: number) => String(x.agent).toLowerCase().includes(q.toLowerCase()) && (
+                  <button key={x.agent} onClick={() => { setSel(i); setPicker(false); setQ(""); setOpen("response"); }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", background: i === sel ? "#eef2f6" : "transparent", border: "none", borderRadius: 8, padding: "8px 10px", cursor: "pointer", color: INK }}>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: i === sel ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.agent}</span>
+                    <span className={grotesk.className} style={{ fontSize: 12, fontWeight: 600, color: x.avg <= 2.5 ? RED : x.avg <= 2.9 ? AMBER : GREEN }}>{x.avg}/4</span>
+                    <span style={{ fontSize: 10.5, color: MUT }}>{x.calls} calls</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         {needsAttention && <span style={{ borderRadius: 999, background: "#fbeaea", color: RED, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>needs attention</span>}
         <span style={{ flex: 1 }} />
-        <button style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "7px 13px", cursor: "pointer" }}>Share scorecard ↗</button>
+        <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/agents?agent=${encodeURIComponent(a.agent)}`).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }); }}
+          style={{ fontWeight: 500, fontSize: 13, color: copied ? GREEN : INK, background: "#fff", border: `1px solid ${copied ? GREEN : "#d6dee6"}`, borderRadius: 8, padding: "7px 13px", cursor: "pointer" }}>{copied ? "Link copied ✓" : "Share scorecard ↗"}</button>
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
     }>

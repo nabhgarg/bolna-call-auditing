@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-23T21:30:19.920919+00:00",
+ "generated_at": "2026-07-23T23:41:08.612975+00:00",
  "judged": 1263,
  "model": "claude-haiku-4-5",
  "outcomes": {
@@ -1743,7 +1743,7 @@
     "call_id": "834307ad-0af1-4a3b-a0b1-78f7b166bb55"
    },
    "human": {
-    "asr_corrections": 42,
+    "asr_corrections": 70,
     "pronunciation": 0,
     "tone_low": 0,
     "response_issues": 0,
@@ -1817,7 +1817,7 @@
     "call_id": "ae0da8da-9aab-47da-8ffe-0913bcb9f0f5"
    },
    "human": {
-    "asr_corrections": 66,
+    "asr_corrections": 120,
     "pronunciation": 0,
     "tone_low": 0,
     "response_issues": 0,
@@ -1891,7 +1891,7 @@
     "call_id": "a5891eee-3ed4-43bf-98f6-c099909c8f7e"
    },
    "human": {
-    "asr_corrections": 31,
+    "asr_corrections": 53,
     "pronunciation": 0,
     "tone_low": 0,
     "response_issues": 0,
@@ -1966,7 +1966,7 @@
     "call_id": "d195afaf-afff-45a9-b741-1de260f4a5ea"
    },
    "human": {
-    "asr_corrections": 28,
+    "asr_corrections": 69,
     "pronunciation": 0,
     "tone_low": 0,
     "response_issues": 0,
@@ -2040,7 +2040,7 @@
     "call_id": "ad51ca67-e276-4b57-bbee-72ad49c279b4"
    },
    "human": {
-    "asr_corrections": 7,
+    "asr_corrections": 14,
     "pronunciation": 6,
     "tone_low": 0,
     "response_issues": 22,
@@ -2113,7 +2113,7 @@
     "call_id": "0eb1e8f2-f9b6-4f2d-8a2f-c7e6162d98c0"
    },
    "human": {
-    "asr_corrections": 10,
+    "asr_corrections": 23,
     "pronunciation": 2,
     "tone_low": 0,
     "response_issues": 24,
@@ -2180,7 +2180,7 @@
     "call_id": "ac48a2ed-3d1b-46fa-97e3-73b194c02a8b"
    },
    "human": {
-    "asr_corrections": 1,
+    "asr_corrections": 2,
     "pronunciation": 8,
     "tone_low": 0,
     "response_issues": 7,
@@ -2241,7 +2241,7 @@
     "call_id": "91a47775-82fc-4acf-bc0a-bcf902f6a0fc"
    },
    "human": {
-    "asr_corrections": 6,
+    "asr_corrections": 36,
     "pronunciation": 3,
     "tone_low": 0,
     "response_issues": 9,
@@ -2303,7 +2303,7 @@
    ],
    "example": null,
    "human": {
-    "asr_corrections": 9,
+    "asr_corrections": 23,
     "pronunciation": 1,
     "tone_low": 0,
     "response_issues": 3,
@@ -2348,7 +2348,7 @@
    ],
    "example": null,
    "human": {
-    "asr_corrections": 0,
+    "asr_corrections": 3,
     "pronunciation": 4,
     "tone_low": 0,
     "response_issues": 1,
@@ -2459,7 +2459,7 @@
     "call_id": "87418287-ec13-4bdb-aa1c-62beafa9c842"
    },
    "human": {
-    "asr_corrections": 7,
+    "asr_corrections": 20,
     "pronunciation": 1,
     "tone_low": 0,
     "response_issues": 3,
@@ -2484,8 +2484,8 @@
  ],
  "golden_dataset": {
   "calls": 247,
-  "segments_verified": 10020,
-  "asr_corrections": 1093,
+  "segments_verified": 8060,
+  "asr_corrections": 2729,
   "dual_transcribed": 113
  }
 }

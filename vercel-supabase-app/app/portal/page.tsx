@@ -106,7 +106,7 @@ export default function Portal() {
             <span style={{ width: 22, height: 22, borderRadius: 11, background: RED, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9 }}>▶</span>
             <span className={mono.className}>{String(vbl.example?.call_id || "").slice(0, 8)} @{vbl.example?.ts}</span>
           </button>
-          <a href="/portal/agents" style={{ flex: "none", fontSize: 13, fontWeight: 600, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Open agent →</a>
+          <a href="/portal/agents?agent=Visi" style={{ flex: "none", fontSize: 13, fontWeight: 600, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Open agent →</a>
         </div>
 
         {/* 3 + 4 — agents table & trust */}

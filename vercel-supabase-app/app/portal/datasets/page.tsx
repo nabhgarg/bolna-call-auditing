@@ -40,7 +40,7 @@ function RequestCard({ title, body, meta, price, priceNote, dashed, cta }: { tit
           <span style={{ fontSize: 11, color: MUT }}>{priceNote}</span>
         </> : <span style={{ fontSize: 11.5, color: MUT }}>estimate within 24h</span>}
         <span style={{ flex: 1 }} />
-        <button style={{ fontWeight: 600, fontSize: 12.5, color: dashed ? INK : "#fff", background: dashed ? "#fff" : GREEN, border: dashed ? "1px solid #d6dee6" : "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer" }}>{cta}</button>
+        <a href={`mailto:nabh@realloop.in?subject=${encodeURIComponent("Dataset request: " + title)}`} style={{ fontWeight: 600, fontSize: 12.5, color: dashed ? INK : "#fff", background: dashed ? "#fff" : GREEN, border: dashed ? "1px solid #d6dee6" : "none", borderRadius: 8, padding: "7px 14px", textDecoration: "none" }}>{cta}</a>
       </div>
     </div>
   );
@@ -81,12 +81,12 @@ export default function Datasets() {
               </div>
               <div style={{ fontSize: 12.5, color: MUT, marginTop: 2 }}>Word-level, expert-resolved transcriptions of real production calls — the dataset your ASR fine-tunes on.</div>
             </div>
-            <button style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download sample</button>
-            <button style={{ fontWeight: 600, fontSize: 13.5, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer" }}>Export JSONL</button>
+            <a href="/api/datasets/golden?sample=1" style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Download sample</a>
+            <a href="/api/datasets/golden" style={{ fontWeight: 600, fontSize: 13.5, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "9px 16px", textDecoration: "none" }}>Export JSONL</a>
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <Tile n={String(gd.calls ?? 247)} l="calls, fully transcribed" />
-            <Tile n={Number(gd.asr_corrections ?? 1093).toLocaleString()} l="segments corrected vs ASR" />
+            <Tile n={Number(gd.asr_corrections ?? 2729).toLocaleString()} l="segments corrected vs ASR" />
             <Tile n="6.4 hrs" l="of audio, segment-aligned" />
             <Tile n="100%" l="spikes expert-resolved" green />
           </div>
@@ -111,7 +111,7 @@ export default function Datasets() {
               {Number(s.occurrences ?? 1863).toLocaleString()} timestamped issue annotations across {s.calls_with_issue ?? 340} calls — train your own LLM judge on human-caught failures.
             </div>
           </div>
-          <button style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Export JSONL</button>
+          <a href="/api/datasets/issues" style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Export JSONL</a>
         </div>
 
         {/* request more */}
