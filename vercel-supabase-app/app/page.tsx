@@ -990,11 +990,12 @@ export default function Page() {
         <section className="login-screen">
           <form className="login-card" onSubmit={loginStep === "email" ? requestOtp : verifyOtp}>
             <div>
+              <div style={{ fontFamily: "var(--font-display, inherit)", fontWeight: 600, fontSize: 15, color: "var(--accent)", marginBottom: 6 }}>realloop</div>
               <h1>Call Audit</h1>
               <p>
                 {loginStep === "email"
-                  ? "Sign in with your email — we'll send you a one-time code."
-                  : `Enter the 6-digit code sent to ${loginEmail.trim().toLowerCase()}.`}
+                  ? "Sign in with your email and the 6-digit code you were given."
+                  : `Enter the 6-digit code for ${loginEmail.trim().toLowerCase()}.`}
               </p>
             </div>
             {loginStep === "email" ? (

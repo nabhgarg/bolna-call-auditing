@@ -1,15 +1,16 @@
 :root {
-  --bg: #f6f7f9;
+  /* Console design language — tokens from the RealLoop hi-fi wireframes */
+  --bg: #f5f7f9;
   --panel: #ffffff;
-  --ink: #17202a;
-  --muted: #647084;
-  --line: #d8dee8;
-  --accent: #176b5d;
-  --accent-strong: #0f5147;
-  --warn: #9b5a10;
-  --soft: #eef4f2;
-  --shadow: 0 1px 2px rgba(23, 32, 42, 0.08);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ink: #10181f;
+  --muted: #6b7885;
+  --line: #e2e8ee;
+  --accent: #0e8a5f;
+  --accent-strong: #0b6f4d;
+  --warn: #b07a15;
+  --soft: #eef2f6;
+  --shadow: 0 1px 2px rgba(16, 24, 31, 0.04);
+  font-family: var(--font-body, "Instrument Sans"), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
@@ -310,8 +311,12 @@ textarea {
 
 .call-id {
   color: var(--accent);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-weight: 800;
+  font-family: var(--font-mono, ui-monospace), SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-weight: 600;
+}
+
+h1, h2, .brand h1 {
+  font-family: var(--font-display, var(--font-body, system-ui)), sans-serif;
 }
 
 .call-card.active {

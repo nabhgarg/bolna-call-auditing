@@ -1,0 +1,14 @@
+{
+ "generated_at": "2026-07-23T17:24:55.747726Z",
+ "method": {
+  "latency": "calls with any user->bot response latency > 3000ms (telemetry user_bot_latencies)",
+  "barge_in": "calls with >=1 barge-in (user interrupted agent; telemetry interruption_stats.user_interrupted_agent_count)"
+ },
+ "calls": 1265,
+ "latency_calls": 716,
+ "latency_turns": 1404,
+ "turns_measured": 6315,
+ "bargein_calls": 592,
+ "bargein_events": 1759,
+ "errors": 0
+}
