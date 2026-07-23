@@ -133,27 +133,21 @@ export async function POST(request: Request) {
     if (!hardRoman) candidates.push({ index, word: core });
   });
 
-  // classify: Haiku (context-aware) with dictionary fallback
-  const haiku = await classifyWithHaiku(raw.trim(), candidates);
-  for (const c of candidates) {
+  // Haiku classification and Google transliteration run IN PARALLEL — doing
+  // them sequentially (classify, then per-run transliterate) made long
+  // sentences take many seconds before the preview appeared. We transliterate
+  // every candidate word in one batched call (full-sentence context) and only
+  // keep the Devanagari for words Haiku says are Hindi.
+  const [haiku, outs] = await Promise.all([
+    classifyWithHaiku(raw.trim(), candidates),
+    transliterateRun(candidates.map((c) => c.word))
+  ]);
+  candidates.forEach((c, k) => {
     const hindi = haiku ? (haiku.get(c.index) ?? !ENGLISH.has(c.word.toLowerCase())) : !ENGLISH.has(c.word.toLowerCase());
-    tokens[c.index].converted = hindi;
-  }
-
-  // transliterate consecutive Hindi-candidate runs together (context helps)
-  let i = 0;
-  while (i < tokens.length) {
-    if (!tokens[i].converted) { i++; continue; }
-    let j = i;
-    while (j < tokens.length && tokens[j].converted) j++;
-    const run = tokens.slice(i, j);
-    const outs = await transliterateRun(run.map((t) => t.src));
-    outs.forEach((o, k) => {
-      run[k].out = o;
-      if (o === run[k].src) run[k].converted = false; // nothing changed
-    });
-    i = j;
-  }
+    const out = outs[k] || c.word;
+    tokens[c.index].converted = hindi && out !== c.word;
+    if (tokens[c.index].converted) tokens[c.index].out = out;
+  });
 
   return NextResponse.json({ tokens, classifier: haiku ? "haiku" : "dictionary" }, { headers: { "Cache-Control": "no-store" } });
 }

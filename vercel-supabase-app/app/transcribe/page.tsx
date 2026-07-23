@@ -696,6 +696,9 @@ export default function Transcribe() {
                           onChange={(e) => onRoman(cur, e.target.value)} />
                         {s.tokens.length > 0 && (
                           <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 15.5, lineHeight: 1.9 }}>
+                            {/* flex-wrap: adjacent spans have no whitespace between them, so
+                                without this a long sentence can't break and overflows the card */}
+                            <div style={{ display: "flex", flexWrap: "wrap", columnGap: 4, rowGap: 2 }}>
                             {s.tokens.map((t, ti) => (
                               <span key={ti} onClick={async () => {
                                 if (altPick?.ti === ti) { setAltPick(null); return; }
@@ -712,6 +715,7 @@ export default function Transcribe() {
                                 {t.converted ? t.out : t.src}
                               </span>
                             ))}
+                            </div>
                             <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari — click any word to fix it</div>
                             {altPick && s.tokens[altPick.ti] && (() => {
                               const tk0 = s.tokens[altPick.ti];
