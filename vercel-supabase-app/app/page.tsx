@@ -250,7 +250,7 @@ export default function Page() {
   }
 
   const isPriority = (call: CallSummary) => String(call.source_sheet || "").includes("★");
-  const isIssueAssignment = (id?: string | null) => /^[sb]4i_/.test(String(id || ""));
+  const isIssueAssignment = (id?: string | null) => /^[sb]\di_/.test(String(id || ""));
   // queue_id alone is shared across a person's whole batch (e.g. b4v_aditya),
   // so rows are identified by queue_id + call id.
   const rowKey = (call: CallSummary) => `${call.queue_id || ""}:${call.execution_id}`;
