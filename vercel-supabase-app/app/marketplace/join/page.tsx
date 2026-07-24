@@ -310,17 +310,23 @@ export default function Join() {
 
   const fi = feedback ?? 0; const fq = feedback !== null ? qs[fi] : undefined; const fVerdict = feedback !== null ? results[fi] : "";
 
-  function TranscriptPanel({ item, highlight }: { item: Q; highlight?: string }) {
+  // which user turn is playing right now: the k-th telemetry anchor whose window
+  // holds the playhead maps to the k-th user turn in the transcript. This makes
+  // the transcript follow playback exactly like the /transcribe workbench.
+  function TranscriptPanel({ item, highlight, activeUserIdx }: { item: Q; highlight?: string; activeUserIdx: number }) {
     const turns = item.turns || [];
     const hl = (highlight || "").trim().toLowerCase().slice(0, 30);
+    let uSeen = -1;
     return (
       <div className="jn-transcript" style={{ ...card, padding: 12, display: "flex", flexDirection: "column", gap: 6, maxHeight: 420, overflowY: "auto" }}>
         <span style={{ fontSize: 11, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px", position: "sticky", top: 0, background: "#fff", paddingBottom: 4 }}>Call transcript · {turns.length} turns</span>
         {turns.map((t, i) => {
-          const isHl = hl.length > 3 && t.text.toLowerCase().includes(hl);
+          if (t.who === "user") uSeen += 1;
+          const isPlaying = t.who === "user" && uSeen === activeUserIdx;
+          const isHl = !isPlaying && hl.length > 3 && t.text.toLowerCase().includes(hl);
           return (
-            <div key={i} style={{ alignSelf: t.who === "user" ? "flex-end" : "flex-start", maxWidth: "88%", background: isHl ? "#fdecc8" : t.who === "user" ? "#eef4fd" : "#f5f7f9", border: isHl ? "1.5px solid #b7791f" : "1px solid #e9edf1", borderRadius: 10, padding: "5px 9px", fontSize: 12.5, lineHeight: 1.45 }}>
-              <span style={{ display: "block", fontSize: 9, color: t.who === "user" ? "#5b8def" : GREEN, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>{t.who}</span>{t.text}
+            <div key={i} data-jn-active={isPlaying ? "1" : undefined} style={{ alignSelf: t.who === "user" ? "flex-end" : "flex-start", maxWidth: "88%", background: isPlaying ? "#d7ebff" : isHl ? "#fdecc8" : t.who === "user" ? "#eef4fd" : "#f5f7f9", border: isPlaying ? "1.5px solid #5b8def" : isHl ? "1.5px solid #b7791f" : "1px solid #e9edf1", borderRadius: 10, padding: "5px 9px", fontSize: 12.5, lineHeight: 1.45, boxShadow: isPlaying ? "0 0 0 3px rgba(91,141,239,.15)" : "none", transition: "background .15s" }}>
+              <span style={{ display: "block", fontSize: 9, color: t.who === "user" ? "#5b8def" : GREEN, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>{t.who}{isPlaying ? " · now playing" : ""}</span>{t.text}
             </div>
           );
         })}
@@ -330,6 +336,22 @@ export default function Join() {
   }
 
   const activeQ = feedback !== null ? fq : q;
+  // the anchor (user turn) the playhead is currently inside / just past
+  const activeUserIdx = (() => {
+    const ans = activeQ?.anchors || [];
+    if (!ans.length) return -1;
+    const inside = ans.findIndex((a) => playhead >= a.s - 0.25 && playhead <= a.e + 0.35);
+    if (inside >= 0) return inside;
+    let last = -1;
+    for (let i = 0; i < ans.length; i++) { if (playhead >= ans[i].s - 0.25) last = i; else break; }
+    return last;
+  })();
+  // keep the active user turn scrolled into view as it plays
+  useEffect(() => {
+    if (activeUserIdx < 0) return;
+    const el = document.querySelector('[data-jn-active="1"]');
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeUserIdx]);
 
   return (
     <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
@@ -525,7 +547,7 @@ export default function Join() {
                     </div>
                   )}
                 </div>
-                <TranscriptPanel item={q} highlight={q.asr} />
+                <TranscriptPanel item={q} highlight={q.asr} activeUserIdx={activeUserIdx} />
                 </div>
               )}
 
@@ -539,7 +561,7 @@ export default function Join() {
                       <span className={mono.className} style={{ fontSize: 12 }}>{q.call_id.slice(0, 8)} @{q.ts}</span>
                       <span style={{ fontSize: 11.5, color: MUT }}>· plays from ~2s before</span>
                     </div>
-                    <TranscriptPanel item={q} highlight={q.type === "pron" ? q.word_heard : undefined} />
+                    <TranscriptPanel item={q} highlight={q.type === "pron" ? q.word_heard : undefined} activeUserIdx={activeUserIdx} />
                   </div>
                   <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                     <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 14 }}>Log the pronunciation issue</span>
@@ -573,7 +595,7 @@ export default function Join() {
                       <span className={mono.className} style={{ fontSize: 12 }}>{q.call_id.slice(0, 8)} @{q.ts}</span>
                       <span style={{ fontSize: 11.5, color: MUT }}>· plays from ~2s before</span>
                     </div>
-                    <TranscriptPanel item={q} />
+                    <TranscriptPanel item={q} activeUserIdx={activeUserIdx} />
                   </div>
                   <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                     <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 14 }}>Log the issue</span>

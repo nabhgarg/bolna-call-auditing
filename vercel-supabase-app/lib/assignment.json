@@ -455,170 +455,76 @@
  ],
  "issue": [
   {
-   "call_id": "20e51033-9f8c-4964-ba85-29a49798f0b1",
-   "recording_url": "https://api.bolna.ai/recordings/call/20e51033-9f8c-4964-ba85-29a49798f0b1",
-   "ts": "00:55",
+   "call_id": "91a47775-82fc-4acf-bc0a-bcf902f6a0fc",
+   "recording_url": "https://api.bolna.ai/recordings/call/91a47775-82fc-4acf-bc0a-bcf902f6a0fc",
+   "ts": "00:21",
    "turns": [
     {
      "who": "agent",
-     "text": "Hello. This is Ananya from Haus & Kinder. Is this a good time to talk?"
-    },
-    {
-     "who": "user",
-     "text": "hello yes"
+     "text": "हैलो"
     },
     {
      "who": "agent",
-     "text": "So before we start, would you like to proceed in English, या फिर आप हिंदी में बात करना पसंद करेंगे?"
+     "text": "क्या आप अभी भी लाइन पर हैं?"
     },
     {
      "who": "user",
-     "text": "english"
+     "text": "Hello"
     },
     {
      "who": "agent",
-     "text": "So, just to give you a bit of context, this call is about a product you had added to your cart on Haus & Kinder. You had added Celebration in Bloom Combed Cotton Double Bedsheet one hundred eighty six TC but the order was not completed. I just wanted to check in, was there anything that held you back?"
-    },
-    {
-     "who": "user",
-     "text": "नहीं"
+     "text": "नमस्ते, मैं Priya हूँ, Pocketly से. क्या मैं Pavan Kumar Singh जी से बात कर रही हूँ?"
     },
     {
      "who": "agent",
-     "text": "I see, no worries. Would you like to know a bit more about it, or shall I share a special offer we have for you?"
+     "text": "क्या आप अभी भी लाइन पर हैं?"
     },
     {
      "who": "user",
-     "text": "वह"
-    },
-    {
-     "who": "user",
-     "text": "yeah shared a special offer"
+     "text": "हां"
     },
     {
      "who": "agent",
-     "text": "Actually there is a special offer for you. It is at rupees"
+     "text": "धन्यवाद. मैं आपको याद दिलाना चाहती थी कि आपकी Personal Loan की EMI payment आज due है. amount है एक हज़ार पैंतालीस रुपये दो सौ बीस पैसे. क्या आप आज payment कर पाएँगे?"
     },
     {
      "who": "user",
-     "text": "वह खुल जाएगा color का"
+     "text": "हां"
     },
     {
      "who": "agent",
-     "text": "I do not have"
-    },
-    {
-     "who": "user",
-     "text": "पहले इसको भी हटा देते हो"
+     "text": "बहुत अच्छा. आज किस time तक payment कर पाएँगे?"
     },
     {
      "who": "agent",
-     "text": "I see, may I know if there is any particular reason?"
-    },
-    {
-     "who": "user",
-     "text": "hello"
+     "text": "क्या आप अभी भी लाइन पर हैं?"
     },
     {
      "who": "agent",
-     "text": "Am I speaking with अरीबा? Do you have a couple of minutes to talk?"
-    },
-    {
-     "who": "user",
-     "text": "yes yes"
-    },
-    {
-     "who": "agent",
-     "text": "So before we start, would you like to proceed in English, या फिर आप हिंदी में बात करना पसंद करेंगे?"
-    },
-    {
-     "who": "user",
-     "text": "english"
-    },
-    {
-     "who": "agent",
-     "text": "So, just to give you a bit of context, this call is about a product you had added to your cart on Haus & Kinder."
-    },
-    {
-     "who": "user",
-     "text": "सारी क्या है"
-    },
-    {
-     "who": "agent",
-     "text": "I do not have that information at the moment."
-    },
-    {
-     "who": "user",
-     "text": "यह problem है ai से call कराने की"
-    },
-    {
-     "who": "user",
-     "text": "अब वह ai बात"
+     "text": "धन्यवाद और नमस्कार!"
     }
    ],
    "anchors": [
     {
-     "text": "hello yes",
-     "s": 5.19,
-     "e": 6.22
+     "text": "Hello",
+     "s": 13.9,
+     "e": 14.5
     },
     {
-     "text": "english",
-     "s": 12.99,
-     "e": 14.61
+     "text": "हां",
+     "s": 33.19,
+     "e": 33.79
     },
     {
-     "text": "नहीं",
-     "s": 33.79,
-     "e": 36.21
-    },
-    {
-     "text": "वह",
-     "s": 40.99,
-     "e": 45.02
-    },
-    {
-     "text": "yeah shared a special offer",
-     "s": 45.59,
-     "e": 47.82
-    },
-    {
-     "text": "वह खुल जाएगा color का",
-     "s": 52.79,
-     "e": 58.02
-    },
-    {
-     "text": "hello",
-     "s": 63.99,
-     "e": 68.81
-    },
-    {
-     "text": "yes yes",
-     "s": 72.19,
-     "e": 77.03
-    },
-    {
-     "text": "english",
-     "s": 83.19,
-     "e": 86.84
-    },
-    {
-     "text": "सारी क्या है",
-     "s": 96.59,
-     "e": 99.03
-    },
-    {
-     "text": "यह problem है ai से call कराने की",
-     "s": 103.79,
-     "e": 106.44
-    },
-    {
-     "text": "अब वह ai बात",
-     "s": 106.59,
-     "e": 108.87
+     "text": "हां",
+     "s": 48.34,
+     "e": 48.94
     }
    ],
-   "seg": null,
+   "seg": {
+    "s": 19.0,
+    "e": 24.0
+   },
    "options": [
     "Repetition",
     "Language errors",
@@ -626,8 +532,8 @@
     "Irrelevant response / others"
    ],
    "correct": "User input capture errors",
-   "setup": "Play from the marked moment. Listen to what the agent does right after the user goes quiet — it reacts to something the user never said, then stalls. Log the issue the way you would in the tool.",
-   "explain": "The agent captured background noise as user input and paused mid-flow — a User input capture error. It's not a wrong response (the response followed from what it THOUGHT it heard) and not repetition. Picking the right type matters because input-capture errors route to the ASR team, not the prompt team."
+   "setup": "Play from the marked moment. The user answers, but listen to the agent — it never registers what was said and carries on as if the line went quiet. Log the issue the way you would in the tool.",
+   "explain": "The user spoke, but the ASR never captured it, so the agent moved on without the answer — a User input capture error. It's not a wrong response (there was no input to respond to) and not repetition. Picking the right type matters because input-capture errors route to the speech-to-text team, not the prompt team."
   }
  ]
 }
