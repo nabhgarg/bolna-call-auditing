@@ -28,6 +28,39 @@ type Verdict = "match" | "miss" | "";
 
 function tsSec(ts: string) { const [m, s] = String(ts || "0:0").split(":"); return Number(m) * 60 + Number(s || 0); }
 
+// lifted from the real transcription workbench so this assignment IS the tool
+type Tok = { src: string; out: string; converted: boolean };
+const SHORTHAND: Record<string, string> = {
+  u: "you", ur: "your", pls: "please", plz: "please", ok: "okay", k: "okay",
+  tmrw: "tomorrow", thx: "thanks", bcoz: "because", bcz: "because", gud: "good", hv: "have", r: "are", y: "why"
+};
+function lint(text: string): string[] {
+  const w: string[] = [];
+  if (/\d+\.\d+/.test(text)) w.push("Decimal digits · write as spoken: \"two point two five\"");
+  else if (/\d/.test(text)) w.push("Digits · write numbers as words (पांच / five)");
+  for (const word of text.toLowerCase().split(/[^a-z0-9']+/)) if (SHORTHAND[word]) w.push(`"${word}" → "${SHORTHAND[word]}"`);
+  return [...new Set(w)];
+}
+function goldOf(tokens: Tok[], roman: string) {
+  return tokens.length ? tokens.map((t) => (t.converted ? t.out : t.src)).join(" ") : roman.trim();
+}
+function envelope(data: Float32Array, sampleRate: number, hop = 0.05) {
+  const win = Math.round(sampleRate * hop);
+  const out = new Float32Array(Math.ceil(data.length / win));
+  for (let i = 0; i < out.length; i++) {
+    let sum = 0; const a = i * win, b = Math.min(data.length, a + win);
+    for (let j = a; j < b; j++) sum += data[j] * data[j];
+    out[i] = Math.sqrt(sum / Math.max(1, b - a));
+  }
+  return { env: out, hop };
+}
+function buckets(env: Float32Array, n = 700) {
+  const out = new Array(n).fill(0);
+  const max = Math.max(...env, 0.0001);
+  for (let i = 0; i < n; i++) out[i] = (env[Math.floor((i / n) * env.length)] || 0) / max;
+  return out;
+}
+
 const JOBS_REVIEWER = [
   { t: "AI Call Reviewer", d: "Rate whole calls 1-4 and log where the agent broke · the highest-volume work.", pay: "₹28 / review" },
   { t: "AI Call Transcriptor", d: "Listen to a call and fix what the AI's speech-to-text got wrong · code-mixed Hindi/English.", pay: "₹120 / call" },
@@ -59,8 +92,17 @@ export default function Join() {
   const [pTag, setPTag] = useState(""); const [pWord, setPWord] = useState("");
   const [iType, setIType] = useState(""); const [iExpl, setIExpl] = useState("");
   const [applicantId, setApplicantId] = useState<string | null>(null);
+  const [tTokens, setTTokens] = useState<Tok[]>([]);
+  const [altPick, setAltPick] = useState<{ ti: number; alts: string[]; loading: boolean } | null>(null);
+  const [wave, setWave] = useState<{ agent: number[]; user: number[]; duration: number } | null>(null);
+  const [playhead, setPlayhead] = useState(0);
+  const [analyzing, setAnalyzing] = useState(false);
   const savedRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const waveSrcRef = useRef("");
+  const tTextRef = useRef("");
 
   useEffect(() => {
     fetch("/api/assignment").then((r) => r.json()).then((d) => setQs([
@@ -92,17 +134,101 @@ export default function Join() {
     const url = item.recording_url || CANON + item.call_id;
     const src = `/api/audio?url=${encodeURIComponent(url)}`;
     if (a.getAttribute("data-src") !== src) { a.pause(); a.src = src; a.setAttribute("data-src", src); }
+    // decode audio for the waveform (same pipeline as the workbench: fetch ->
+    // decodeAudioData -> per-channel RMS envelope -> 700 buckets)
+    if (waveSrcRef.current !== src) {
+      waveSrcRef.current = src;
+      setWave(null); setPlayhead(0); setAnalyzing(true);
+      (async () => {
+        try {
+          const buf = await fetch(src).then((r) => r.arrayBuffer());
+          if (waveSrcRef.current !== src) return;
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const audio = await ctx.decodeAudioData(buf);
+          ctx.close().catch(() => {});
+          if (waveSrcRef.current !== src) return;
+          const e0 = envelope(audio.getChannelData(0), audio.sampleRate);
+          const e1 = audio.numberOfChannels >= 2 ? envelope(audio.getChannelData(1), audio.sampleRate) : e0;
+          setWave({ agent: buckets(e0.env), user: buckets(e1.env), duration: audio.duration });
+        } catch { /* keep the plain player */ }
+        if (waveSrcRef.current === src) setAnalyzing(false);
+      })();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, feedback, qs.length]);
 
-  function openQ(i: number) { if (results[i] !== undefined) return; stopAudio(); setIdx(i); setFeedback(null); setTKind(""); setTLang("same"); setTText(""); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); }
-  function record(i: number, v: Verdict) { stopAudio(); setResults((r) => ({ ...r, [i]: v })); setFeedback(i); }
-  function next() { const n = [...Array(total).keys()].find((i) => results[i] === undefined); stopAudio(); setFeedback(null); setTKind(""); setTLang("same"); setTText(""); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); if (n === undefined) setScreen("result"); else setIdx(n); }
+  // classic dual-channel waveform + segment highlight + playhead (lifted from the workbench)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !wave) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const W = canvas.width = canvas.offsetWidth * 2, H = canvas.height = 120, mid = H / 2;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#e6ebe9";
+    ctx.fillRect(0, mid - 0.5, W, 1);
+    const bars = wave.agent.length;
+    const bw = W / bars;
+    for (let i = 0; i < bars; i++) {
+      const up = (wave.agent[i] || 0) * (mid - 2);
+      const down = (wave.user[i] || 0) * (mid - 2);
+      ctx.fillStyle = "#1f7a5c";
+      ctx.fillRect(i * bw, mid - up, Math.max(bw - 0.5, 0.5), up);
+      ctx.fillStyle = "#5b8def";
+      ctx.fillRect(i * bw, mid, Math.max(bw - 0.5, 0.5), down);
+    }
+    const item = feedback !== null ? qs[feedback] : (idx >= 0 ? qs[idx] : undefined);
+    if (item && wave.duration > 0) {
+      const s = Math.max(0, tsSec(item.ts) - 0.5), e = Math.min(wave.duration, tsSec(item.ts) + 4);
+      const x1 = (s / wave.duration) * W, x2 = (e / wave.duration) * W;
+      ctx.fillStyle = "rgba(183,121,31,0.4)";
+      ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
+      ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2);
+    }
+    if (wave.duration > 0) {
+      const x = (playhead / wave.duration) * W;
+      ctx.fillStyle = "#d64545";
+      ctx.fillRect(x - 1, 0, 2, H);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wave, playhead, idx, feedback]);
 
-  function submitTrans() {
-    if (!q || q.type !== "trans" || !tKind) return;
-    const caughtError = tKind === "wrong" || tKind === "noise";
-    record(idx, (caughtError !== q.isCorrect) ? "match" : "miss");
+  function seekWave(e: React.MouseEvent<HTMLCanvasElement>) {
+    const a = audioRef.current; if (!a || !wave || wave.duration <= 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const t = ((e.clientX - rect.left) / rect.width) * wave.duration;
+    try { a.currentTime = Math.max(0, Math.min(wave.duration, t)); } catch {}
+    if (a.paused) a.play().then(() => setPlayingIdx(feedback ?? idx)).catch(() => {});
+  }
+
+  function onRoman(value: string) {
+    setTText(value); tTextRef.current = value;
+    setAltPick(null); // tokens are about to refresh · stale chooser index
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const d = await fetch("/api/transliterate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: value }) }).then((r) => r.json());
+        if (tTextRef.current === value) setTTokens(d.tokens || []);
+      } catch { /* keep roman */ }
+    }, 450);
+  }
+
+  function clearTransState() { setTKind(""); setTLang("same"); setTText(""); tTextRef.current = ""; setTTokens([]); setAltPick(null); }
+  function openQ(i: number) { if (results[i] !== undefined) return; stopAudio(); setIdx(i); setFeedback(null); clearTransState(); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); }
+  function record(i: number, v: Verdict) { stopAudio(); setResults((r) => ({ ...r, [i]: v })); setFeedback(i); }
+  function next() { const n = [...Array(total).keys()].find((i) => results[i] === undefined); stopAudio(); setFeedback(null); clearTransState(); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); if (n === undefined) setScreen("result"); else setIdx(n); }
+
+  // like the workbench: ✓ Correct / {noise} resolve the segment instantly;
+  // ✏ Edit opens the editor (ASR prefilled) and "Save & next" resolves it
+  function resolveTrans(kind: "correct" | "wrong" | "noise") {
+    if (!q || q.type !== "trans") return;
+    setTKind(kind);
+    if (kind === "wrong") { onRoman(q.asr); return; }
+    record(idx, ((kind === "noise") !== q.isCorrect) ? "match" : "miss");
+  }
+  function saveTransEdit() {
+    if (!q || q.type !== "trans" || !goldOf(tTokens, tText)) return;
+    record(idx, (true !== q.isCorrect) ? "match" : "miss");
   }
   function submitPron() {
     if (!q || q.type !== "pron" || !pTag || !pWord.trim()) return;
@@ -280,10 +406,16 @@ export default function Join() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
               {activeQ && (
-                <div style={{ ...card, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <span className={mono.className} style={{ fontSize: 11.5, color: MUT, flex: "none" }}>full call · {activeQ.call_id.slice(0, 8)}</span>
-                  <audio ref={audioRef} controls preload="none" onEnded={() => setPlayingIdx(null)} style={{ flex: 1, minWidth: 260, height: 34 }} />
-                  <span style={{ fontSize: 11, color: MUT, flex: "none" }}>listen to any part · the ▶ buttons jump to the moment</span>
+                <div style={{ ...card, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                    <span className={mono.className} style={{ fontSize: 11.5, color: MUT, flex: "none" }}>full call · {activeQ.call_id.slice(0, 8)}</span>
+                    <audio ref={audioRef} controls preload="none" onEnded={() => setPlayingIdx(null)} onTimeUpdate={(e) => setPlayhead((e.target as HTMLAudioElement).currentTime)} style={{ flex: 1, minWidth: 260, height: 34 }} />
+                    <span style={{ fontSize: 11, color: MUT, flex: "none" }}>listen to any part · the ▶ buttons jump to the moment</span>
+                  </div>
+                  {wave
+                    ? <canvas ref={canvasRef} onClick={seekWave} style={{ width: "100%", height: 60, display: "block", cursor: "pointer", borderRadius: 6, background: "#fbfcfc" }} title="click anywhere to jump · amber box = the segment in question" />
+                    : <div style={{ height: 60, borderRadius: 6, background: "#fbfcfc", border: "1px dashed #e2e8ee", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, color: "#93a1ae" }}>{analyzing ? "analyzing audio · drawing waveform…" : "waveform loads with the call"}</div>}
+                  {wave && <div style={{ fontSize: 10.5, color: "#93a1ae" }}><span style={{ color: "#1f7a5c" }}>▮</span> agent · <span style={{ color: "#5b8def" }}>▮</span> user · <span style={{ color: "#b7791f" }}>▯</span> this segment · click the waveform to seek</div>}
                 </div>
               )}
 
@@ -307,9 +439,9 @@ export default function Join() {
                   <div style={{ fontSize: 11.5, color: "#8a988f" }}>ASR heard (user):</div>
                   <p style={{ fontSize: 16, margin: "4px 0 10px", color: "#1f2d28", lineHeight: 1.6 }}>{q.asr}</p>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <button onClick={() => setTKind("correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_GREEN}`, background: tKind === "correct" ? T_GREEN : "#fff", color: tKind === "correct" ? "#fff" : T_GREEN, cursor: "pointer" }}>✓ Correct</button>
-                    <button onClick={() => { setTKind("wrong"); setTText(""); }} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_ORANGE}`, background: tKind === "wrong" ? T_ORANGE : "#fff", color: tKind === "wrong" ? "#fff" : T_ORANGE, cursor: "pointer" }}>✏ Edit · ASR is wrong</button>
-                    <button onClick={() => setTKind("noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_SLATE}`, background: tKind === "noise" ? T_SLATE : "#fff", color: tKind === "noise" ? "#fff" : T_SLATE, cursor: "pointer" }}>{"{noise}"}</button>
+                    <button onClick={() => resolveTrans("correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_GREEN}`, background: tKind === "correct" ? T_GREEN : "#fff", color: tKind === "correct" ? "#fff" : T_GREEN, cursor: "pointer" }}>✓ Correct</button>
+                    <button onClick={() => resolveTrans("wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_ORANGE}`, background: tKind === "wrong" ? T_ORANGE : "#fff", color: tKind === "wrong" ? "#fff" : T_ORANGE, cursor: "pointer" }}>✏ Edit · ASR is wrong</button>
+                    <button onClick={() => resolveTrans("noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_SLATE}`, background: tKind === "noise" ? T_SLATE : "#fff", color: tKind === "noise" ? "#fff" : T_SLATE, cursor: "pointer" }}>{"{noise}"}</button>
                     <button style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_RED}`, background: "#fff", color: T_RED, cursor: "pointer" }} title="This isn't a user turn; the detector was wrong.">🗑 Not a user turn</button>
                   </div>
                   {tKind === "wrong" && (
@@ -319,10 +451,63 @@ export default function Join() {
                         <label style={{ cursor: "pointer" }}><input type="radio" checked={tLang === "same"} onChange={() => setTLang("same")} /> same language</label>
                         <label style={{ cursor: "pointer" }}><input type="radio" checked={tLang === "different"} onChange={() => setTLang("different")} /> different language</label>
                       </div>
-                      <textarea value={tText} rows={2} autoFocus style={{ width: "100%", boxSizing: "border-box", fontSize: 14.5, padding: "8px 10px", border: "1px solid #cfd8e0", borderRadius: 8, fontFamily: "inherit" }} placeholder="Type what the user actually said (Roman is fine, e.g. haan didi main kaam kar rahi hoon)" onChange={(e) => setTText(e.target.value)} />
+                      <textarea value={tText} rows={2} autoFocus style={{ width: "100%", boxSizing: "border-box", fontSize: 14.5, padding: "8px 10px", border: "1px solid #cfd8e0", borderRadius: 8, fontFamily: "inherit" }} placeholder="Type in Roman · hindi words convert automatically (e.g. haan didi main kaam kar rahi hoon)" onChange={(e) => onRoman(e.target.value)} />
+                      {tTokens.length > 0 && (
+                        <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 15.5, lineHeight: 1.9 }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", columnGap: 4, rowGap: 2 }}>
+                            {tTokens.map((t, ti) => (
+                              <span key={ti} onClick={async () => {
+                                if (altPick?.ti === ti) { setAltPick(null); return; }
+                                setAltPick({ ti, alts: [], loading: true });
+                                const core = t.src.replace(/^[^\wऀ-ॿ{]+|[^\wऀ-ॿ}]+$/g, "");
+                                try {
+                                  const d = await fetch("/api/transliterate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ word: core }) }).then((r) => r.json());
+                                  setAltPick((p) => (p && p.ti === ti ? { ...p, alts: d.alts || [], loading: false } : p));
+                                } catch {
+                                  setAltPick((p) => (p && p.ti === ti ? { ...p, loading: false } : p));
+                                }
+                              }} title="click to fix this word"
+                                style={{ cursor: "pointer", padding: "1px 3px", borderRadius: 4, marginRight: 3, background: altPick?.ti === ti ? "#f9dcae" : t.converted ? "#fdecc8" : "transparent" }}>
+                                {t.converted ? t.out : t.src}
+                              </span>
+                            ))}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari · click any word to fix it</div>
+                          {altPick && tTokens[altPick.ti] && (() => {
+                            const tk0 = tTokens[altPick.ti];
+                            const apply = (out: string | null) => { // null = keep Roman
+                              const tk = [...tTokens];
+                              tk[altPick.ti] = out === null ? { ...tk[altPick.ti], converted: false } : { ...tk[altPick.ti], out, converted: true };
+                              setTTokens(tk);
+                              setAltPick(null);
+                            };
+                            return (
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderTop: "1px dashed #cfe3da", marginTop: 6, paddingTop: 7 }}>
+                                <span style={{ fontSize: 12, color: "#5b6b64" }}>“{tk0.src}” =</span>
+                                {altPick.loading && <span style={{ fontSize: 12, color: "#8a988f" }}>…</span>}
+                                {altPick.alts.map((a) => (
+                                  <button key={a} onClick={() => apply(a)}
+                                    style={{ fontSize: 15, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: tk0.converted && tk0.out === a ? "2px solid #1f7a5c" : "1px solid #cfe3da", background: "#fff" }}>
+                                    {a}
+                                  </button>
+                                ))}
+                                <button onClick={() => apply(null)}
+                                  style={{ fontSize: 13, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: !tk0.converted ? "2px solid #1f7a5c" : "1px solid #cfd4d1", background: "#fff", color: "#4a5568" }}>
+                                  {tk0.src}
+                                </button>
+                                <button onClick={() => setAltPick(null)} style={{ fontSize: 12, border: "none", background: "transparent", color: "#8a988f", cursor: "pointer" }}>✕</button>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                      {lint(goldOf(tTokens, tText)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "#b7791f", marginTop: 3 }}>⚠ {w}</div>)}
+                      <button onClick={saveTransEdit} disabled={!goldOf(tTokens, tText)}
+                        style={{ marginTop: 8, fontSize: 13, padding: "7px 16px", borderRadius: 7, border: "none", background: goldOf(tTokens, tText) ? "#1f7a5c" : "#c8d6d0", color: "#fff", cursor: goldOf(tTokens, tText) ? "pointer" : "not-allowed" }}>
+                        Save & next
+                      </button>
                     </div>
                   )}
-                  <button onClick={submitTrans} disabled={!tKind || (tKind === "wrong" && !tText.trim())} style={{ marginTop: 10, fontSize: 13, padding: "8px 16px", borderRadius: 7, border: "none", background: (!tKind || (tKind === "wrong" && !tText.trim())) ? "#c8d6d0" : T_GREEN, color: "#fff", cursor: (!tKind || (tKind === "wrong" && !tText.trim())) ? "not-allowed" : "pointer", alignSelf: "flex-start" }}>Submit & next</button>
                 </div>
                 <TranscriptPanel item={q} highlight={q.asr} />
                 </div>
