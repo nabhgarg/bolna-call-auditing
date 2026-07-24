@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 import PortalShell from "../shell";
-import { INK, MUT, GREEN } from "../../../lib/ui";
+import { INK } from "../../../lib/ui";
 
 // Evaluation design · first tab of the portal. Port of the claude.ai/design
 // "RealLoop Evaluation Flow (Animated)" wireframe: n8n-circuit swimlane flow,
@@ -18,7 +18,7 @@ const C = {
   green: "#0e8a5f", greenBg: "#e7f4ee", purple: "#7c5cbf", purpleBg: "#fbf9ff", purpleLine: "#ece5f7",
   red: "#d6484f", greenLaneBg: "#f7fbf9", greenLaneLine: "#dcefe5", grey: "#aab4bd"
 };
-const NODE_H = 56, STAGE_W = 1400, STAGE_H = 640, LOOP = 13;
+const NODE_H = 56, STAGE_W = 1400, STAGE_H = 556;
 
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
@@ -68,8 +68,8 @@ function Flow({ lt, pipe }: { lt: number; pipe: Pipeline | null }) {
   const vibeReal = pipe?.funnel?.find((f) => f.id === "vibe")?.n || 849;
   const flagsReal = pipe?.routing?.llm_judge?.calls_flagged || 493;
 
-  const ramp = eo(seg(lt, 1, 11));
-  const perWk = Math.round(5 + ramp * 4795);
+  // plays once: ramp finishes at 6s and the numbers stay fixed (no GIF loop)
+  const ramp = eo(seg(lt, 0.5, 6));
   const total = Math.round(120 + ramp * (totalReal - 120));
   const findings = Math.round(40 + ramp * (findingsReal - 40));
 
@@ -123,10 +123,6 @@ function Flow({ lt, pipe }: { lt: number; pipe: Pipeline | null }) {
           <div style={{ fontSize: 13, color: C.mut, marginTop: 3 }}>Machines read 100% of traffic · humans go only where machines are blind</div>
         </div>
         <div style={{ flex: 1 }} />
-        <div style={{ textAlign: "right" }}>
-          <div className={grotesk.className} style={{ fontWeight: 600, fontSize: 34, color: C.green, fontVariantNumeric: "tabular-nums" }}>{perWk.toLocaleString()}/wk</div>
-          <div style={{ fontSize: 11, color: C.mut }}>capacity · more calls just add pulses, not machines to the human lanes</div>
-        </div>
       </div>
       <div style={{ position: "absolute", left: 0, top: 96, right: 0, height: 150, background: C.purpleBg, borderTop: `1px solid ${C.purpleLine}`, borderBottom: `1px solid ${C.purpleLine}` }} />
       <div style={{ position: "absolute", left: 0, top: 246, right: 0, height: 150, background: C.greenLaneBg, borderBottom: `1px solid ${C.greenLaneLine}` }} />
@@ -180,30 +176,31 @@ export default function EvaluationDesign() {
   }, []);
 
   useEffect(() => {
+    // lt grows unbounded: the counter ramp plays once and freezes; the pulses
+    // keep drifting quietly (ambient motion, no restart)
     let raf = 0; const start = performance.now();
-    const tick = (now: number) => { setLt(((now - start) / 1000) % LOOP); raf = requestAnimationFrame(tick); };
+    const tick = (now: number) => { setLt((now - start) / 1000); raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
 
   useEffect(() => {
-    const fit = () => { const w = hostRef.current?.offsetWidth || STAGE_W; setScale(Math.min(1, w / STAGE_W)); };
+    const fit = () => {
+      const w = hostRef.current?.offsetWidth || STAGE_W;
+      const h = hostRef.current?.offsetHeight || STAGE_H;
+      setScale(Math.min(w / STAGE_W, h / STAGE_H));
+    };
     fit(); window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
   }, []);
 
   return (
     <PortalShell>
-      <div className={instrument.className} style={{ padding: "18px 22px 26px", color: INK }}>
-        <div ref={hostRef} style={{ width: "100%", overflow: "hidden", borderRadius: 14, border: `1px solid ${C.line}`, background: C.bg, height: STAGE_H * scale }}>
-          <div style={{ width: STAGE_W, height: STAGE_H, position: "relative", transform: `scale(${scale})`, transformOrigin: "top left" }}>
+      <div className={instrument.className} style={{ height: "100vh", boxSizing: "border-box", padding: 0, color: INK }}>
+        <div ref={hostRef} style={{ width: "100%", height: "100%", overflow: "hidden", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: STAGE_W, height: STAGE_H, position: "relative", transform: `scale(${scale})`, transformOrigin: "center center", flex: "none" }}>
             <Flow lt={lt} pipe={pipe} />
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 14, marginTop: 12, fontSize: 12.5, color: MUT, flexWrap: "wrap" }}>
-          <span>Live counts from your program: <b style={{ color: INK }}>{(pipe?.funnel?.[0]?.n || 0).toLocaleString()}</b> calls in · <b style={{ color: INK }}>{(pipe ? pipe.taxonomy.reduce((a, t) => a + (t.occurrences || 0), 0) : 0).toLocaleString()}</b> findings logged · <b style={{ color: INK }}>{(pipe?.routing?.llm_judge?.calls_judged || 0).toLocaleString()}</b> judge-read calls</span>
-          <span style={{ flex: 1 }} />
-          <a href="/portal" style={{ color: GREEN, textDecoration: "none", fontWeight: 600 }}>See the results → Overall</a>
         </div>
       </div>
     </PortalShell>
