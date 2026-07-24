@@ -83,7 +83,7 @@ function Flow({ lt, pipe }: { lt: number; pipe: Pipeline | null }) {
     issue: { x: 600, y: yH - NODE_H / 2, w: 210 },
     human: { x: 900, y: 342 - NODE_H / 2, w: 210 },
     gt: { x: 330, y: yE - NODE_H / 2, w: 260 },
-    golden: { x: 600, y: yE - NODE_H / 2, w: 280 }
+    golden: { x: 900, y: yE - NODE_H / 2, w: 280 }
   };
   const R = (n: string): Pt => [N[n].x + N[n].w, N[n].y + NODE_H / 2];
   const Lp = (n: string): Pt => [N[n].x, N[n].y + NODE_H / 2];
@@ -96,7 +96,10 @@ function Flow({ lt, pipe }: { lt: number; pipe: Pipeline | null }) {
     { pts: route(R("vibe")[0], yH, Lp("issue")[0], yH, 0), color: C.green },
     { pts: route(R("issue")[0], yH, Lp("human")[0], 342, 860), color: C.green },
     { pts: route(R("ingest")[0], 306, Lp("gt")[0], yE, 295), color: C.ink },
-    { pts: route(R("gt")[0], yE, Lp("golden")[0], yE, 0), color: C.ink }
+    // hidden GT gets INSERTED into the vibe batches: straight up from GT's top into vibe's bottom
+    { pts: [[430, N.gt.y], [430, N.vibe.y + NODE_H]] as Pt[], color: C.ink, dash: true },
+    // golden transcripts come out of the 100% human ASR lane: straight down into the experts row
+    { pts: [[1005, N.human.y + NODE_H], [1005, N.golden.y]] as Pt[], color: C.green }
   ];
   const litJudge = (Math.floor(lt) % 4) === 1, litHuman = (Math.floor(lt) % 4) === 2;
 
@@ -154,7 +157,7 @@ function Flow({ lt, pipe }: { lt: number; pipe: Pipeline | null }) {
       <Node {...N.vibe} accent={C.green} title="Vibe scoring 1-4" sub={`${vibeReal.toLocaleString()} calls · n≥3 raters`} lit={litHuman} />
       <Node {...N.issue} accent={C.red} title="Issue logging · bad calls" sub={findings.toLocaleString() + " findings → taxonomy"} />
       <Node {...N.human} accent={C.green} bg={C.greenBg} title="100% human · ASR + pronunciation" sub="machines can't grade this" />
-      <Node {...N.gt} accent={C.ink} title="Hidden ground truth" sub="seeded every batch → Reliability" />
+      <Node {...N.gt} accent={C.ink} title="Hidden ground truth" sub="inserted into vibe batches → Reliability" />
       <Node {...N.golden} accent={C.ink} title="Golden transcripts" sub="247 calls word-perfect → Datasets" />
       <div style={{ position: "absolute", left: 150, bottom: 16, display: "flex", gap: 18, fontSize: 11, color: C.mut, zIndex: 4 }}>
         <span><span style={{ color: C.purple }}>● </span>machine route</span>
