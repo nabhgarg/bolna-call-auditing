@@ -20,9 +20,11 @@ const CANON = "https://api.bolna.ai/recordings/call/";
 const T_GREEN = "#1f7a5c", T_ORANGE = "#c05621", T_SLATE = "#4a5568", T_RED = "#b03636", T_AMBER = "#b7791f";
 
 type Turn = { who: string; text: string };
-type Trans = { type: "trans"; call_id: string; recording_url?: string; ts: string; context: string; asr: string; golden: string; wrongLang: string; isCorrect: boolean; explain: string; turns?: Turn[] };
-type Pron = { type: "pron"; call_id: string; recording_url?: string; ts: string; content_tag: string; word_heard: string; options: string[]; explain: string; turns?: Turn[] };
-type Iss = { type: "issue"; call_id: string; recording_url?: string; ts: string; setup: string; options: string[]; correct: string; explain: string; turns?: Turn[] };
+type Anchor = { text: string; s: number; e: number };
+type Seg = { s: number; e: number } | null;
+type Trans = { type: "trans"; call_id: string; recording_url?: string; ts: string; context: string; asr: string; golden: string; wrongLang: string; isCorrect: boolean; explain: string; turns?: Turn[]; anchors?: Anchor[]; seg?: Seg };
+type Pron = { type: "pron"; call_id: string; recording_url?: string; ts: string; content_tag: string; word_heard: string; options: string[]; explain: string; turns?: Turn[]; anchors?: Anchor[]; seg?: Seg };
+type Iss = { type: "issue"; call_id: string; recording_url?: string; ts: string; setup: string; options: string[]; correct: string; explain: string; turns?: Turn[]; anchors?: Anchor[]; seg?: Seg };
 type Q = Trans | Pron | Iss;
 type Verdict = "match" | "miss" | "";
 
@@ -123,7 +125,7 @@ export default function Join() {
     const item = qs[i]; const url = item?.recording_url || (item ? CANON + item.call_id : "");
     const src = url ? `/api/audio?url=${encodeURIComponent(url)}` : "";
     if (a.getAttribute("data-src") !== src) { a.src = src; a.setAttribute("data-src", src); }
-    const go = () => { try { if (seekTs) a.currentTime = Math.max(0, tsSec(seekTs) - 2); } catch {} a.play().then(() => setPlayingIdx(i)).catch(() => setPlayingIdx(null)); };
+    const go = () => { try { if (item?.seg) a.currentTime = Math.max(0, item.seg.s - 0.15); else if (seekTs) a.currentTime = Math.max(0, tsSec(seekTs) - 2); } catch {} a.play().then(() => setPlayingIdx(i)).catch(() => setPlayingIdx(null)); };
     if (a.readyState >= 1) go(); else { a.addEventListener("loadedmetadata", go, { once: true }); a.load(); }
   }
   function stopAudio() { audioRef.current?.pause(); setPlayingIdx(null); }
@@ -149,7 +151,23 @@ export default function Join() {
           if (waveSrcRef.current !== src) return;
           const e0 = envelope(audio.getChannelData(0), audio.sampleRate);
           const e1 = audio.numberOfChannels >= 2 ? envelope(audio.getChannelData(1), audio.sampleRate) : e0;
-          setWave({ agent: buckets(e0.env), user: buckets(e1.env), duration: audio.duration });
+          // user channel = the one whose energy best overlaps the telemetry
+          // anchors (same rule as the workbench: anchors ARE user speech)
+          let userIdx = 1;
+          const anchors = item.anchors || [];
+          if (audio.numberOfChannels >= 2 && anchors.length) {
+            const inAnchors = (env: { env: Float32Array; hop: number }) => {
+              let s = 0;
+              for (const a of anchors) {
+                const i0 = Math.max(0, Math.floor(a.s / env.hop)), i1 = Math.min(env.env.length, Math.ceil(a.e / env.hop));
+                for (let i = i0; i < i1; i++) s += env.env[i];
+              }
+              return s;
+            };
+            userIdx = inAnchors(e1) >= inAnchors(e0) ? 1 : 0;
+          }
+          const uEnv = userIdx === 1 ? e1 : e0, aEnv = userIdx === 1 ? e0 : e1;
+          setWave({ agent: buckets(aEnv.env), user: buckets(uEnv.env), duration: audio.duration });
         } catch { /* keep the plain player */ }
         if (waveSrcRef.current === src) setAnalyzing(false);
       })();
@@ -179,11 +197,26 @@ export default function Join() {
     }
     const item = feedback !== null ? qs[feedback] : (idx >= 0 ? qs[idx] : undefined);
     if (item && wave.duration > 0) {
-      const s = Math.max(0, tsSec(item.ts) - 0.5), e = Math.min(wave.duration, tsSec(item.ts) + 4);
-      const x1 = (s / wave.duration) * W, x2 = (e / wave.duration) * W;
-      ctx.fillStyle = "rgba(183,121,31,0.4)";
-      ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
-      ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2);
+      // telemetry anchors = user speech · highlight bottom half like the tool
+      // (current segment amber + outline, the rest the pending red tint)
+      const anchors = item.anchors || [];
+      const qs0 = item.seg ? item.seg.s : Math.max(0, tsSec(item.ts) - 0.5);
+      const qe0 = item.seg ? item.seg.e : Math.min(wave.duration, tsSec(item.ts) + 4);
+      anchors.forEach((a) => {
+        const isQ = Math.min(a.e, qe0) - Math.max(a.s, qs0) > 0.2;
+        const x1 = (a.s / wave.duration) * W, x2 = (a.e / wave.duration) * W;
+        ctx.fillStyle = isQ ? "rgba(183,121,31,0.4)" : "rgba(214,69,69,0.18)";
+        ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
+        if (isQ) { ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2); }
+      });
+      // the question moment itself always gets the amber box (covers pron/issue
+      // questions whose moment is agent speech, not a user anchor)
+      if (!anchors.some((a) => Math.min(a.e, qe0) - Math.max(a.s, qs0) > 0.2)) {
+        const x1 = (qs0 / wave.duration) * W, x2 = (qe0 / wave.duration) * W;
+        ctx.fillStyle = "rgba(183,121,31,0.4)";
+        ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
+        ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2);
+      }
     }
     if (wave.duration > 0) {
       const x = (playhead / wave.duration) * W;
@@ -415,7 +448,7 @@ export default function Join() {
                   {wave
                     ? <canvas ref={canvasRef} onClick={seekWave} style={{ width: "100%", height: 60, display: "block", cursor: "pointer", borderRadius: 6, background: "#fbfcfc" }} title="click anywhere to jump · amber box = the segment in question" />
                     : <div style={{ height: 60, borderRadius: 6, background: "#fbfcfc", border: "1px dashed #e2e8ee", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, color: "#93a1ae" }}>{analyzing ? "analyzing audio · drawing waveform…" : "waveform loads with the call"}</div>}
-                  {wave && <div style={{ fontSize: 10.5, color: "#93a1ae" }}><span style={{ color: "#1f7a5c" }}>▮</span> agent · <span style={{ color: "#5b8def" }}>▮</span> user · <span style={{ color: "#b7791f" }}>▯</span> this segment · click the waveform to seek</div>}
+                  {wave && <div style={{ fontSize: 10.5, color: "#93a1ae" }}><span style={{ color: "#1f7a5c" }}>▮</span> agent · <span style={{ color: "#5b8def" }}>▮</span> user · <span style={{ color: "#b7791f" }}>▯</span> this segment · <span style={{ color: "#d64545" }}>▯</span> other user turns · click the waveform to seek</div>}
                 </div>
               )}
 

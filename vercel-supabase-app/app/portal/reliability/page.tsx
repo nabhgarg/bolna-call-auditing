@@ -88,7 +88,6 @@ export default function Reliability() {
             <div><div style={{ fontSize: 13, fontWeight: 600 }}>vs ground truth</div><div style={{ fontSize: 11, color: MUT }}>panel matches the hidden expert (±1)</div></div>
           </div>
           <span style={{ flex: 1 }} />
-          <div style={{ fontSize: 11, color: MUT, maxWidth: 230, lineHeight: 1.5, textAlign: "right" }}>Δ {o.delta} {o.delta === 1 ? "pt" : "pts"} · the panel performs the same when it can&apos;t tell it&apos;s being tested</div>
         </div>
 
         {/* agent + issue type, side by side */}
