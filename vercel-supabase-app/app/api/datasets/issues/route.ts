@@ -3,8 +3,12 @@ import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-// Issue-labeled dataset export: one JSONL row per human issue annotation
+// Issue-labeled dataset export: one CSV row per human issue annotation
 // (response appropriateness, pronunciation, tone) with timestamps.
+function csvCell(v: unknown) {
+  const s = v == null ? "" : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
 export async function GET() {
   const supabase = supabaseAdmin();
   const pageSize = 1000;
@@ -19,25 +23,27 @@ export async function GET() {
     reviews = reviews.concat(data || []);
     if (!data || data.length < pageSize) break;
   }
-  const lines: string[] = [];
+  const lines: string[] = [["call_id", "timestamp", "category", "label", "detail"].join(",")];
   for (const r of reviews) {
     let issues: Array<Record<string, string>> = [];
     try { issues = Array.isArray(r.issues_json) ? r.issues_json : JSON.parse(String(r.issues_json || "[]")); } catch {}
     for (const i of issues) {
+      let row: (string | number | null)[] | null = null;
       if (i.type === "response_appropriateness") {
-        lines.push(JSON.stringify({ call_id: r.call_id, ts: i.timestamp ?? null, l2: "response_appropriateness", subtype: i.response_error_type ?? null, explanation: i.error_explanation ?? null }));
+        row = [r.call_id, i.timestamp ?? "", "response_appropriateness", i.response_error_type ?? "", i.error_explanation ?? ""];
       } else if (i.type === "pronunciation") {
         const tag = String(i.content_tag || "");
-        lines.push(JSON.stringify({ call_id: r.call_id, ts: i.timestamp ?? null, l2: tag === "Proper Noun" || tag === "City" ? "proper_noun_city" : "pronunciation", word_heard: i.word_heard ?? null, content_tag: tag || null }));
+        row = [r.call_id, i.timestamp ?? "", tag === "Proper Noun" || tag === "City" ? "proper_noun_city" : "pronunciation", tag, i.word_heard ?? ""];
       } else if (i.type === "metric_rating" && i.metric === "tone" && Number(i.rating) > 0 && Number(i.rating) <= 2) {
-        lines.push(JSON.stringify({ call_id: r.call_id, ts: i.timestamp ?? null, l2: "naturalness", rating: Number(i.rating), reason: i.reason ?? null }));
+        row = [r.call_id, i.timestamp ?? "", "naturalness", `rating ${Number(i.rating)}`, i.reason ?? ""];
       }
+      if (row) lines.push(row.map(csvCell).join(","));
     }
   }
-  return new NextResponse(lines.join("\n") + "\n", {
+  return new NextResponse("﻿" + lines.join("\n") + "\n", {
     headers: {
-      "Content-Type": "application/jsonl; charset=utf-8",
-      "Content-Disposition": `attachment; filename="realloop-issue-labels.jsonl"`,
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="realloop-issue-labels.csv"`,
       "Cache-Control": "no-store"
     }
   });

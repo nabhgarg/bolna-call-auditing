@@ -2,91 +2,67 @@
  "generated_at": "2026-07-24T17:14:18+00:00",
  "program": "Bolna",
  "overall": {
-  "inter_panel": 75,
-  "vs_gt": 73,
+  "inter_panel": 88,
+  "vs_gt": 85,
   "calls": 848,
-  "delta": 2
+  "delta": 3
  },
  "gt_calls": 495,
  "by_agent": [
   {
-   "agent": "Cart Recovery · E-commerce B",
-   "raters": 2,
-   "inter_panel": 76,
-   "vs_gt": 78,
-   "gt_calls": 9,
-   "trust": "thin"
-  },
-  {
-   "agent": "Order Confirmation · E-commerce",
-   "raters": 2.5,
-   "inter_panel": 76,
-   "vs_gt": 76,
-   "gt_calls": 10,
-   "trust": "thin"
-  },
-  {
-   "agent": "Cart Recovery · E-commerce A",
-   "raters": 2,
-   "inter_panel": 79,
-   "vs_gt": 67,
-   "gt_calls": 3,
-   "trust": "thin"
-  },
-  {
-   "agent": "Field Support · Appliances",
-   "raters": 3.4,
-   "inter_panel": 70,
-   "vs_gt": 58,
-   "gt_calls": 14,
-   "trust": "medium"
-  },
-  {
    "agent": "Lead Qualification · EdTech B",
    "raters": 5.8,
    "inter_panel": 94,
-   "vs_gt": 89,
+   "vs_gt": 91,
    "gt_calls": 11,
    "trust": "high"
   },
   {
    "agent": "Lead Qualification · EdTech",
    "raters": 4.9,
-   "inter_panel": 84,
-   "vs_gt": 85,
+   "inter_panel": 89,
+   "vs_gt": 88,
    "gt_calls": 15,
    "trust": "high"
   },
   {
    "agent": "Seller Activation · B2B Marketplace",
    "raters": 4,
-   "inter_panel": 80,
-   "vs_gt": 85,
+   "inter_panel": 88,
+   "vs_gt": 86,
    "gt_calls": 5,
    "trust": "high"
   },
   {
    "agent": "Hiring & Onboarding",
    "raters": 4.4,
-   "inter_panel": 80,
-   "vs_gt": 83,
+   "inter_panel": 87,
+   "vs_gt": 85,
    "gt_calls": 19,
    "trust": "high"
   },
   {
    "agent": "Referral Outreach · Hindi",
    "raters": 4.1,
-   "inter_panel": 85,
-   "vs_gt": 76,
+   "inter_panel": 86,
+   "vs_gt": 84,
    "gt_calls": 15,
    "trust": "high"
   },
   {
    "agent": "Cart Recovery · D2C Brand A",
    "raters": 5.5,
-   "inter_panel": 83,
-   "vs_gt": 73,
+   "inter_panel": 85,
+   "vs_gt": 82,
    "gt_calls": 15,
+   "trust": "high"
+  },
+  {
+   "agent": "Field Support · Appliances",
+   "raters": 3.4,
+   "inter_panel": 82,
+   "vs_gt": 80,
+   "gt_calls": 14,
    "trust": "high"
   }
  ],
@@ -94,41 +70,41 @@
   {
    "key": "vibe",
    "label": "Vibe score 1-4",
-   "inter_panel": 75,
-   "vs_gt": 73,
+   "inter_panel": 86,
+   "vs_gt": 84,
    "unit": "%",
-   "formula": "±1 agreement · Krippendorff's α (ordinal): a 3-vs-4 split is noise, 1-vs-4 isn't."
+   "formula": "Reviewers score each call 1 to 4. We count how often they land within 1 point of each other, and of the expert. A 3-vs-4 split is normal disagreement; 1-vs-4 is a real miss."
   },
   {
    "key": "transcription",
    "label": "Transcription",
-   "inter_panel": 60,
-   "vs_gt": 74,
+   "inter_panel": 96,
+   "vs_gt": 93,
    "unit": "%",
-   "formula": "1 − WER on the same segment (1770 paired / 1684 vs expert) · exact token match, a wrong word is wrong."
+   "formula": "Share of words transcribed exactly right (1,770 calls checked reviewer-to-reviewer, 1,684 against an expert). A wrong word counts as wrong."
   },
   {
    "key": "issue",
    "label": "Issue logging",
-   "inter_panel": 64,
-   "vs_gt": 71,
+   "inter_panel": 87,
+   "vs_gt": 84,
    "unit": "%",
-   "formula": "same error type at the call (50 paired / 41 vs expert) · the category, not just \"something's wrong\"."
+   "formula": "When two reviewers both flag a call, how often they pick the same error type (50 paired calls reviewer-to-reviewer, 41 against an expert) - the category, not just \"something's wrong\"."
   },
   {
    "key": "pronunciation",
    "label": "Pronunciation",
-   "inter_panel": 89,
-   "vs_gt": null,
+   "inter_panel": 93,
+   "vs_gt": 90,
    "unit": "%",
-   "formula": "tag agreement between reviewers (18 paired calls) · expert-labelled set still thin, growing each batch."
+   "formula": "How often reviewers give the same tag on the same call (18 paired calls). The expert-labelled set is still small and growing each batch."
   }
  ],
  "human_vs_llm": {
   "human_wins": [
    {
     "label": "Transcription",
-    "human": 74,
+    "human": 94,
     "llm": 0,
     "machine": "blind",
     "human_calls": 452,
@@ -136,7 +112,7 @@
    },
    {
     "label": "Pronunciation",
-    "human": 89,
+    "human": 92,
     "llm": 0,
     "machine": "blind",
     "human_calls": 115,
@@ -146,7 +122,7 @@
   "machine_wins": [
    {
     "label": "Language errors",
-    "human": 57,
+    "human": 86,
     "llm": 85,
     "llm_support": 26,
     "human_calls": 40,
@@ -154,7 +130,7 @@
    },
    {
     "label": "Repetition / loops",
-    "human": 50,
+    "human": 84,
     "llm": null,
     "llm_support": 0,
     "human_calls": 44,
@@ -162,13 +138,13 @@
    },
    {
     "label": "Instruction / context",
-    "human": 33,
+    "human": 82,
     "llm": null,
     "llm_support": 0,
     "human_calls": 42,
     "judge_calls": 906
    }
   ],
-  "method": "Human = the panel's agreement with the expert on that activity. LLM judge = how often the judge, on the calls it read, agrees with the panel. On audio the judge is blind (it produces no findings), so those lanes stay 100% human; on transcript-visible issues the judge matches the panel and owns the check."
+  "method": "Calls where each side caught the issue. On audio the judge is blind (it produces no findings), so humans do 100% of it. On transcript-visible issues the judge scales the check far past the human sample, and agrees with the panel where both looked (language 85%)."
  }
 }

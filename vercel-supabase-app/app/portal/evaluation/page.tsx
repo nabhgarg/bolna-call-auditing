@@ -154,7 +154,7 @@ function Flow({ lt, pipe }: { lt: number; pipe: Pipeline | null }) {
       <Node {...N.telem} accent={C.purple} title="Telemetry" sub="latency + barge-in, every call" />
       <Node {...N.judge} accent={C.purple} title="LLM judge · 100%" sub="repetition · language · instruction" lit={litJudge} />
       <Node {...N.verify} accent={C.grey} titleColor={C.ink} title="Verify judge flags" sub={`panel audits the machine · ${flagsReal.toLocaleString()} flags`} />
-      <Node {...N.vibe} accent={C.green} title="Vibe scoring 1-4" sub={`${vibeReal.toLocaleString()} calls · n≥3 raters`} lit={litHuman} />
+      <Node {...N.vibe} accent={C.green} title="Vibe scoring 1-4" sub={`${vibeReal.toLocaleString()} calls · 3+ reviewers each`} lit={litHuman} />
       <Node {...N.issue} accent={C.red} title="Issue logging · bad calls" sub={findings.toLocaleString() + " findings → taxonomy"} />
       <Node {...N.human} accent={C.green} bg={C.greenBg} title="100% human · ASR + pronunciation" sub="machines can't grade this" />
       <Node {...N.gt} accent={C.ink} title="Hidden ground truth" sub="inserted into vibe batches → Reliability" />

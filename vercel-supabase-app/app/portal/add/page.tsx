@@ -50,15 +50,15 @@ export default function AddUseCase() {
 
             <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>2 · Rubric</span>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontWeight: 600, fontSize: 12, padding: "5px 12px" }}>✓ voice_v1 template · same L2s as Bolna pilot</span>
+              <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontWeight: 600, fontSize: 12, padding: "5px 12px" }}>✓ voice_v1 template · same issue types as the Bolna pilot</span>
               <a href="/marketplace/start" style={{ borderRadius: 999, background: "#eef2f6", color: "#4d5a66", fontSize: 12, padding: "5px 12px", textDecoration: "none" }}>customize ▾</a>
             </div>
-            <div style={{ fontSize: 11.5, color: MUT }}>5 human L2s + latency/barge-in from telemetry. Your Overall page picks these up automatically.</div>
+            <div style={{ fontSize: 11.5, color: MUT }}>5 human-checked issue types + call metrics (speed, interruptions). Your Agent insights page picks these up automatically.</div>
 
             <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>3 · Calls</span>
-            <div style={{ border: "1.5px dashed #d6dee6", borderRadius: 10, padding: 14, textAlign: "center", fontSize: 12.5, color: MUT }}>
+            <a href="/marketplace/start" style={{ display: "block", border: "1.5px dashed #d6dee6", borderRadius: 10, padding: 14, textAlign: "center", fontSize: 12.5, color: MUT, textDecoration: "none", cursor: "pointer" }}>
               Drop CSV (execution_id, recording_url, transcript) · or <b style={{ color: GREEN }}>connect the API</b>
-            </div>
+            </a>
           </div>
 
           {/* right: 4 panel + estimate */}

@@ -5,9 +5,9 @@ import machine from "../../../lib/portal-machine.json";
 export const dynamic = "force-dynamic";
 
 // Data for the client portal (N1). Split of issues by WHO caught them:
-//   machine — deterministic from Bolna telemetry (precomputed in
+//   machine · deterministic from Bolna telemetry (precomputed in
 //   lib/portal-machine.json with method + timestamp; regenerate offline)
-//   human   — logged by reviewers (issues_json) and the transcription
+//   human   · logged by reviewers (issues_json) and the transcription
 //   workbench (segments where the golden text differs from ASR)
 const EXPERTS = ["nabh", "manavi"];
 

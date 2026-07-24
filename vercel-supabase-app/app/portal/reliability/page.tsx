@@ -64,7 +64,7 @@ export default function Reliability() {
     <PortalShell right={
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "11px 22px", flexWrap: "wrap" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Reliability</span>
-        <span style={{ fontSize: 12.5, color: MUT }}>how much to trust every number in this portal · recomputed weekly on hidden ground truth</span>
+        <span style={{ fontSize: 12.5, color: MUT }}>how much to trust every number in this portal · refreshed weekly on hidden expert-rated calls</span>
         <span style={{ flex: 1 }} />
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
@@ -75,17 +75,17 @@ export default function Reliability() {
         <div style={{ ...card, padding: "16px 22px", display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
           <div style={{ maxWidth: 230 }}>
             <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Overall panel reliability</div>
-            <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>across all {o.calls.toLocaleString()} calls · the same dataset feeds every breakdown below</div>
+            <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>across every scored call · the same dataset feeds every breakdown below</div>
           </div>
           <div style={{ width: 1, alignSelf: "stretch", background: "#e2e8ee" }} />
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
             <span className={grotesk.className} style={{ fontSize: 34, fontWeight: 600 }}>{o.inter_panel}%</span>
-            <div><div style={{ fontSize: 13, fontWeight: 600 }}>inter-panel</div><div style={{ fontSize: 11, color: MUT }}>raters agree with each other (±1)</div></div>
+            <div><div style={{ fontSize: 13, fontWeight: 600 }}>inter-panel</div><div style={{ fontSize: 11, color: MUT }}>reviewers agree, within 1 point</div></div>
           </div>
           <div style={{ width: 1, alignSelf: "stretch", background: "#e2e8ee" }} />
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
             <span className={grotesk.className} style={{ fontSize: 34, fontWeight: 600, color: GREEN }}>{o.vs_gt}%</span>
-            <div><div style={{ fontSize: 13, fontWeight: 600 }}>vs ground truth</div><div style={{ fontSize: 11, color: MUT }}>panel matches the hidden expert (±1)</div></div>
+            <div><div style={{ fontSize: 13, fontWeight: 600 }}>vs ground truth</div><div style={{ fontSize: 11, color: MUT }}>panel matches the hidden expert, within 1 point</div></div>
           </div>
           <span style={{ flex: 1 }} />
         </div>
@@ -100,7 +100,7 @@ export default function Reliability() {
               <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>where the overall number comes from · per agent, raters × agreement</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: AGENT_COLS, fontSize: 11, color: "#93a1ae" }}>
-              <span>agent</span><span style={{ textAlign: "right" }}>raters</span><span style={{ textAlign: "right" }}>inter-panel</span><span style={{ textAlign: "right" }}>vs GT</span><span style={{ textAlign: "right" }}>trust</span>
+              <span>agent</span><span style={{ textAlign: "right" }}>raters</span><span style={{ textAlign: "right" }}>inter-panel</span><span style={{ textAlign: "right" }}>vs expert</span><span style={{ textAlign: "right" }}>trust</span>
             </div>
             {d.by_agent.map((a) => {
               const p = trustPill(a.trust); const thin = a.trust === "thin";
@@ -115,7 +115,7 @@ export default function Reliability() {
               );
             })}
             <div style={{ background: "#f5f7f9", borderRadius: 9, padding: "11px 13px", marginTop: "auto", fontSize: 11.5, color: "#4d5a66", lineHeight: 1.55 }}>
-              <b style={{ color: INK }}>How this is computed:</b> <b style={{ color: INK }}>inter-panel</b> = how often this agent&apos;s raters agree with each other (±1); <b style={{ color: INK }}>vs GT</b> = how often they match the hidden expert (±1). High needs ≥3 raters and both ≥70% · <b style={{ color: INK }}>thin</b> = too few raters yet, we auto-route more next batch.
+              <b style={{ color: INK }}>How this is computed:</b> <b style={{ color: INK }}>inter-panel</b> = how often this agent&apos;s reviewers agree with each other, within 1 point; <b style={{ color: INK }}>vs expert</b> = how often they match the hidden expert, within 1 point. High needs 3+ reviewers and both at least 70%.
             </div>
           </div>
 
@@ -126,7 +126,7 @@ export default function Reliability() {
               <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>the same number split by activity · each uses its own formula</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: ISSUE_COLS, fontSize: 11, color: "#93a1ae", padding: "0 14px" }}>
-              <span>activity</span><span style={{ textAlign: "right" }}>inter-panel</span><span style={{ textAlign: "right" }}>vs GT</span>
+              <span>activity</span><span style={{ textAlign: "right" }}>inter-panel</span><span style={{ textAlign: "right" }}>vs expert</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
               {d.by_issue.map((b) => {

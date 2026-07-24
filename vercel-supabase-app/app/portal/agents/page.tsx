@@ -175,7 +175,7 @@ function Inner() {
               : <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>healthy</span>}
           </div>
 
-          {/* what to fix — verdict first, root cause, playable */}
+          {/* what to fix · verdict first, root cause, playable */}
           <div style={{ ...card, padding: "16px 18px", borderLeft: `4px solid ${needsAttention ? RED : GREEN}`, display: "flex", flexDirection: "column", gap: 12 }}>
             <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>What to fix <span style={{ color: MUT, fontWeight: 400, fontSize: 12.5 }}>· in priority order</span></span>
             {v.key ? (
@@ -185,7 +185,7 @@ function Inner() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, lineHeight: 1.5 }}>
                       <b style={{ textTransform: "capitalize" }}>{v.label}</b>{leadSub ? <> · leading cause <b style={{ color: RED }}>{leadSub.toLowerCase()}</b> ({leadCount} findings)</> : leadRow ? <> · {leadRow.occ} findings across {leadCalls} calls</> : null}.
-                      {isRootCause ? <span style={{ color: MUT }}> Root cause — fixing this clears most of the list below.</span> : null}
+                      {isRootCause ? <span style={{ color: MUT }}> Root cause · fixing this clears most of the list below.</span> : null}
                     </div>
                     {leadEvidence && (
                       <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 8, background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 8, padding: "7px 10px", fontSize: 12.5 }}>
@@ -206,7 +206,7 @@ function Inner() {
                 )}
               </>
             ) : (
-              <div style={{ fontSize: 13.5, color: MUT }}>Nothing needs urgent attention — this agent is clean across the taxonomy. Keep sampling to hold the score.</div>
+              <div style={{ fontSize: 13.5, color: MUT }}>Nothing needs urgent attention. This agent is clean across the issue categories. Keep sampling to hold the score.</div>
             )}
           </div>
 
@@ -284,7 +284,7 @@ function Inner() {
           {/* closing insight line */}
           <div style={{ fontSize: 12, color: MUT }}>
             {v.key && leadCalls > 0
-              ? <>{leadCalls} of this agent&apos;s issues trace back to <b style={{ color: INK, textTransform: "capitalize" }}>{v.label}</b> — one fix, most of the list clears. </>
+              ? <>{leadCalls} of this agent&apos;s issues trace back to <b style={{ color: INK, textTransform: "capitalize" }}>{v.label}</b> · one fix, most of the list clears. </>
               : <>Clean across the taxonomy. </>}
             Golden transcripts for this agent are under <a href="/portal/datasets" style={{ color: GREEN }}>Datasets</a>.
           </div>

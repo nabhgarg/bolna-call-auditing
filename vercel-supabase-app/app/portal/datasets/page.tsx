@@ -81,7 +81,7 @@ export default function Datasets() {
               <div style={{ fontSize: 12.5, color: MUT, marginTop: 2 }}>Word-level, expert-resolved transcriptions of real production calls. This is the dataset your ASR fine-tunes on.</div>
             </div>
             <a href="/api/datasets/golden?sample=1" style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Download sample</a>
-            <a href="/api/datasets/golden" style={{ fontWeight: 600, fontSize: 13.5, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "9px 16px", textDecoration: "none" }}>Export JSONL</a>
+            <a href="/api/datasets/golden" style={{ fontWeight: 600, fontSize: 13.5, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "9px 16px", textDecoration: "none" }}>Export CSV</a>
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <Tile n={String(gd.calls ?? 247)} l="calls, fully transcribed" />
@@ -110,7 +110,7 @@ export default function Datasets() {
               {Number(s.occurrences ?? 1863).toLocaleString()} timestamped issue annotations across {s.calls_with_issue ?? 340} calls · train your own LLM judge on human-caught failures.
             </div>
           </div>
-          <a href="/api/datasets/issues" style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Export JSONL</a>
+          <a href="/api/datasets/issues" style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Export CSV</a>
         </div>
 
         {/* request more */}
@@ -122,7 +122,7 @@ export default function Datasets() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 12 }}>
             <RequestCard
               title="Proper nouns · Indian cities & states"
-              body='1,000 utterances of place names in Hindi/Hinglish context, golden-transcribed. Fixes the "Visi" → "busy" class of misses.'
+              body='1,000 utterances of place names in Hindi/Hinglish context, golden-transcribed. Fixes the "Pune" → "pune.com" class of misses.'
               meta={[["3", "transcribers ·"], ["~46 hrs", "human time ·"], ["5 days", ""]]}
               price="₹42,000" priceNote="est. · ₹42/utterance" cta="Request →"
             />
@@ -134,7 +134,7 @@ export default function Datasets() {
             />
             <RequestCard
               title="Custom dataset" dashed
-              body="Describe what you need · code-switching turns, dialect coverage, DTMF handling. We scope it against the panel's capacity."
+              body="Describe what you need · code-switching turns, dialect coverage, keypad-tone handling. We scope it against the panel's capacity."
               cta="Get estimate"
             />
           </div>

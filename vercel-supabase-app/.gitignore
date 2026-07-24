@@ -4,3 +4,4 @@ node_modules/
 calls.json
 npm-debug.log*
 .vercel
+.env*
