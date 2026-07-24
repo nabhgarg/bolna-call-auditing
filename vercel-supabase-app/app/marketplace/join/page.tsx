@@ -38,6 +38,15 @@ const SHORTHAND: Record<string, string> = {
   u: "you", ur: "your", pls: "please", plz: "please", ok: "okay", k: "okay",
   tmrw: "tomorrow", thx: "thanks", bcoz: "because", bcz: "because", gud: "good", hv: "have", r: "are", y: "why"
 };
+// exact cheat-sheet from the /transcribe workbench
+const RULES: Array<[string, string]> = [
+  ["Script", "Hindi in Devanagari, English in Roman · never translate. Type Roman; the tool converts."],
+  ["Numbers", "As spoken words, not digits · पांच / five, not 5"],
+  ["Decimals", "No \".\" · \"two point two five\", written out"],
+  ["Names", "Indian names/places in Devanagari; foreign in Roman"],
+  ["No shortcuts", "okay not ok · please not pls · you not u"],
+  ["Noise", "Unclear / gibberish / non-speech → {noise}, never guess"]
+];
 function lint(text: string): string[] {
   const w: string[] = [];
   if (/\d+\.\d+/.test(text)) w.push("Decimal digits · write as spoken: \"two point two five\"");
@@ -89,7 +98,11 @@ export default function Join() {
   const [tText, setTText] = useState("");
   // multi-segment transcription (whole user side of the call, like /transcribe)
   const [segState, setSegState] = useState<Record<number, Record<number, SegKind>>>({});
+  const [segUnclear, setSegUnclear] = useState<Record<number, Record<number, boolean>>>({});
   const [segCur, setSegCur] = useState(0);
+  const [rate, setRate] = useState(1);            // playback speed (0.5/0.75/1x) like the workbench
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const stopAtRef = useRef<number | null>(null);   // bound segment playback to its end
   const [pTag, setPTag] = useState(""); const [pWord, setPWord] = useState("");
   const [iType, setIType] = useState(""); const [iExpl, setIExpl] = useState("");
   const [applicantId, setApplicantId] = useState<string | null>(null);
@@ -118,16 +131,19 @@ export default function Join() {
   const ptsSum = Object.values(results).reduce((a, v) => a + (v === "match" ? 1 : 0), 0);
   const q: Q | undefined = idx >= 0 ? qs[idx] : undefined;
 
-  function play(i: number, seekTs?: string, seekSec?: number) {
+  function play(i: number, seekTs?: string, seekSec?: number, stopSec?: number) {
     const a = audioRef.current; if (!a) return;
     if (playingIdx === i && !a.paused) { a.pause(); setPlayingIdx(null); return; }
     const item = qs[i]; const url = item?.recording_url || (item ? CANON + item.call_id : "");
     const src = url ? `/api/audio?url=${encodeURIComponent(url)}` : "";
     if (a.getAttribute("data-src") !== src) { a.src = src; a.setAttribute("data-src", src); }
-    const go = () => { try { if (seekSec != null) a.currentTime = Math.max(0, seekSec - 0.15); else if (seekTs) a.currentTime = Math.max(0, tsSec(seekTs) - 2); } catch {} a.play().then(() => setPlayingIdx(i)).catch(() => setPlayingIdx(null)); };
+    stopAtRef.current = stopSec != null ? stopSec + 0.15 : null;   // bound to segment end like the tool
+    const go = () => { try { a.playbackRate = rate; if (seekSec != null) a.currentTime = Math.max(0, seekSec - 0.15); else if (seekTs) a.currentTime = Math.max(0, tsSec(seekTs) - 2); } catch {} a.play().then(() => setPlayingIdx(i)).catch(() => setPlayingIdx(null)); };
     if (a.readyState >= 1) go(); else { a.addEventListener("loadedmetadata", go, { once: true }); a.load(); }
   }
-  function stopAudio() { audioRef.current?.pause(); setPlayingIdx(null); }
+  function changeRate(r: number) { setRate(r); if (audioRef.current) audioRef.current.playbackRate = r; }
+  function playCurSeg() { const g = transSegs[segCur]; if (g) play(idx, undefined, g.s, g.e); }
+  function stopAudio() { audioRef.current?.pause(); setPlayingIdx(null); stopAtRef.current = null; }
 
   useEffect(() => {
     const a = audioRef.current; const item = feedback !== null ? qs[feedback] : (idx >= 0 ? qs[idx] : undefined);
@@ -240,7 +256,15 @@ export default function Join() {
     const a = audioRef.current; if (!a || !wave || wave.duration <= 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const t = ((e.clientX - rect.left) / rect.width) * wave.duration;
-    try { a.currentTime = Math.max(0, Math.min(wave.duration, t)); } catch {}
+    // clicking a spike jumps to AND plays that segment (bounded), like the tool;
+    // clicking empty audio just seeks there.
+    const item = feedback !== null ? qs[feedback] : (idx >= 0 ? qs[idx] : undefined);
+    if (item && item.type === "trans" && feedback === null) {
+      const hit = item.segments.findIndex((g) => t >= g.s - 0.15 && t <= g.e + 0.15);
+      if (hit >= 0) { gotoSeg(hit); return; }
+    }
+    stopAtRef.current = null;
+    try { a.playbackRate = rate; a.currentTime = Math.max(0, Math.min(wave.duration, t)); } catch {}
     if (a.paused) a.play().then(() => setPlayingIdx(feedback ?? idx)).catch(() => {});
   }
 
@@ -267,7 +291,23 @@ export default function Join() {
   const transAllResolved = transSegs.length > 0 && transSegs.every((_, si) => qState[si] !== undefined);
   function setSeg(si: number, kind: SegKind) { setSegState((s) => ({ ...s, [idx]: { ...(s[idx] || {}), [si]: kind } })); }
   function firstUnresolved(state: Record<number, SegKind>) { return transSegs.findIndex((_, si) => state[si] === undefined); }
-  function gotoSeg(si: number) { clearTransState(); setSegCur(si); const g = transSegs[si]; if (g) play(idx, undefined, g.s); }
+  function gotoSeg(si: number) { clearTransState(); setSegCur(si); const g = transSegs[si]; if (g) play(idx, undefined, g.s, g.e); }
+  const segUnclearState = (idx >= 0 ? segUnclear[idx] : undefined) || {};
+  function toggleUnclear(si: number) { setSegUnclear((s) => ({ ...s, [idx]: { ...(s[idx] || {}), [si]: !((s[idx] || {})[si]) } })); }
+  // keyboard shortcuts, exactly like the workbench: Space = replay segment, ←/→ = prev/next
+  useEffect(() => {
+    if (screen !== "work" || feedback !== null || !q || q.type !== "trans") return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) return;
+      if (e.code === "Space") { e.preventDefault(); playCurSeg(); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); if (segCur > 0) gotoSeg(segCur - 1); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); if (segCur < transSegs.length - 1) gotoSeg(segCur + 1); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, feedback, idx, segCur, qs.length]);
   // ✓ Correct / {noise} / 🗑 resolve instantly and jump to the next open segment;
   // ✏ Edit opens the transliteration editor prefilled with the ASR text.
   function resolveSeg(kind: SegKind) {
@@ -279,7 +319,7 @@ export default function Join() {
     if (nu >= 0) gotoSeg(nu); else clearTransState();
   }
   function saveSegEdit() {
-    if (!q || q.type !== "trans" || !goldOf(tTokens, tText)) return;
+    if (!q || q.type !== "trans" || (!goldOf(tTokens, tText) && !segUnclearState[segCur])) return;
     const nextState = { ...qState, [segCur]: "wrong" as SegKind };
     setSeg(segCur, "wrong");
     const nu = transSegs.findIndex((_, si) => nextState[si] === undefined);
@@ -487,13 +527,24 @@ export default function Join() {
                 <div style={{ ...card, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <span className={mono.className} style={{ fontSize: 11.5, color: MUT, flex: "none" }}>full call · {activeQ.call_id.slice(0, 8)}</span>
-                    <audio ref={audioRef} controls preload="none" onEnded={() => setPlayingIdx(null)} onTimeUpdate={(e) => setPlayhead((e.target as HTMLAudioElement).currentTime)} style={{ flex: 1, minWidth: 260, height: 34 }} />
+                    <audio ref={audioRef} controls preload="none" onEnded={() => setPlayingIdx(null)} onTimeUpdate={(e) => { const a = e.target as HTMLAudioElement; setPlayhead(a.currentTime); if (stopAtRef.current !== null && a.currentTime >= stopAtRef.current) { a.pause(); stopAtRef.current = null; setPlayingIdx(null); } }} style={{ flex: 1, minWidth: 260, height: 34 }} />
+                    <div style={{ display: "inline-flex", gap: 2, border: "1px solid #cfd9d4", borderRadius: 7, overflow: "hidden", flex: "none" }} title="Playback speed">
+                      {[0.5, 0.75, 1].map((r) => (
+                        <button key={r} onClick={() => changeRate(r)} style={{ fontSize: 12, padding: "5px 9px", border: "none", cursor: "pointer", background: rate === r ? "#1f7a5c" : "#fff", color: rate === r ? "#fff" : "#5b6b64" }}>{r}×</button>
+                      ))}
+                    </div>
+                    {activeQ.type === "trans" && <button onClick={() => setRulesOpen(!rulesOpen)} style={{ fontSize: 12, padding: "5px 9px", border: "1px solid #cfd9d4", borderRadius: 7, background: "#fff", color: "#5b6b64", cursor: "pointer", flex: "none" }}>{rulesOpen ? "rules ▴" : "rules ▾"}</button>}
                     <span className="jn-hint" style={{ fontSize: 11, color: MUT, flex: "none" }}>listen to any part · the ▶ buttons jump to the moment</span>
                   </div>
                   {wave
                     ? <canvas ref={canvasRef} onClick={seekWave} style={{ width: "100%", height: 60, display: "block", cursor: "pointer", borderRadius: 6, background: "#fbfcfc" }} title="click anywhere to jump · amber box = the segment in question" />
                     : <div style={{ height: 60, borderRadius: 6, background: "#fbfcfc", border: "1px dashed #e2e8ee", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, color: "#93a1ae" }}>{analyzing ? "analyzing audio · drawing waveform…" : "waveform loads with the call"}</div>}
-                  {wave && <div style={{ fontSize: 10.5, color: "#93a1ae" }}><span style={{ color: "#1f7a5c" }}>▮</span> agent · <span style={{ color: "#5b8def" }}>▮</span> user · <span style={{ color: "#b7791f" }}>▯</span> this segment · <span style={{ color: "#d64545" }}>▯</span> other user turns · click the waveform to seek</div>}
+                  {wave && <div style={{ fontSize: 10.5, color: "#93a1ae" }}><span style={{ color: "#1f7a5c" }}>▮</span> agent · <span style={{ color: "#5b8def" }}>▮</span> user · <span style={{ color: "#b7791f" }}>▯</span> this segment · <span style={{ color: "#d64545" }}>▯</span> other user turns · click a spike to jump{activeQ.type === "trans" ? " · Space replay · ←/→" : " · click the waveform to seek"}</div>}
+                  {rulesOpen && activeQ.type === "trans" && (
+                    <ul style={{ margin: "6px 0 0", paddingLeft: 18, fontSize: 11.5, color: "#5b5330", lineHeight: 1.7, background: "#fffbea", border: "1px solid #f0e2b0", borderRadius: 8, padding: "8px 8px 8px 26px" }}>
+                      {RULES.map(([k, v]) => <li key={k}><strong>{k}:</strong> {v}</li>)}
+                    </ul>
+                  )}
                 </div>
               )}
 
@@ -522,7 +573,7 @@ export default function Join() {
                       return <button key={si} onClick={() => gotoSeg(si)} title={`segment ${si + 1}`} style={{ width: 22, height: 22, borderRadius: 6, fontSize: 10, cursor: "pointer", border: active ? `2px solid ${T_AMBER}` : "1px solid #dfe5ea", background: k ? kindColor[k] : "#f2f5f7", color: k ? "#fff" : "#93a1ae", fontWeight: 600 }}>{si + 1}</button>; })}
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
-                    <button onClick={() => play(idx, undefined, seg.s)} style={{ fontSize: 13, padding: "4px 10px", borderRadius: 7, border: "1px solid #cfd8e0", background: "#fff", cursor: "pointer" }}>{playingIdx === idx ? "❚❚" : "🔁"} play @{seg.ts}</button>
+                    <button onClick={() => play(idx, undefined, seg.s, seg.e)} style={{ fontSize: 13, padding: "4px 10px", borderRadius: 7, border: "1px solid #cfd8e0", background: "#fff", cursor: "pointer" }}>{playingIdx === idx ? "❚❚" : "🔁"} play @{seg.ts}</button>
                     <button onClick={() => segCur > 0 && gotoSeg(segCur - 1)} disabled={segCur === 0} style={{ fontSize: 13, padding: "4px 9px", borderRadius: 7, border: "1px solid #dfe5ea", background: "#fff", color: segCur === 0 ? "#c8d0d6" : "#4a5568", cursor: segCur === 0 ? "default" : "pointer" }}>← prev</button>
                     <button onClick={() => segCur < transSegs.length - 1 && gotoSeg(segCur + 1)} disabled={segCur >= transSegs.length - 1} style={{ fontSize: 13, padding: "4px 9px", borderRadius: 7, border: "1px solid #dfe5ea", background: "#fff", color: segCur >= transSegs.length - 1 ? "#c8d0d6" : "#4a5568", cursor: segCur >= transSegs.length - 1 ? "default" : "pointer" }}>next →</button>
                   </div>
@@ -533,6 +584,9 @@ export default function Join() {
                     <button onClick={() => resolveSeg("wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_ORANGE}`, background: (tKind === "wrong" || curKind === "wrong") ? T_ORANGE : "#fff", color: (tKind === "wrong" || curKind === "wrong") ? "#fff" : T_ORANGE, cursor: "pointer" }}>✏ Edit · ASR is wrong</button>
                     <button onClick={() => resolveSeg("noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_SLATE}`, background: curKind === "noise" ? T_SLATE : "#fff", color: curKind === "noise" ? "#fff" : T_SLATE, cursor: "pointer" }}>{"{noise}"}</button>
                     <button onClick={() => resolveSeg("deleted")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_RED}`, background: curKind === "deleted" ? T_RED : "#fff", color: curKind === "deleted" ? "#fff" : T_RED, cursor: "pointer" }} title="This isn't a user turn; the detector was wrong.">🗑 Not a user turn</button>
+                    <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto", cursor: "pointer" }}>
+                      <input type="checkbox" checked={!!segUnclearState[segCur]} onChange={() => toggleUnclear(segCur)} /> audio unclear
+                    </label>
                   </div>
                   {tKind === "wrong" && (
                     <div style={{ marginTop: 10 }}>
@@ -592,8 +646,8 @@ export default function Join() {
                         </div>
                       )}
                       {lint(goldOf(tTokens, tText)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "#b7791f", marginTop: 3 }}>⚠ {w}</div>)}
-                      <button onClick={saveSegEdit} disabled={!goldOf(tTokens, tText)}
-                        style={{ marginTop: 8, fontSize: 13, padding: "7px 16px", borderRadius: 7, border: "none", background: goldOf(tTokens, tText) ? "#1f7a5c" : "#c8d6d0", color: "#fff", cursor: goldOf(tTokens, tText) ? "pointer" : "not-allowed" }}>
+                      <button onClick={saveSegEdit} disabled={!goldOf(tTokens, tText) && !segUnclearState[segCur]}
+                        style={{ marginTop: 8, fontSize: 13, padding: "7px 16px", borderRadius: 7, border: "none", background: (goldOf(tTokens, tText) || segUnclearState[segCur]) ? "#1f7a5c" : "#c8d6d0", color: "#fff", cursor: (goldOf(tTokens, tText) || segUnclearState[segCur]) ? "pointer" : "not-allowed" }}>
                         Save & next
                       </button>
                     </div>
