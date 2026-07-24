@@ -163,7 +163,6 @@ export default function Portal() {
             <div style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>
               Within {Math.abs((trust.internal_agreement || 0) - (trust.gt_agreement || 0))} points — the panel performs almost the same when it can&apos;t tell it&apos;s being tested.
             </div>
-            <a href="/dashboard" style={{ fontSize: 12, color: GREEN, textDecoration: "none", fontWeight: 600 }}>full calibration numbers →</a>
           </div>
         </div>
 

@@ -48,7 +48,7 @@ export default function PortalShell({ children, right }: { children: React.React
           + Add use case
         </a>
         <div style={{ fontSize: 10.5, color: MUT, padding: "0 10px 4px" }}>
-          <a href="/dashboard" style={{ color: MUT }}>Calibration</a> · <a href="/marketplace" style={{ color: MUT }}>Marketplace</a>
+          <a href="/marketplace" style={{ color: MUT }}>Marketplace</a>
         </div>
       </div>
       {/* content */}
