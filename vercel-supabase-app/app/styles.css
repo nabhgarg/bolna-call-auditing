@@ -900,3 +900,10 @@ audio {
   .jn-pay > div { border-left: none !important; padding-left: 0 !important; }
   .jn-job > div:first-child { min-width: 200px; }
 }
+@media (max-width: 720px) {
+  .jn-hero { font-size: 25px !important; line-height: 1.1 !important; }
+  .jn-apply { padding: 16px 14px 20px !important; }
+  /* pay ladder rows: tighter vertical rhythm when stacked */
+  .jn-pay { padding: 14px 16px !important; }
+  .jn-pay > div > div:first-child { font-size: 21px !important; }
+}

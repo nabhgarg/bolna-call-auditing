@@ -355,7 +355,7 @@ export default function Join() {
             <div className="jn-apply" style={{ display: "grid", gridTemplateColumns: "1fr 420px", gap: 32, padding: "26px 32px", flex: 1 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
-                  <div className={grotesk.className} style={{ fontWeight: 600, fontSize: 30, lineHeight: 1.12, letterSpacing: "-.4px" }}>Review AI phone calls.<br />Work from anywhere, anytime.</div>
+                  <div className={`jn-hero ${grotesk.className}`} style={{ fontWeight: 600, fontSize: 30, lineHeight: 1.12, letterSpacing: "-.4px" }}>Review AI phone calls.<br />Work from anywhere, anytime.</div>
                   <div style={{ fontSize: 14, color: MUT, marginTop: 7, maxWidth: 520 }}>A laptop or phone and headphones are all you need. No resume, no interview · your agreement score decides your tier and pay.</div>
                 </div>
                 {role === "Expert" ? (

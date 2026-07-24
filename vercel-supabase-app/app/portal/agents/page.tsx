@@ -168,7 +168,7 @@ function Inner() {
           {/* header */}
           <div style={{ display: "flex", alignItems: "baseline", gap: 11, flexWrap: "wrap" }}>
             <span className={grotesk.className} style={{ fontSize: 22, fontWeight: 600 }}>{a.agent}</span>
-            <span style={{ fontSize: 12.5, color: MUT }}>{a.calls} calls · {a.avg_raters} raters each · {a.avg}/4 avg · {a.trend?.first}→{a.trend?.last} {(a.trend?.last ?? 0) >= (a.trend?.first ?? 0) ? "↗ improving" : "↘ declining"}</span>
+            <span style={{ fontSize: 12.5, color: MUT }}>{a.calls} calls · {a.avg_raters} raters each · {a.avg}/4 avg</span>
             <span style={{ flex: 1 }} />
             {needsAttention
               ? <span style={{ borderRadius: 999, background: "#fbeaea", color: RED, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>needs attention</span>
@@ -223,10 +223,6 @@ function Inner() {
             <div style={{ ...card, flex: 1, minWidth: 150, padding: "13px 15px" }}>
               <div className={grotesk.className} style={{ fontSize: 23, fontWeight: 600, color: (a.dist?.[0] ?? 0) >= 25 ? RED : INK }}>{a.dist?.[0] ?? 0}%</div>
               <div style={{ fontSize: 11.5, color: MUT }}>rated 1 · major failure</div>
-            </div>
-            <div style={{ ...card, flex: 1, minWidth: 150, padding: "13px 15px" }}>
-              <div className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{a.trend?.first} → {a.trend?.last} <span style={{ fontSize: 13, color: (a.trend?.last ?? 0) >= (a.trend?.first ?? 0) ? GREEN : RED }}>{(a.trend?.last ?? 0) >= (a.trend?.first ?? 0) ? "↗" : "↘"}</span></div>
-              <div style={{ fontSize: 11.5, color: MUT }}>vs first batch · {(a.trend?.last ?? 0) >= (a.trend?.first ?? 0) ? "improving" : "declining"}</div>
             </div>
           </div>
 
