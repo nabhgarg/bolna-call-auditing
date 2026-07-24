@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Space_Grotesk, Instrument_Sans } from "next/font/google";
+import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 
 // Client onboarding wizard — rubric-first (design review D4): the buyer's
 // first step is the intelligence (which failures need which detector), not a
@@ -9,8 +9,9 @@ import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 // does; the wizard is the "this is a real product" proof for the demo.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
+const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", PURPLE = "#7c5cbf", AMBER = "#b07a15";
+const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", PURPLE = "#7c5cbf", AMBER = "#b07a15", RED = "#d6484f";
 const card: React.CSSProperties = { background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 1px 2px rgba(16,24,31,.04)" };
 
 const STEPS = ["Rubric", "Calls", "Panel", "Launch"];
@@ -38,6 +39,7 @@ export default function StartProgram() {
   const [dual, setDual] = useState(true);
   const [gtPct, setGtPct] = useState(10);
   const [picked, setPicked] = useState<string[]>([]);
+  const [uploaded, setUploaded] = useState(false);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("panel");
@@ -102,14 +104,33 @@ export default function StartProgram() {
           {step === 1 && (
             <div style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
               <div className={grotesk.className} style={{ fontSize: 18, fontWeight: 600 }}>Connect your calls</div>
-              <div style={{ border: "1.5px dashed #cfd8e0", borderRadius: 10, padding: "34px 20px", textAlign: "center", color: MUT, fontSize: 13 }}>
-                Drop a CSV of call recordings + transcripts<br />
-                <span style={{ fontSize: 11.5 }}>execution id · recording URL · transcript · telemetry (optional, unlocks latency & barge-in detection)</span>
-              </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <div style={{ ...card, flex: 1, padding: 12, fontSize: 12.5, color: MUT }}><b style={{ color: INK }}>API / webhook</b><br />stream production calls continuously</div>
-                <div style={{ ...card, flex: 1, padding: 12, fontSize: 12.5, color: MUT }}><b style={{ color: INK }}>Batch upload</b><br />one-time audit of an existing corpus</div>
-              </div>
+              {!uploaded ? (
+                <>
+                  <div onClick={() => setUploaded(true)} style={{ border: "1.5px dashed #cfd8e0", borderRadius: 10, padding: "34px 20px", textAlign: "center", color: MUT, fontSize: 13, cursor: "pointer" }}>
+                    Drop a CSV of call recordings + transcripts<br />
+                    <span style={{ fontSize: 11.5 }}>execution_id · recording_url · transcript · telemetry (optional, unlocks latency &amp; barge-in)</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: MUT }}>Or skip CSV: POST to <span className={mono.className} style={{ fontSize: 11 }}>api.realloop.in/v1/calls</span> with your token.</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ border: `1.5px dashed ${GREEN}`, background: "#f2faf6", borderRadius: 10, padding: 12, textAlign: "center", fontSize: 12.5 }}><b>bolna_batch6.csv</b> · 212 rows parsed</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 0.7fr", fontSize: 11, fontFamily: "var(--font-mono, monospace)" }}>
+                    {["execution_id", "recording_url", "transcript"].map((h) => <div key={h} style={{ color: MUT, padding: "4px 6px", borderBottom: "1px solid #eef2f6" }}>{h}</div>)}
+                    {[["00c9d821", "✓ https://…", "✓", true], ["00d0361c", "✓ https://…", "✓", true], ["01659444", "✗ missing", "✓", false]].map((r, i) => (
+                      <React.Fragment key={i}>
+                        <div className={mono.className} style={{ padding: "4px 6px", fontSize: 11 }}>{r[0]}</div>
+                        <div className={mono.className} style={{ padding: "4px 6px", fontSize: 11, color: r[3] ? GREEN : RED }}>{r[1]}</div>
+                        <div className={mono.className} style={{ padding: "4px 6px", fontSize: 11, color: GREEN }}>{r[2]}</div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                  <div style={{ background: "#fbeaea", border: `1px solid ${RED}`, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: RED }}>
+                    <b>12 rows missing recording_url</b> — <span style={{ textDecoration: "underline", cursor: "pointer" }}>download error report</span> · they&apos;ll be skipped
+                  </div>
+                  <button onClick={() => setStep(2)} style={{ alignSelf: "flex-start", fontWeight: 600, fontSize: 13.5, color: "#fff", background: INK, border: "none", borderRadius: 8, padding: "10px 18px", cursor: "pointer" }}>Continue with 200 valid rows →</button>
+                </>
+              )}
             </div>
           )}
 
@@ -143,6 +164,7 @@ export default function StartProgram() {
                 ))}
                 <span style={{ fontSize: 11.5, color: MUT }}>expert-graded calls, invisible to reviewers — keeps agreement honest</span>
               </div>
+              <div style={{ fontSize: 11.5, color: MUT, background: "#f5f7f9", borderRadius: 8, padding: "8px 10px" }}>n≥3 per call is what makes the agreement math (and your trust box) possible. 1 reviewer = numbers without error bars.</div>
             </div>
           )}
 
@@ -165,7 +187,7 @@ export default function StartProgram() {
             </div>
           )}
 
-          {step < 3 && (
+          {step < 3 && step !== 1 && (
             <button onClick={() => setStep(step + 1)} style={{ alignSelf: "flex-end", fontWeight: 600, fontSize: 13.5, color: "#fff", background: INK, border: "none", borderRadius: 8, padding: "10px 20px", cursor: "pointer" }}>
               Continue → {STEPS[step + 1]}
             </button>

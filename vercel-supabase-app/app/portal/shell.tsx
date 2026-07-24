@@ -44,7 +44,7 @@ export default function PortalShell({ children, right }: { children: React.React
           );
         })}
         <span style={{ flex: 1 }} />
-        <a href="/marketplace/start" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 8, padding: "10px 10px", margin: "0 2px 8px", textDecoration: "none", background: GREEN, color: "#fff", fontWeight: 600, fontSize: 13 }}>
+        <a href="/portal/add" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 8, padding: "10px 10px", margin: "0 2px 8px", textDecoration: "none", background: GREEN, color: "#fff", fontWeight: 600, fontSize: 13 }}>
           + Add use case
         </a>
         <div style={{ fontSize: 10.5, color: MUT, padding: "0 10px 4px" }}>
