@@ -1,77 +1,92 @@
 {
- "generated_at": "2026-07-24T17:01:27+00:00",
+ "generated_at": "2026-07-24T17:14:18+00:00",
  "program": "Bolna",
- "fleet_vs_gt": 73,
+ "overall": {
+  "inter_panel": 75,
+  "vs_gt": 73,
+  "calls": 848,
+  "delta": 2
+ },
  "gt_calls": 495,
  "by_agent": [
   {
-   "agent": "Order Confirmation · E-commerce",
-   "raters_per_call": 2.5,
-   "vs_gt": 76,
-   "gt_calls": 10,
-   "trust": "thin"
-  },
-  {
    "agent": "Cart Recovery · E-commerce B",
-   "raters_per_call": 2,
+   "raters": 2,
+   "inter_panel": 76,
    "vs_gt": 78,
    "gt_calls": 9,
    "trust": "thin"
   },
   {
+   "agent": "Order Confirmation · E-commerce",
+   "raters": 2.5,
+   "inter_panel": 76,
+   "vs_gt": 76,
+   "gt_calls": 10,
+   "trust": "thin"
+  },
+  {
    "agent": "Cart Recovery · E-commerce A",
-   "raters_per_call": 2,
+   "raters": 2,
+   "inter_panel": 79,
    "vs_gt": 67,
    "gt_calls": 3,
    "trust": "thin"
   },
   {
    "agent": "Field Support · Appliances",
-   "raters_per_call": 3.4,
+   "raters": 3.4,
+   "inter_panel": 70,
    "vs_gt": 58,
    "gt_calls": 14,
    "trust": "medium"
   },
   {
+   "agent": "Lead Qualification · EdTech B",
+   "raters": 5.8,
+   "inter_panel": 94,
+   "vs_gt": 89,
+   "gt_calls": 11,
+   "trust": "high"
+  },
+  {
+   "agent": "Lead Qualification · EdTech",
+   "raters": 4.9,
+   "inter_panel": 84,
+   "vs_gt": 85,
+   "gt_calls": 15,
+   "trust": "high"
+  },
+  {
+   "agent": "Seller Activation · B2B Marketplace",
+   "raters": 4,
+   "inter_panel": 80,
+   "vs_gt": 85,
+   "gt_calls": 5,
+   "trust": "high"
+  },
+  {
    "agent": "Hiring & Onboarding",
-   "raters_per_call": 4.4,
+   "raters": 4.4,
+   "inter_panel": 80,
    "vs_gt": 83,
    "gt_calls": 19,
    "trust": "high"
   },
   {
    "agent": "Referral Outreach · Hindi",
-   "raters_per_call": 4.1,
+   "raters": 4.1,
+   "inter_panel": 85,
    "vs_gt": 76,
    "gt_calls": 15,
    "trust": "high"
   },
   {
-   "agent": "Lead Qualification · EdTech",
-   "raters_per_call": 4.9,
-   "vs_gt": 85,
-   "gt_calls": 15,
-   "trust": "high"
-  },
-  {
    "agent": "Cart Recovery · D2C Brand A",
-   "raters_per_call": 5.5,
+   "raters": 5.5,
+   "inter_panel": 83,
    "vs_gt": 73,
    "gt_calls": 15,
-   "trust": "high"
-  },
-  {
-   "agent": "Lead Qualification · EdTech B",
-   "raters_per_call": 5.8,
-   "vs_gt": 89,
-   "gt_calls": 11,
-   "trust": "high"
-  },
-  {
-   "agent": "Seller Activation · B2B Marketplace",
-   "raters_per_call": 4,
-   "vs_gt": 85,
-   "gt_calls": 5,
    "trust": "high"
   }
  ],
@@ -79,81 +94,81 @@
   {
    "key": "vibe",
    "label": "Vibe score 1-4",
-   "value": 73,
+   "inter_panel": 75,
+   "vs_gt": 73,
    "unit": "%",
-   "support": 495,
-   "formula": "±1 agreement vs hidden ground truth, backed by Krippendorff's α (ordinal) · a 3-vs-4 split is noise, 1-vs-4 isn't."
+   "formula": "±1 agreement · Krippendorff's α (ordinal): a 3-vs-4 split is noise, 1-vs-4 isn't."
   },
   {
    "key": "transcription",
    "label": "Transcription",
-   "value": 66,
+   "inter_panel": 60,
+   "vs_gt": 74,
    "unit": "%",
-   "support": 2077,
-   "formula": "1 − WER between independent transcribers on the same segment (2077 paired segments) · exact token match, not \"within 1\"."
+   "formula": "1 − WER on the same segment (1770 paired / 1684 vs expert) · exact token match, a wrong word is wrong."
   },
   {
    "key": "issue",
    "label": "Issue logging",
-   "value": 68,
+   "inter_panel": 64,
+   "vs_gt": 71,
    "unit": "%",
-   "support": 77,
-   "formula": "reviewers who both flagged a call agree on the error type (77 paired calls) · same category, not just \"something's wrong\"."
+   "formula": "same error type at the call (50 paired / 41 vs expert) · the category, not just \"something's wrong\"."
   },
   {
    "key": "pronunciation",
    "label": "Pronunciation",
-   "value": 68,
+   "inter_panel": 89,
+   "vs_gt": null,
    "unit": "%",
-   "support": 31,
-   "formula": "tag agreement between reviewers on the same call (31 paired calls), across speakers."
+   "formula": "tag agreement between reviewers (18 paired calls) · expert-labelled set still thin, growing each batch."
   }
  ],
  "human_vs_llm": {
-  "human_only": [
+  "human_wins": [
    {
     "label": "Transcription",
+    "human": 74,
+    "llm": 0,
+    "machine": "blind",
     "human_calls": 452,
-    "llm_calls": 0,
-    "route": "100% human",
-    "agreement": 0,
-    "agreement_support": 206
+    "judge_calls": 0
    },
    {
     "label": "Pronunciation",
+    "human": 89,
+    "llm": 0,
+    "machine": "blind",
     "human_calls": 115,
-    "llm_calls": 0,
-    "route": "100% human",
-    "agreement": 0,
-    "agreement_support": 29
+    "judge_calls": 0
    }
   ],
-  "machine_scales": [
+  "machine_wins": [
    {
     "label": "Language errors",
+    "human": 57,
+    "llm": 85,
+    "llm_support": 26,
     "human_calls": 40,
-    "llm_calls": 878,
-    "route": "LLM judge + spot-check",
-    "agreement": 85,
-    "agreement_support": 26
+    "judge_calls": 878
    },
    {
     "label": "Repetition / loops",
+    "human": 50,
+    "llm": null,
+    "llm_support": 0,
     "human_calls": 44,
-    "llm_calls": 501,
-    "route": "LLM judge + spot-check",
-    "agreement": null,
-    "agreement_support": 0
+    "judge_calls": 501
    },
    {
     "label": "Instruction / context",
-    "human_calls": 244,
-    "llm_calls": 1006,
-    "route": "LLM judge + spot-check",
-    "agreement": 78,
-    "agreement_support": 78
+    "human": 33,
+    "llm": null,
+    "llm_support": 0,
+    "human_calls": 42,
+    "judge_calls": 906
    }
   ],
-  "method": "Calls where each side caught the issue. On audio the judge is blind · it produces zero findings, so humans do 100% of it. On transcript-visible issues the judge scales the check far past the human sample; where both looked, it agrees with the panel (e.g. language errors)."
+  "method": "Human = the panel's agreement with the expert on that activity. LLM judge = how often the judge, on the calls it read, agrees with the panel. On audio the judge is blind (it produces no findings), so those lanes stay 100% human; on transcript-visible issues the judge matches the panel and owns the check."
  }
 }
