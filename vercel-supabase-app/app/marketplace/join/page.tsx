@@ -320,7 +320,7 @@ export default function Join() {
     const turns = item.turns || [];
     const hl = (highlight || "").trim().toLowerCase().slice(0, 30);
     return (
-      <div style={{ ...card, padding: 12, display: "flex", flexDirection: "column", gap: 6, maxHeight: 420, overflowY: "auto" }}>
+      <div className="jn-transcript" style={{ ...card, padding: 12, display: "flex", flexDirection: "column", gap: 6, maxHeight: 420, overflowY: "auto" }}>
         <span style={{ fontSize: 11, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px", position: "sticky", top: 0, background: "#fff", paddingBottom: 4 }}>Call transcript · {turns.length} turns</span>
         {turns.map((t, i) => {
           const isHl = hl.length > 3 && t.text.toLowerCase().includes(hl);
@@ -341,7 +341,7 @@ export default function Join() {
     <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
       <div style={{ width: "100%", background: "#f5f7f9", display: "flex", flexDirection: "column", flex: 1 }}>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "12px 32px" }}>
+        <div className="jn-top" style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "12px 32px" }}>
           <span style={{ width: 18, height: 18, borderRadius: 5, background: GREEN }} />
           <span className={grotesk.className} style={{ fontWeight: 700, fontSize: 16 }}>realloop</span>
           <span style={{ borderRadius: 999, background: "#e7f4ee", padding: "4px 12px", fontSize: 12, color: GREEN, fontWeight: 600 }}>{screen === "apply" ? "Become a reviewer" : screen === "result" ? "Result" : `Assignment · ${done}/${total || 5}`}</span>
@@ -352,20 +352,20 @@ export default function Join() {
 
         {screen === "apply" && (
           <div style={{ display: "flex", flexDirection: "column", flex: 1, width: "100%", maxWidth: 1440, margin: "0 auto", boxSizing: "border-box" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 420px", gap: 32, padding: "26px 32px", flex: 1 }}>
+            <div className="jn-apply" style={{ display: "grid", gridTemplateColumns: "1fr 420px", gap: 32, padding: "26px 32px", flex: 1 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
                   <div className={grotesk.className} style={{ fontWeight: 600, fontSize: 30, lineHeight: 1.12, letterSpacing: "-.4px" }}>Review AI phone calls.<br />Work from anywhere, anytime.</div>
                   <div style={{ fontSize: 14, color: MUT, marginTop: 7, maxWidth: 520 }}>A laptop or phone and headphones are all you need. No resume, no interview · your agreement score decides your tier and pay.</div>
                 </div>
                 {role === "Expert" ? (
-                  <div style={{ ...card, padding: "16px 20px", display: "flex", gap: 18 }}>
+                  <div className="jn-pay" style={{ ...card, padding: "16px 20px", display: "flex", gap: 18 }}>
                     <div style={{ flex: 1 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>₹700/hr</div><div style={{ fontSize: 11, color: MUT }}>expert base · QA & calibration</div></div>
                     <div style={{ flex: 1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>per project</div><div style={{ fontSize: 11, color: MUT }}>ground truth & onboarding work</div></div>
                     <div style={{ flex: 1.1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23 }}>your name</div><div style={{ fontSize: 11, color: MUT }}>experts are credited on every dataset they resolve</div></div>
                   </div>
                 ) : (
-                  <div style={{ ...card, padding: "16px 20px", display: "flex", gap: 18 }}>
+                  <div className="jn-pay" style={{ ...card, padding: "16px 20px", display: "flex", gap: 18 }}>
                     <div style={{ flex: 1 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>₹300/hr</div><div style={{ fontSize: 11, color: MUT }}>Tier 2 · from day one</div></div>
                     <div style={{ flex: 1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>₹500/hr</div><div style={{ fontSize: 11, color: MUT }}>Tier 1 · high agreement</div></div>
                     <div style={{ flex: 1.1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23 }}>₹2,000+</div><div style={{ fontSize: 11, color: MUT }}>top reviewers make / day · paid weekly</div></div>
@@ -375,7 +375,7 @@ export default function Join() {
                   <div style={{ fontSize: 12, fontWeight: 600, color: MUT, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 7 }}>The work on offer</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {(role === "Expert" ? JOBS_EXPERT : JOBS_REVIEWER).map((j) => (
-                      <div key={j.t} style={{ ...card, padding: "11px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+                      <div key={j.t} className="jn-job" style={{ ...card, padding: "11px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                         <div style={{ flex: 1 }}>
                           <div className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>{j.t}</div>
                           <div style={{ fontSize: 12, color: MUT, marginTop: 1 }}>{j.d}</div>
@@ -410,7 +410,7 @@ export default function Join() {
                 <div style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>{canApply ? "No wait · 5 real questions, about 2 minutes." : "Pick at least one language and enter a valid phone number."}</div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 12, padding: "0 32px 26px" }}>
+            <div className="jn-stats" style={{ display: "flex", gap: 12, padding: "0 32px 26px", flexWrap: "wrap" }}>
               {[["14", "reviewers working today"], ["1,733+", "paid reviews delivered"], ["weekly", "payouts, UPI"], ["7", "open roles"]].map(([n, l]) => (
                 <div key={l} style={{ ...card, flex: 1, padding: "14px 16px" }}><div className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{n}</div><div style={{ fontSize: 11.5, color: MUT }}>{l}</div></div>
               ))}
@@ -419,7 +419,7 @@ export default function Join() {
         )}
 
         {screen === "work" && (
-          <div style={{ display: "grid", gridTemplateColumns: "270px 1fr", gap: 16, padding: "18px 32px", flex: 1, alignItems: "start", width: "100%", maxWidth: 1440, margin: "0 auto", boxSizing: "border-box" }}>
+          <div className="jn-work" style={{ display: "grid", gridTemplateColumns: "270px 1fr", gap: 16, padding: "18px 32px", flex: 1, alignItems: "start", width: "100%", maxWidth: 1440, margin: "0 auto", boxSizing: "border-box" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ flex: 1, height: 7, borderRadius: 4, background: "#e2e8ee" }}><div style={{ width: `${total ? (done / total) * 100 : 0}%`, height: 7, borderRadius: 4, background: GREEN }} /></div>
@@ -443,7 +443,7 @@ export default function Join() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <span className={mono.className} style={{ fontSize: 11.5, color: MUT, flex: "none" }}>full call · {activeQ.call_id.slice(0, 8)}</span>
                     <audio ref={audioRef} controls preload="none" onEnded={() => setPlayingIdx(null)} onTimeUpdate={(e) => setPlayhead((e.target as HTMLAudioElement).currentTime)} style={{ flex: 1, minWidth: 260, height: 34 }} />
-                    <span style={{ fontSize: 11, color: MUT, flex: "none" }}>listen to any part · the ▶ buttons jump to the moment</span>
+                    <span className="jn-hint" style={{ fontSize: 11, color: MUT, flex: "none" }}>listen to any part · the ▶ buttons jump to the moment</span>
                   </div>
                   {wave
                     ? <canvas ref={canvasRef} onClick={seekWave} style={{ width: "100%", height: 60, display: "block", cursor: "pointer", borderRadius: 6, background: "#fbfcfc" }} title="click anywhere to jump · amber box = the segment in question" />
@@ -461,7 +461,7 @@ export default function Join() {
               )}
 
               {feedback === null && q && q.type === "trans" && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 12, alignItems: "start" }}>
+                <div className="jn-q" style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 12, alignItems: "start" }}>
                 <div style={{ border: `2px solid ${T_AMBER}`, background: "#fff", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 0 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     <button onClick={() => play(idx, q.ts)} style={{ fontSize: 13, padding: "4px 10px", borderRadius: 7, border: "1px solid #cfd8e0", background: "#fff", cursor: "pointer" }}>{playingIdx === idx ? "❚❚" : "🔁"} @{q.ts}</button>
@@ -547,7 +547,7 @@ export default function Join() {
               )}
 
               {feedback === null && q && q.type === "pron" && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 12, alignItems: "start" }}>
+                <div className="jn-q" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 12, alignItems: "start" }}>
                   <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10, minHeight: 180 }}>
                     <span style={{ fontSize: 11, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>Pronunciation · question {idx + 1} of {total}</span>
                     <div style={{ fontSize: 13.5, lineHeight: 1.55 }}>Play the moment and listen for a name, city or brand the <b>agent</b> mispronounced. Log it the way you would in the tool.</div>
@@ -581,7 +581,7 @@ export default function Join() {
               )}
 
               {feedback === null && q && q.type === "issue" && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 12, alignItems: "start" }}>
+                <div className="jn-q" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 12, alignItems: "start" }}>
                   <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                     <span style={{ fontSize: 11, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>Issue logging · question {idx + 1} of {total}</span>
                     <div style={{ fontSize: 13.5, lineHeight: 1.55 }}>{q.setup}</div>

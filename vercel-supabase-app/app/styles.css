@@ -881,3 +881,22 @@ audio {
   .l2-label { width: 150px !important; font-size: 12px !important; }
   .l2-row span[class*="__className"] { width: 44px !important; }
 }
+
+/* Marketplace join: phone-first (the YC demo shows this page on a mobile
+   screen · "work from anywhere, on any device"). Single column everywhere,
+   touch-sized paddings, transcript panel capped so the question stays close. */
+@media (max-width: 720px) {
+  .jn-top { padding: 10px 14px !important; }
+  .jn-apply { grid-template-columns: 1fr !important; gap: 18px !important; padding: 18px 14px !important; }
+  .jn-stats { padding: 0 14px 18px !important; }
+  .jn-stats > div { flex: 1 1 40% !important; min-width: 140px !important; }
+  .jn-work { grid-template-columns: 1fr !important; padding: 12px 12px 20px !important; gap: 12px !important; }
+  .jn-q { grid-template-columns: 1fr !important; }
+  .jn-hint { display: none !important; }
+  .jn-transcript { max-height: 300px !important; }
+}
+@media (max-width: 720px) {
+  .jn-pay { flex-direction: column !important; gap: 12px !important; }
+  .jn-pay > div { border-left: none !important; padding-left: 0 !important; }
+  .jn-job > div:first-child { min-width: 200px; }
+}
