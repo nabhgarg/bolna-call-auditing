@@ -9,7 +9,121 @@
    "isCorrect": false,
    "explain": "The user said “barcode” · the ASR wrote “vargoor”. A field-support ticket keyed on a wrong barcode fails silently. This is exactly the kind of miss only a human ear catches.",
    "call_id": "8ba3abab-4c74-44a6-af62-c1c3be1a9f00",
-   "recording_url": "https://api.bolna.ai/recordings/call/8ba3abab-4c74-44a6-af62-c1c3be1a9f00"
+   "recording_url": "https://api.bolna.ai/recordings/call/8ba3abab-4c74-44a6-af62-c1c3be1a9f00",
+   "turns": [
+    {
+     "who": "agent",
+     "text": "नमस्ते, VBL Asset Buddy में call करने के लिए धन्यवाद। आप आज कैसे हैं?"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "hello"
+    },
+    {
+     "who": "agent",
+     "text": "मैं Aisha हूँ, VBL में आपकी asset buddy, आगे बढ़ने से पहले, क्या आप English में बात करना चाहेंगे या Hindi में?"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "जी जी"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप English में बात करना चाहेंगे या Hindi में?"
+    },
+    {
+     "who": "user",
+     "text": "हिंदी में हिंदी में"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप अपना Visi cooler का Metal Tag Number, Serial Number या Bar Code बता सकते हैं?"
+    },
+    {
+     "who": "user",
+     "text": "किसका"
+    },
+    {
+     "who": "agent",
+     "text": "मैं आपका Visi cooler का Metal Tag Number, Serial Number या Bar Code पूछ रही हूँ, जिससे मैं आपकी मदद कर सकूँ। कृपया बताइए।"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "जी ma'am जी"
+    },
+    {
+     "who": "agent",
+     "text": "जी, कृपया अपना Visi cooler का Metal Tag Number, Serial Number या Bar Code बताइए।"
+    },
+    {
+     "who": "user",
+     "text": "vargoor तो है ma'am या"
+    },
+    {
+     "who": "agent",
+     "text": "कृपया"
+    },
+    {
+     "who": "user",
+     "text": "serial number आप लिख दिया"
+    },
+    {
+     "who": "agent",
+     "text": "जी, कृपया अपना Serial Number बताइए, मैं सुन रही हूँ। आगे बताइए।"
+    },
+    {
+     "who": "user",
+     "text": "v i छब्बीस पांच सौ तीन सौ उनचास"
+    },
+    {
+     "who": "agent",
+     "text": "Okay, आगे बताइये।"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "जी जी"
+    },
+    {
+     "who": "agent",
+     "text": "आगे बताइये।"
+    },
+    {
+     "who": "user",
+     "text": "i"
+    },
+    {
+     "who": "agent",
+     "text": "Okay, आगे बताइये।"
+    },
+    {
+     "who": "user",
+     "text": "यह प्रीत जो है sign नहीं चल रहा है प्रीत का"
+    },
+    {
+     "who": "agent",
+     "text": "माफ़ कीजिए, कृपया अपना Serial Number बताना जारी रखें ताकि मैं पूरी जानकारी ले सकूँ। आगे बताइए।"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    }
+   ]
   },
   {
    "ts": "00:19",
@@ -20,7 +134,141 @@
    "isCorrect": false,
    "explain": "The user said “नहीं” · the ASR heard the English word “ring”. Code-switched speech trips ASR constantly; the correction keeps meaning intact.",
    "call_id": "9a47317d-749e-441b-b186-39c7fd418698",
-   "recording_url": "https://api.bolna.ai/recordings/call/9a47317d-749e-441b-b186-39c7fd418698"
+   "recording_url": "https://api.bolna.ai/recordings/call/9a47317d-749e-441b-b186-39c7fd418698",
+   "turns": [
+    {
+     "who": "agent",
+     "text": "Hello, मैं Neha बोल रही हूं Pronto Company की तरफ़ से."
+    },
+    {
+     "who": "user",
+     "text": "hello ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "नमस्ते दीदी! क्या मैं रचना से बात कर रही हूं?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी तो अच्छा बोल रही हूं"
+    },
+    {
+     "who": "agent",
+     "text": "अच्छा, क्या आप अभी Pronto के साथ काम कर रही हैं?"
+    },
+    {
+     "who": "user",
+     "text": "नहीं अभी ring कर रही"
+    },
+    {
+     "who": "agent",
+     "text": "समझ गयी दीदी.. देखिए, Pronto में housekeeping का काम होता है, यानी घर की साफ़ सफ़ाई, झाड़ू पोछा, बर्तन, room cleaning. बहुत अच्छा काम है.. अच्छी salary है. तो आप interested हैं इसमें?"
+    },
+    {
+     "who": "user",
+     "text": "हां"
+    },
+    {
+     "who": "agent",
+     "text": "अच्छा, आगे बढ़ने से पहले मैं कुछ basic चीज़ें confirm करना चाहूंगी. . चलें?"
+    },
+    {
+     "who": "user",
+     "text": "yes"
+    },
+    {
+     "who": "agent",
+     "text": "सबसे पहले, यह hiring Delhi NCR area के लिए है. तो क्या आप अभी Delhi NCR में ही रहती हैं?"
+    },
+    {
+     "who": "agent",
+     "text": "Hello, क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "हां हां हां दिल्ली में ही करती हूं"
+    },
+    {
+     "who": "agent",
+     "text": "अच्छा, और आपकी उम्र अठारह से चालीस के बीच है?"
+    },
+    {
+     "who": "user",
+     "text": "हां"
+    },
+    {
+     "who": "agent",
+     "text": "ठीक है, और क्या आपके पास Aadhaar card है?"
+    },
+    {
+     "who": "user",
+     "text": "हां"
+    },
+    {
+     "who": "agent",
+     "text": "और अभी आप कहीं काम कर रही हैं.. या job ढूंढ रही हैं?"
+    },
+    {
+     "who": "user",
+     "text": "नहीं"
+    },
+    {
+     "who": "agent",
+     "text": "ठीक है दीदी, तो आप अभी job ढूंढ रही हैं."
+    },
+    {
+     "who": "user",
+     "text": "नहीं"
+    },
+    {
+     "who": "agent",
+     "text": "ठीक है दीदी, working hours के बारे में भी बता देती हूं."
+    },
+    {
+     "who": "user",
+     "text": "हां"
+    },
+    {
+     "who": "agent",
+     "text": "और सबसे अच्छी बात यह है कि Pronto कोशिश करता है कि आपको आपके area में ही काम मिले."
+    },
+    {
+     "who": "user",
+     "text": "वज़ीराबाद"
+    },
+    {
+     "who": "agent",
+     "text": "वज़ीराबाद के लिए नॉर्थ दिल्ली - पीतमपुरा सेंटर सबसे नज़दीक है."
+    },
+    {
+     "who": "user",
+     "text": "हां जी"
+    },
+    {
+     "who": "agent",
+     "text": "तो आप कब जा सकती हैं screening center? आज या कल जा सकती हैं?"
+    },
+    {
+     "who": "user",
+     "text": "कल"
+    },
+    {
+     "who": "agent",
+     "text": "कल matlab May चौदह?"
+    },
+    {
+     "who": "user",
+     "text": "yes"
+    },
+    {
+     "who": "agent",
+     "text": "बहुत अच्छा! तो May चौदह को आप पीतमपुरा सेंटर पर screening के लिए पहुंच जाइएगा. Location WhatsApp पर भेज रही हूं. कोई doubt हो तो इसी number पर call कर लीजिएगा. धन्यवाद, आपका दिन अच्छा रहे!"
+    },
+    {
+     "who": "agent",
+     "text": "Hello, क्या आप अभी भी लाइन पर हैं?"
+    }
+   ]
   },
   {
    "ts": "00:03",
@@ -31,7 +279,181 @@
    "isCorrect": true,
    "explain": "The ASR got this one right. Saying “Correct” when it is correct matters as much as catching errors · false alarms poison the dataset.",
    "call_id": "6d9885f4-87bb-4ad1-b6a6-89db72cbc2e6",
-   "recording_url": "https://api.bolna.ai/recordings/call/6d9885f4-87bb-4ad1-b6a6-89db72cbc2e6"
+   "recording_url": "https://api.bolna.ai/recordings/call/6d9885f4-87bb-4ad1-b6a6-89db72cbc2e6",
+   "turns": [
+    {
+     "who": "agent",
+     "text": "Hello, मैं Neha बोल रही हूं Pronto Company की तरफ़ से."
+    },
+    {
+     "who": "user",
+     "text": "हां जी ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "आपने Pronto Company में काम के लिए sign up किया था.. तो क्या मेरी बात रीना देवी से हो रही है?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "देखिए, Pronto में housekeeping का काम होता है, यानी घर की साफ़ सफ़ाई, झाड़ू पोछा, बर्तन, room cleaning. बहुत अच्छा काम है.. अच्छी salary है. तो आप interested हैं इसमें?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "अच्छा, आगे बढ़ने से पहले मैं कुछ basic चीज़ें confirm करना चाहूंगी.. चलें?"
+    },
+    {
+     "who": "user",
+     "text": "thank you ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "जी बिल्कुल, सबसे पहले, यह hiring Delhi NCR area के लिए है. क्या आप अभी Delhi NCR में ही रहती हैं?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "अच्छा, और आपकी उम्र अठारह से चालीस के बीच है?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी तीस है हां हां जी तीस है"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप हिंदी पढ़ पाती हैं?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी हिंदी पढ़ लेती हूं"
+    },
+    {
+     "who": "agent",
+     "text": "ठीक है, और क्या आपके पास Aadhaar card है?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी आधार card pan card bank की tab"
+    },
+    {
+     "who": "agent",
+     "text": "और अभी आप कहीं काम कर रही हैं.. या job ढूंढ रही हैं?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी"
+    },
+    {
+     "who": "user",
+     "text": "हां जी booking पर हूं मैं एक काम कर रही हूं"
+    },
+    {
+     "who": "agent",
+     "text": "अच्छा, Pronto में काफ़ी अच्छी opportunity है. ठीक है, तो आप eligible हैं, बहुत अच्छा. अब salary के बारे में बता देती हूं.. Delhi NCR area में Pronto partners महीने का तीस हज़ार से चालीस हज़ार रुपए तक कमा लेते हैं. यह आपकी shift पर depend करता है. इसके अलावा joining bonus छह हज़ार रुपए तक मिलता है, training bonus दो हज़ार मिलता है, और referral bonus भी अलग से मिलता है."
+    },
+    {
+     "who": "user",
+     "text": "yes ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "Working hours के बारे में भी बता देती हूं. पांच तरह की shift available हैं, चार घंटे की, छह घंटे की, आठ घंटे की, दस घंटे की, और बारह घंटे की. आप अपनी सुविधा के हिसाब से कोई भी shift choose कर सकती हैं.. बिल्कुल flexible है."
+    },
+    {
+     "who": "user",
+     "text": "हां जी ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "और सबसे अच्छी बात यह है कि Pronto कोशिश करता है कि आपको आपके area में ही काम मिले. आपके phone पर booking आती है, उसमें address दिखता है, और आप वहां जाकर काम करती हैं. दिन में करीब चार से पांच booking आती हैं, हर booking करीब एक घंटे की होती है. बीच में आधे घंटे का break भी मिलता है.. और travel के लिए eBike भी provide की जाती है."
+    },
+    {
+     "who": "user",
+     "text": "yes ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "अच्छा, तो अब अगला step है screening center visit. वहां पर एक छोटा सा interview होगा और कुछ basic चीज़ें पूछी जाएंगी, बिल्कुल easy है. मैं देख रही हूं.. आपके सबसे पास वाला center Gurugram - Manesar है, जो करीब two किलोमीटर दूर है."
+    },
+    {
+     "who": "user",
+     "text": "हां जी ma'am ninety two है"
+    },
+    {
+     "who": "agent",
+     "text": "समझ नहीं आया, क्या आप दोबारा बता सकती हैं? आपके लिए सबसे पास वाला screening center Gurugram - Manesar है, जो करीब दो किलोमीटर दूर है. क्या यह ठीक रहेगा?"
+    },
+    {
+     "who": "user",
+     "text": "नहीं ma'am मेरा तो पड़ता है ninety two"
+    },
+    {
+     "who": "agent",
+     "text": "कोई बात नहीं, एक और center है Delhi - Dwaraka, जो करीब twenty-two किलोमीटर दूर है. वह ठीक रहेगा आपके लिए?"
+    },
+    {
+     "who": "user",
+     "text": "and"
+    },
+    {
+     "who": "agent",
+     "text": "एक और option है देखिए, Gurugram - Udyog Vihar.. जो करीब twenty-two किलोमीटर दूर है. यह चलेगा?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी"
+    },
+    {
+     "who": "agent",
+     "text": "तो आप कब जा सकती हैं screening center? आज या कल जा सकती हैं?"
+    },
+    {
+     "who": "user",
+     "text": "अभी तो मैं booking में हूं अब"
+    },
+    {
+     "who": "agent",
+     "text": "समझ सकती हूं आपकी बात. Screening बस एक simple process है, एक बार देख लीजिए.. कोई commitment नहीं है. आप कब जा सकती हैं? कोई date बता दीजिए."
+    },
+    {
+     "who": "user",
+     "text": "मतलब कल जाना है आने वाले है"
+    },
+    {
+     "who": "agent",
+     "text": "बहुत अच्छा! तो कल आप Gurugram - Udyog Vihar screening center जाएंगी. सुबह दस बजे तक पहुंच जाइएगा, और साथ में Aadhaar card ज़रूर ले जाइएगा."
+    },
+    {
+     "who": "agent",
+     "text": "Hello, क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी"
+    },
+    {
+     "who": "agent",
+     "text": "आपका WhatsApp number यही है जिस पर बात हो रही है?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी यही है"
+    },
+    {
+     "who": "agent",
+     "text": "बहुत अच्छा! तो कल आप Gurugram - Udyog Vihar पर screening के लिए पहुंच जाइएगा. Location WhatsApp पर भेज रही हूं. कोई doubt हो तो इसी number पर call कर लीजिएगा. धन्यवाद, आपका दिन अच्छा रहे!"
+    }
+   ]
   }
  ],
  "pron": [
@@ -46,7 +468,53 @@
    ],
    "explain": "The agent mispronounced the city “Surat”. City names are one of the top reasons clients buy the pronunciation-audit dataset · the model has to say them the way locals do.",
    "call_id": "6bc14dc7-3b32-4dcb-95c6-ad434f8da84a",
-   "recording_url": "https://api.bolna.ai/recordings/call/6bc14dc7-3b32-4dcb-95c6-ad434f8da84a"
+   "recording_url": "https://api.bolna.ai/recordings/call/6bc14dc7-3b32-4dcb-95c6-ad434f8da84a",
+   "turns": [
+    {
+     "who": "agent",
+     "text": "Hi, am I speaking with Samia Dhall?"
+    },
+    {
+     "who": "user",
+     "text": "hello"
+    },
+    {
+     "who": "agent",
+     "text": "Hello, I’m calling from Auro University Surat to briefly share information about our program and admissions for the 2026 to 2027 academic session. May I take two to three minutes of your time?"
+    },
+    {
+     "who": "user",
+     "text": "ना नहीं time तो नहीं मेरे पास"
+    },
+    {
+     "who": "agent",
+     "text": "समझ गई। हम"
+    },
+    {
+     "who": "user",
+     "text": "i am also busy"
+    },
+    {
+     "who": "agent",
+     "text": "Understood, we will contact you at a more convenient time. Would you like us to connect with you again at a convenient time for a detailed discussion?"
+    },
+    {
+     "who": "user",
+     "text": "ok"
+    },
+    {
+     "who": "agent",
+     "text": "Thank you. We will reach out to you at a more convenient time for a detailed discussion. Have a great day ahead!"
+    },
+    {
+     "who": "user",
+     "text": "जी"
+    },
+    {
+     "who": "agent",
+     "text": "Thank you for your time. Goodbye!"
+    }
+   ]
   },
   {
    "ts": "00:01",
@@ -59,7 +527,275 @@
    ],
    "explain": "The agent mispronounced the caller's name “Ananya”. Getting a customer's own name wrong on the first line breaks trust instantly · this is a proper-noun miss.",
    "call_id": "6f2c04fc-3390-47f6-afdd-8413b0d8cfe4",
-   "recording_url": "https://api.bolna.ai/recordings/call/6f2c04fc-3390-47f6-afdd-8413b0d8cfe4"
+   "recording_url": "https://api.bolna.ai/recordings/call/6f2c04fc-3390-47f6-afdd-8413b0d8cfe4",
+   "turns": [
+    {
+     "who": "agent",
+     "text": "Hello. This is Ananya from Haus & Kinder. Is this a good time to talk?"
+    },
+    {
+     "who": "user",
+     "text": "is this regarding"
+    },
+    {
+     "who": "agent",
+     "text": "So before we start, would you like to proceed in English, या फिर आप हिंदी में बात करना पसंद करेंगे?"
+    },
+    {
+     "who": "user",
+     "text": "i'm ok with anything"
+    },
+    {
+     "who": "agent",
+     "text": "So, just to give you a bit of context, this call is about a product you had added to your cart on Haus & Kinder. You had added Ornate Whispers Combed Cotton King Bedsheet one hundred eighty six TC but the order was not completed."
+    },
+    {
+     "who": "user",
+     "text": "yes yes i'm doing"
+    },
+    {
+     "who": "agent",
+     "text": "So, just to give you a"
+    },
+    {
+     "who": "user",
+     "text": "yes i'm doing it"
+    },
+    {
+     "who": "agent",
+     "text": "I just wanted to check in,"
+    },
+    {
+     "who": "user",
+     "text": "give me give me some give me give me some time i'm doing it i'm right now in office and doing some office work"
+    },
+    {
+     "who": "agent",
+     "text": "I"
+    },
+    {
+     "who": "user",
+     "text": "so allow me some time ok hello"
+    },
+    {
+     "who": "agent",
+     "text": "I completely understand. This will only take about two minutes, and I will let you get back to your work right after. Would that be alright?"
+    },
+    {
+     "who": "user",
+     "text": "yes yes thank you"
+    },
+    {
+     "who": "agent",
+     "text": "So before we start, would you like to proceed in English, या फिर आप हिंदी में बात करना पसंद करेंगे?"
+    },
+    {
+     "who": "user",
+     "text": "नहीं मैं कर लूंगी payment madam thank you"
+    },
+    {
+     "who": "user",
+     "text": "thank you for calling"
+    },
+    {
+     "who": "agent",
+     "text": "अच्छा, धन्यवाद, फिर मिलते हैं।"
+    }
+   ]
+  }
+ ],
+ "issue": [
+  {
+   "call_id": "43299e7d-ff61-4714-aef7-9a196a499207",
+   "recording_url": "https://api.bolna.ai/recordings/call/43299e7d-ff61-4714-aef7-9a196a499207",
+   "ts": "03:42",
+   "turns": [
+    {
+     "who": "agent",
+     "text": "नमस्ते, VBL Asset Buddy में call करने के लिए धन्यवाद। आप आज कैसे हैं?"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "जी line पर रहे हैं"
+    },
+    {
+     "who": "agent",
+     "text": "मैं Aisha हूँ, VBL में आपकी asset buddy, आगे बढ़ने से पहले, क्या आप English में बात करना चाहेंगे या Hindi में?"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "nine पर है जी nine पर"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप English में बात करना चाहेंगे या Hindi में?"
+    },
+    {
+     "who": "user",
+     "text": "हिंदी में"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप अपना Visi cooler का Metal Tag Number, Serial Number या Bar Code बता सकते हैं?"
+    },
+    {
+     "who": "user",
+     "text": "दीदी आई क्या हूं"
+    },
+    {
+     "who": "agent",
+     "text": "कृपया अपने Visi cooler का Metal Tag Number, Serial Number या Bar Code बताइए। आगे बताइए।"
+    },
+    {
+     "who": "user",
+     "text": "v i क्यों"
+    },
+    {
+     "who": "agent",
+     "text": "कृपया अपने"
+    },
+    {
+     "who": "user",
+     "text": "zero one दस तेईस"
+    },
+    {
+     "who": "agent",
+     "text": "जी, आगे बताइये।"
+    },
+    {
+     "who": "user",
+     "text": "hello"
+    },
+    {
+     "who": "agent",
+     "text": "जी, आगे बताइये।"
+    },
+    {
+     "who": "user",
+     "text": "v i क्यों हो गया"
+    },
+    {
+     "who": "agent",
+     "text": "आपने जो बताया, उसमें \"v i\" शामिल है, क्या यही आपका Metal Tag Number है? कृपया पूरा नंबर बताइए, आगे बताइये।"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "sign"
+    },
+    {
+     "who": "agent",
+     "text": "जी, आगे बताइये।"
+    },
+    {
+     "who": "user",
+     "text": "zero one"
+    },
+    {
+     "who": "agent",
+     "text": "जी, आगे बताइये।"
+    },
+    {
+     "who": "user",
+     "text": "zero two"
+    },
+    {
+     "who": "agent",
+     "text": "जी, आगे बताइये।"
+    },
+    {
+     "who": "user",
+     "text": "three six"
+    },
+    {
+     "who": "agent",
+     "text": "जी, आगे बताइये।"
+    },
+    {
+     "who": "user",
+     "text": "eight"
+    },
+    {
+     "who": "agent",
+     "text": "जी, आगे बताइये।"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी line पर हूं इस पर कौन से number पर लिखा है यह तो"
+    },
+    {
+     "who": "user",
+     "text": "घंटे से आ जाते हैं कोई नहीं आया"
+    },
+    {
+     "who": "agent",
+     "text": "आपका Metal Tag Number है V I zero one zero two three six eight, क्या ये सही है?"
+    },
+    {
+     "who": "user",
+     "text": "hello"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आपका Metal Tag Number है V I zero one zero two three six eight, क्या ये सही है?"
+    },
+    {
+     "who": "user",
+     "text": "सही है जल्दी से उसको भेजो उसको ठीक करने वाले बोलिए तो बोल रही कि नहीं दिख रही है यहां पर मैं समझ रहा हूं ऐसे"
+    },
+    {
+     "who": "agent",
+     "text": "धन्यवाद पुष्टि के लिए। मैं अभी आपके Metal Tag Number से जानकारी खोजती हूँ, कृपया एक पल दें।"
+    },
+    {
+     "who": "agent",
+     "text": "माफ़ कीजिए, मुझे आपका रिकॉर्ड नहीं मिला। क्या आप कृपया अपने registered store का नाम बता सकते हैं?"
+    },
+    {
+     "who": "user",
+     "text": "वाले"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आपका registered store का नाम \"वाले\" है? कृपया पुष्टि करें।"
+    },
+    {
+     "who": "user",
+     "text": "hello"
+    },
+    {
+     "who": "agent",
+     "text": "कृपया registered store का नाम बताइए ताकि मैं सही से रिकॉर्ड कर सकूँ।"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप लाइन पर हैं?"
+    }
+   ],
+   "options": [
+    "Repetition",
+    "Language errors",
+    "User input capture errors",
+    "Irrelevant response / others"
+   ],
+   "correct": "User input capture errors",
+   "setup": "Play from 03:40. The user says their store name. Watch what the agent does with it, then log the issue the way you would in the tool.",
+   "explain": "The user clearly said the store name and the agent never captured it. The expert logged: “the user mentioned their store name but wasn't captured”. Wrong or missing input capture breaks everything downstream, and no transcript-reading judge can see it."
   }
  ]
 }

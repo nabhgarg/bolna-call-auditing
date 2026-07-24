@@ -19,9 +19,11 @@ const CANON = "https://api.bolna.ai/recordings/call/";
 // transcription-tool palette (matches the real /transcribe workbench)
 const T_GREEN = "#1f7a5c", T_ORANGE = "#c05621", T_SLATE = "#4a5568", T_RED = "#b03636", T_AMBER = "#b7791f";
 
-type Trans = { type: "trans"; call_id: string; recording_url?: string; ts: string; context: string; asr: string; golden: string; wrongLang: string; isCorrect: boolean; explain: string };
-type Pron = { type: "pron"; call_id: string; recording_url?: string; ts: string; content_tag: string; word_heard: string; options: string[]; explain: string };
-type Q = Trans | Pron;
+type Turn = { who: string; text: string };
+type Trans = { type: "trans"; call_id: string; recording_url?: string; ts: string; context: string; asr: string; golden: string; wrongLang: string; isCorrect: boolean; explain: string; turns?: Turn[] };
+type Pron = { type: "pron"; call_id: string; recording_url?: string; ts: string; content_tag: string; word_heard: string; options: string[]; explain: string; turns?: Turn[] };
+type Iss = { type: "issue"; call_id: string; recording_url?: string; ts: string; setup: string; options: string[]; correct: string; explain: string; turns?: Turn[] };
+type Q = Trans | Pron | Iss;
 type Verdict = "match" | "miss" | "";
 
 function tsSec(ts: string) { const [m, s] = String(ts || "0:0").split(":"); return Number(m) * 60 + Number(s || 0); }
@@ -49,12 +51,14 @@ export default function Join() {
   const [tLang, setTLang] = useState("same");
   const [tText, setTText] = useState("");
   const [pTag, setPTag] = useState(""); const [pWord, setPWord] = useState("");
+  const [iType, setIType] = useState(""); const [iExpl, setIExpl] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     fetch("/api/assignment").then((r) => r.json()).then((d) => setQs([
       ...(d.trans || []).map((x: any) => ({ ...x, type: "trans" })),
-      ...(d.pron || []).map((x: any) => ({ ...x, type: "pron" }))
+      ...(d.pron || []).map((x: any) => ({ ...x, type: "pron" })),
+      ...(d.issue || []).map((x: any) => ({ ...x, type: "issue" }))
     ])).catch(() => {});
   }, []);
 
@@ -74,9 +78,18 @@ export default function Join() {
   }
   function stopAudio() { audioRef.current?.pause(); setPlayingIdx(null); }
 
-  function openQ(i: number) { if (results[i] !== undefined) return; stopAudio(); setIdx(i); setFeedback(null); setTKind(""); setTLang("same"); setTText(""); setPTag(""); setPWord(""); setCoachQ(""); setCoachA(""); }
+  useEffect(() => {
+    const a = audioRef.current; const item = feedback !== null ? qs[feedback] : (idx >= 0 ? qs[idx] : undefined);
+    if (!a || !item) return;
+    const url = item.recording_url || CANON + item.call_id;
+    const src = `/api/audio?url=${encodeURIComponent(url)}`;
+    if (a.getAttribute("data-src") !== src) { a.pause(); a.src = src; a.setAttribute("data-src", src); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx, feedback, qs.length]);
+
+  function openQ(i: number) { if (results[i] !== undefined) return; stopAudio(); setIdx(i); setFeedback(null); setTKind(""); setTLang("same"); setTText(""); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); }
   function record(i: number, v: Verdict) { stopAudio(); setResults((r) => ({ ...r, [i]: v })); setFeedback(i); }
-  function next() { const n = [...Array(total).keys()].find((i) => results[i] === undefined); stopAudio(); setFeedback(null); setTKind(""); setTLang("same"); setTText(""); setPTag(""); setPWord(""); setCoachQ(""); setCoachA(""); if (n === undefined) setScreen("result"); else setIdx(n); }
+  function next() { const n = [...Array(total).keys()].find((i) => results[i] === undefined); stopAudio(); setFeedback(null); setTKind(""); setTLang("same"); setTText(""); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); if (n === undefined) setScreen("result"); else setIdx(n); }
 
   function submitTrans() {
     if (!q || q.type !== "trans" || !tKind) return;
@@ -87,6 +100,10 @@ export default function Join() {
     if (!q || q.type !== "pron" || !pTag || !pWord.trim()) return;
     record(idx, pTag === q.content_tag ? "match" : "miss");
   }
+  function submitIssue() {
+    if (!q || q.type !== "issue" || !iType || !iExpl.trim()) return;
+    record(idx, iType === q.correct ? "match" : "miss");
+  }
 
   async function askCoach() {
     const qq = coachQ.trim(); if (!qq || coachBusy) return;
@@ -94,7 +111,9 @@ export default function Join() {
     const fi = feedback ?? idx; const c = qs[fi];
     const ctx = c.type === "trans"
       ? `Task: transcription review. Agent said: "${c.context}". ASR wrote: "${c.asr}". Golden: "${c.golden}". ${c.isCorrect ? "The ASR was correct." : "The ASR was wrong and should be edited."} Expert note: ${c.explain}`
-      : `Task: pronunciation audit. The agent mispronounced "${c.word_heard}", tagged as ${c.content_tag}. Expert note: ${c.explain}`;
+      : c.type === "pron"
+        ? `Task: pronunciation audit. The agent mispronounced "${c.word_heard}", tagged as ${c.content_tag}. Expert note: ${c.explain}`
+        : `Task: issue logging. ${c.setup} Correct error type: "${c.correct}". Expert note: ${c.explain}`;
     try { const r = await fetch("/api/coach", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ context: ctx, question: qq }) }); const d = await r.json(); setCoachA(d.text || "Coach unavailable · re-read the expert note above."); }
     catch { setCoachA("Coach unavailable · re-read the expert note above."); }
     setCoachBusy(false);
@@ -107,7 +126,7 @@ export default function Join() {
 
   function Row({ i }: { i: number }) {
     const st = results[i]; const cur = idx === i && screen === "work"; const answered = st !== undefined;
-    const label = qs[i].type === "trans" ? "call · segment" : "name · pronunciation";
+    const label = qs[i].type === "trans" ? "call · segment" : qs[i].type === "pron" ? "call · pronunciation" : "call · issue log";
     return (
       <div onClick={() => !answered && openQ(i)} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, border: `1.5px solid ${cur ? GREEN : "transparent"}`, background: cur ? "#f2faf6" : "transparent", borderRadius: 8, padding: "6px 8px", cursor: answered ? "default" : "pointer" }}>
         <span style={{ color: answered ? (st === "match" ? GREEN : RED) : GREEN }}>{answered ? (st === "match" ? "✓" : "✗") : "▶"}</span>
@@ -120,9 +139,29 @@ export default function Join() {
 
   const fi = feedback ?? 0; const fq = feedback !== null ? qs[fi] : undefined; const fVerdict = feedback !== null ? results[fi] : "";
 
+  function TranscriptPanel({ item, highlight }: { item: Q; highlight?: string }) {
+    const turns = item.turns || [];
+    const hl = (highlight || "").trim().toLowerCase().slice(0, 30);
+    return (
+      <div style={{ ...card, padding: 12, display: "flex", flexDirection: "column", gap: 6, maxHeight: 420, overflowY: "auto" }}>
+        <span style={{ fontSize: 11, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px", position: "sticky", top: 0, background: "#fff", paddingBottom: 4 }}>Call transcript · {turns.length} turns</span>
+        {turns.map((t, i) => {
+          const isHl = hl.length > 3 && t.text.toLowerCase().includes(hl);
+          return (
+            <div key={i} style={{ alignSelf: t.who === "user" ? "flex-end" : "flex-start", maxWidth: "88%", background: isHl ? "#fdecc8" : t.who === "user" ? "#eef4fd" : "#f5f7f9", border: isHl ? "1.5px solid #b7791f" : "1px solid #e9edf1", borderRadius: 10, padding: "5px 9px", fontSize: 12.5, lineHeight: 1.45 }}>
+              <span style={{ display: "block", fontSize: 9, color: t.who === "user" ? "#5b8def" : GREEN, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>{t.who}</span>{t.text}
+            </div>
+          );
+        })}
+        {turns.length === 0 && <span style={{ fontSize: 12, color: MUT }}>No transcript available for this call.</span>}
+      </div>
+    );
+  }
+
+  const activeQ = feedback !== null ? fq : q;
+
   return (
     <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
-      <audio ref={audioRef} onEnded={() => setPlayingIdx(null)} style={{ display: "none" }} />
       <div style={{ width: "100%", background: "#f5f7f9", display: "flex", flexDirection: "column", flex: 1 }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "12px 32px" }}>
@@ -202,27 +241,36 @@ export default function Join() {
                 <span className={mono.className} style={{ fontSize: 12 }}>{done} / {total || 5}</span>
               </div>
               <div style={{ ...card, padding: "11px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}><span className={grotesk.className} style={{ fontWeight: 600, fontSize: 13 }}>Fix the transcript</span><span style={{ fontSize: 10.5, color: MUT }}>the real tool</span></div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}><span className={grotesk.className} style={{ fontWeight: 600, fontSize: 13 }}>Fix the transcript</span></div>
                 {qs.map((x, i) => x.type === "trans" ? <Row key={i} i={i} /> : null)}
               </div>
               <div style={{ ...card, padding: "11px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}><span className={grotesk.className} style={{ fontWeight: 600, fontSize: 13 }}>Pronunciation audit</span><span style={{ fontSize: 10.5, color: MUT }}>the real tool</span></div>
-                {qs.map((x, i) => x.type === "pron" ? <Row key={i} i={i} /> : null)}
+                <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}><span className={grotesk.className} style={{ fontWeight: 600, fontSize: 13 }}>Issue logging</span></div>
+                {qs.map((x, i) => x.type !== "trans" ? <Row key={i} i={i} /> : null)}
               </div>
               <div style={{ fontSize: 11, color: "#93a1ae", lineHeight: 1.45, padding: "0 3px" }}>Move between open tasks freely. Feedback is instant · these are real production calls, graded by our experts.</div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
+              {activeQ && (
+                <div style={{ ...card, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <span className={mono.className} style={{ fontSize: 11.5, color: MUT, flex: "none" }}>full call · {activeQ.call_id.slice(0, 8)}</span>
+                  <audio ref={audioRef} controls preload="none" onEnded={() => setPlayingIdx(null)} style={{ flex: 1, minWidth: 260, height: 34 }} />
+                  <span style={{ fontSize: 11, color: MUT, flex: "none" }}>listen to any part · the ▶ buttons jump to the moment</span>
+                </div>
+              )}
+
               {idx === -1 && feedback === null && (
                 <div style={{ ...card, borderRadius: 14, padding: 40, display: "flex", flexDirection: "column", gap: 10, alignItems: "center", textAlign: "center" }}>
-                  <div className={grotesk.className} style={{ fontWeight: 600, fontSize: 22 }}>Your 5-question assignment</div>
-                  <div style={{ fontSize: 13.5, color: MUT, maxWidth: 440 }}>{transN} transcription checks and {total - transN} pronunciation audits · in the exact tools our paid reviewers use. Your agreement with the expert decides your tier.</div>
+                  <div className={grotesk.className} style={{ fontWeight: 600, fontSize: 22 }}>Your {total || 6}-question assignment</div>
+                  <div style={{ fontSize: 13.5, color: MUT, maxWidth: 440 }}>{transN} transcription checks and {total - transN} issue logs, with the full call in front of you. Your agreement with the expert decides your tier.</div>
                   <div onClick={() => total && openQ(0)} style={{ height: 46, minWidth: 220, borderRadius: 10, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: "0 22px", opacity: total ? 1 : 0.5 }}>{total ? "Start question 1 ▶" : "Loading…"}</div>
                 </div>
               )}
 
               {feedback === null && q && q.type === "trans" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 12, alignItems: "start" }}>
                 <div style={{ border: `2px solid ${T_AMBER}`, background: "#fff", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 0 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     <button onClick={() => play(idx, q.ts)} style={{ fontSize: 13, padding: "4px 10px", borderRadius: 7, border: "1px solid #cfd8e0", background: "#fff", cursor: "pointer" }}>{playingIdx === idx ? "❚❚" : "🔁"} @{q.ts}</button>
@@ -250,6 +298,8 @@ export default function Join() {
                   )}
                   <button onClick={submitTrans} disabled={!tKind || (tKind === "wrong" && !tText.trim())} style={{ marginTop: 10, fontSize: 13, padding: "8px 16px", borderRadius: 7, border: "none", background: (!tKind || (tKind === "wrong" && !tText.trim())) ? "#c8d6d0" : T_GREEN, color: "#fff", cursor: (!tKind || (tKind === "wrong" && !tText.trim())) ? "not-allowed" : "pointer", alignSelf: "flex-start" }}>Submit & next</button>
                 </div>
+                <TranscriptPanel item={q} highlight={q.asr} />
+                </div>
               )}
 
               {feedback === null && q && q.type === "pron" && (
@@ -262,6 +312,7 @@ export default function Join() {
                       <span className={mono.className} style={{ fontSize: 12 }}>{q.call_id.slice(0, 8)} @{q.ts}</span>
                       <span style={{ fontSize: 11.5, color: MUT }}>· plays from ~2s before</span>
                     </div>
+                    <TranscriptPanel item={q} highlight={q.type === "pron" ? q.word_heard : undefined} />
                   </div>
                   <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                     <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 14 }}>Log the pronunciation issue</span>
@@ -285,18 +336,56 @@ export default function Join() {
                 </div>
               )}
 
+              {feedback === null && q && q.type === "issue" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 12, alignItems: "start" }}>
+                  <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <span style={{ fontSize: 11, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>Issue logging · question {idx + 1} of {total}</span>
+                    <div style={{ fontSize: 13.5, lineHeight: 1.55 }}>{q.setup}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#f5f7f9", borderRadius: 9, padding: "9px 11px" }}>
+                      <div onClick={() => play(idx, q.ts)} style={{ width: 34, height: 34, borderRadius: 999, background: INK, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", flex: "none" }}>{playingIdx === idx ? "❚❚" : "▶"}</div>
+                      <span className={mono.className} style={{ fontSize: 12 }}>{q.call_id.slice(0, 8)} @{q.ts}</span>
+                      <span style={{ fontSize: 11.5, color: MUT }}>· plays from ~2s before</span>
+                    </div>
+                    <TranscriptPanel item={q} />
+                  </div>
+                  <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 14 }}>Log the issue</span>
+                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Issue type
+                      <div style={{ padding: "8px 10px", border: "1px solid #d6dee6", borderRadius: 7, fontSize: 13, background: "#f5f7f9", color: INK }}>Response appropriateness</div>
+                    </label>
+                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Timestamp
+                      <div className={mono.className} style={{ padding: "8px 10px", border: "1px solid #d6dee6", borderRadius: 7, fontSize: 13, background: "#f5f7f9", color: INK }}>{q.ts}</div>
+                    </label>
+                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Type of error
+                      <select value={iType} onChange={(e) => setIType(e.target.value)} style={{ padding: "8px 10px", border: `1px solid ${iType ? "#d6dee6" : "#e2b3b3"}`, borderRadius: 7, fontSize: 13, fontFamily: "inherit", background: "#fff" }}>
+                        <option value="">Select type of error</option>
+                        {q.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </label>
+                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Explain the error
+                      <textarea value={iExpl} rows={2} onChange={(e) => setIExpl(e.target.value)} placeholder="one line: what went wrong?" style={{ padding: "8px 10px", border: "1px solid #d6dee6", borderRadius: 7, fontSize: 13, outline: "none", fontFamily: "inherit", resize: "vertical" }} />
+                    </label>
+                    <button onClick={submitIssue} disabled={!iType || !iExpl.trim()} style={{ marginTop: 2, fontSize: 13.5, padding: "9px 0", borderRadius: 8, border: "none", background: (!iType || !iExpl.trim()) ? "#c8d6d0" : GREEN, color: "#fff", fontWeight: 600, cursor: (!iType || !iExpl.trim()) ? "not-allowed" : "pointer" }}>Add issue</button>
+                  </div>
+                </div>
+              )}
+
               {feedback !== null && fq && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 11, maxWidth: 660 }}>
                   <div style={{ background: fVerdict === "match" ? "#f2faf6" : "#fffafa", border: `1.5px solid ${fVerdict === "match" ? GREEN : RED}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 9 }}>
                     <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 16, color: fVerdict === "match" ? GREEN : RED }}>
                       {fq.type === "trans"
                         ? (fVerdict === "match" ? (fq.isCorrect ? "✓ Right: the ASR was correct" : "✓ Caught it: the ASR was wrong") : (fq.isCorrect ? "✗ The ASR was actually correct" : "✗ Missed it: the ASR was wrong"))
-                        : (fVerdict === "match" ? `✓ Right: it's a ${fq.content_tag}` : `✗ Not quite: it's a ${fq.content_tag}`)}
+                        : fq.type === "pron"
+                          ? (fVerdict === "match" ? `✓ Right: it's a ${fq.content_tag}` : `✗ Not quite: it's a ${fq.content_tag}`)
+                          : (fVerdict === "match" ? `✓ Exactly: ${fq.correct.toLowerCase()}` : `✗ Not quite: the expert logged ${fq.correct.toLowerCase()}`)}
                     </span>
                     <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>{fq.explain}</div>
                     {fq.type === "trans"
                       ? <div style={{ background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "9px 11px", fontSize: 13, lineHeight: 1.6 }}><span style={{ color: MUT }}>ASR:</span> {fq.asr}<br /><span style={{ color: MUT }}>Golden:</span> <b style={{ color: GREEN }}>{fq.golden}</b></div>
-                      : <div style={{ background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "9px 11px", fontSize: 13 }}><span style={{ color: MUT }}>Expert logged:</span> <b>{fq.word_heard}</b> · <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, padding: "2px 8px", fontSize: 11.5, fontWeight: 600 }}>{fq.content_tag}</span></div>}
+                      : fq.type === "pron"
+                        ? <div style={{ background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "9px 11px", fontSize: 13 }}><span style={{ color: MUT }}>Expert logged:</span> <b>{fq.word_heard}</b> · <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, padding: "2px 8px", fontSize: 11.5, fontWeight: 600 }}>{fq.content_tag}</span></div>
+                        : <div style={{ background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "9px 11px", fontSize: 13 }}><span style={{ color: MUT }}>Expert logged:</span> <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, padding: "2px 8px", fontSize: 11.5, fontWeight: 600 }}>{fq.correct}</span></div>}
                     <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                       <div onClick={() => play(fi, fq.ts)} style={{ width: 26, height: 26, borderRadius: 999, background: INK, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, cursor: "pointer" }}>{playingIdx === fi ? "❚❚" : "▶"}</div>
                       <span style={{ fontSize: 11.5, color: MUT }}>replay with the answer in mind</span>
