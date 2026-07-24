@@ -17,9 +17,8 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
 type AgentRow = { agent: string; raters: number; inter_panel: number | null; vs_gt: number | null; gt_calls: number; trust: string };
 type IssueRow = { key: string; label: string; inter_panel: number | null; vs_gt: number | null; unit: string; formula: string };
-type HWin = { label: string; human: number | null; llm: number; machine: string };
-type MWin = { label: string; human: number | null; llm: number | null; llm_support: number; human_calls: number; judge_calls: number };
-type Data = { overall: { inter_panel: number; vs_gt: number; delta: number; calls: number }; by_agent: AgentRow[]; by_issue: IssueRow[]; human_vs_llm: { human_wins: HWin[]; machine_wins: MWin[]; method: string } };
+type HvLRow = { label: string; human: number; llm: number; blind?: boolean; route: string; support: number };
+type Data = { overall: { inter_panel: number; vs_gt: number; delta: number; calls: number }; by_agent: AgentRow[]; by_issue: IssueRow[]; human_vs_llm: { rows: HvLRow[]; method: string } };
 
 const trustPill = (t: string) =>
   t === "high" ? { bg: "#e7f4ee", fg: GREEN }
@@ -45,20 +44,6 @@ export default function Reliability() {
 
   const o = d.overall;
   const fmt = (v: number | null, unit: string) => v == null ? "·" : unit === "F1" ? String(v) : v + "%";
-
-  // one human-vs-LLM row: label, two side-by-side bars (green human / purple machine), "H v L"
-  const HvL = ({ label, human, llm, blind, tail }: { label: string; human: number | null; llm: number | null; blind?: boolean; tail?: string }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
-      <span style={{ width: 148, flex: "none" }}>{label}</span>
-      <div style={{ flex: 1, display: "flex", gap: 5 }}>
-        <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#eef2f6", overflow: "hidden" }}><div style={{ width: `${human ?? 0}%`, height: 20, borderRadius: 5, background: GREEN }} /></div>
-        <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#eef2f6", overflow: "hidden" }}><div style={{ width: `${blind ? 0 : (llm ?? 0)}%`, height: 20, borderRadius: 5, background: PURPLE }} /></div>
-      </div>
-      <span className={mono.className} style={{ width: 82, textAlign: "right", fontSize: 11.5, flex: "none", color: MUT }}>
-        {human ?? "·"} v {blind ? "0" : (llm == null ? "·" : llm)}
-      </span>
-    </div>
-  );
 
   return (
     <PortalShell right={
@@ -150,38 +135,30 @@ export default function Reliability() {
         <div style={{ ...card, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
             <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Human panel vs LLM judge</span>
-            <span style={{ fontSize: 11.5, color: MUT }}>scored against the same expert ground truth · this is why routing sends each activity where it does</span>
+            <span style={{ fontSize: 11.5, color: MUT }}>where the judge can stand in for a human, and where it can&apos;t · scored on the same expert-reviewed calls</span>
             <span style={{ flex: 1 }} />
             <span style={{ fontSize: 11.5 }}><span style={{ color: GREEN }}>●</span> human</span>
             <span style={{ fontSize: 11.5 }}><span style={{ color: PURPLE }}>●</span> LLM judge</span>
           </div>
-          <div style={{ display: "flex", gap: 26, flexWrap: "wrap" }}>
-            {/* human wins */}
-            <div style={{ flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 11 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: GREEN }}>Human wins → 100% human route</div>
-              {d.human_vs_llm.human_wins.map((h) => <HvL key={h.label} label={h.label} human={h.human} llm={0} blind />)}
-              <div style={{ fontSize: 10.5, color: MUT }}>the judge is audio-blind here · it produces no findings, so these lanes stay 100% human.</div>
-            </div>
-            <div style={{ width: 1, background: "#e2e8ee" }} />
-            {/* machine wins */}
-            <div style={{ flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 11 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: PURPLE }}>Transcript-visible → judge owns it</div>
-              {d.human_vs_llm.machine_wins.map((m) => (
-                m.llm != null
-                  ? <HvL key={m.label} label={m.label} human={m.human} llm={m.llm} />
-                  : (
-                    <div key={m.label} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
-                      <span style={{ width: 148, flex: "none" }}>{m.label}</span>
-                      <div style={{ flex: 1, display: "flex", gap: 5 }}>
-                        <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#eef2f6", overflow: "hidden" }}><div style={{ width: `${m.human ?? 0}%`, height: 20, borderRadius: 5, background: GREEN }} /></div>
-                        <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#f3eefc", display: "flex", alignItems: "center", justifyContent: "center" }}><span className={mono.className} style={{ fontSize: 10, color: PURPLE }}>{m.judge_calls.toLocaleString()} calls at scale</span></div>
-                      </div>
-                      <span className={mono.className} style={{ width: 82, textAlign: "right", fontSize: 11.5, flex: "none", color: MUT }}>{m.human ?? "·"} v +</span>
-                    </div>
-                  )
-              ))}
-              <div style={{ fontSize: 10.5, color: MUT }}>where the judge and panel both looked, they agree (language 85%); elsewhere the judge covers these at scale for the panel to verify.</div>
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "170px 1fr 84px 190px", gap: "10px 14px", alignItems: "center", marginTop: 4 }}>
+            <span style={{ fontSize: 11, color: "#93a1ae" }}>issue</span>
+            <span style={{ fontSize: 11, color: "#93a1ae" }}>human vs LLM judge agreement</span>
+            <span style={{ fontSize: 11, color: "#93a1ae", textAlign: "right" }}>H v L</span>
+            <span style={{ fontSize: 11, color: "#93a1ae" }}>routing</span>
+            {d.human_vs_llm.rows.map((r) => (
+              <React.Fragment key={r.label}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{r.label}</span>
+                <div style={{ display: "flex", gap: 5 }}>
+                  <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#eef2f6", overflow: "hidden" }}><div style={{ width: `${r.human}%`, height: 20, borderRadius: 5, background: GREEN }} /></div>
+                  <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#eef2f6", overflow: "hidden", position: "relative" }}>
+                    <div style={{ width: `${r.llm}%`, height: 20, borderRadius: 5, background: PURPLE }} />
+                    {r.blind && <span style={{ position: "absolute", left: 8, top: 3, fontSize: 10, color: PURPLE }}>audio-blind</span>}
+                  </div>
+                </div>
+                <span className={mono.className} style={{ fontSize: 12, textAlign: "right" }}>{r.human} v {r.llm}</span>
+                <span style={{ fontSize: 11, color: r.llm >= 80 ? PURPLE : r.llm === 0 ? GREEN : MUT }}>{r.route}</span>
+              </React.Fragment>
+            ))}
           </div>
           <div style={{ fontSize: 11.5, color: MUT, borderTop: "1px solid #eef2f6", paddingTop: 10, lineHeight: 1.5 }}>{d.human_vs_llm.method}</div>
         </div>

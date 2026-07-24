@@ -101,50 +101,45 @@
   }
  ],
  "human_vs_llm": {
-  "human_wins": [
+  "rows": [
    {
     "label": "Transcription",
     "human": 94,
     "llm": 0,
-    "machine": "blind",
-    "human_calls": 452,
-    "judge_calls": 0
+    "blind": true,
+    "route": "100% human · judge is blind",
+    "support": 218
    },
    {
     "label": "Pronunciation",
     "human": 92,
     "llm": 0,
-    "machine": "blind",
-    "human_calls": 115,
-    "judge_calls": 0
-   }
-  ],
-  "machine_wins": [
+    "blind": true,
+    "route": "100% human · judge is blind",
+    "support": 29
+   },
    {
-    "label": "Language errors",
+    "label": "Input capture",
+    "human": 84,
+    "llm": 37,
+    "route": "human-led · judge assists",
+    "support": 27
+   },
+   {
+    "label": "Wrong response",
+    "human": 85,
+    "llm": 46,
+    "route": "human-led · judge assists",
+    "support": 54
+   },
+   {
+    "label": "Language switching",
     "human": 86,
     "llm": 85,
-    "llm_support": 26,
-    "human_calls": 40,
-    "judge_calls": 878
-   },
-   {
-    "label": "Repetition / loops",
-    "human": 84,
-    "llm": null,
-    "llm_support": 0,
-    "human_calls": 44,
-    "judge_calls": 501
-   },
-   {
-    "label": "Instruction / context",
-    "human": 82,
-    "llm": null,
-    "llm_support": 0,
-    "human_calls": 42,
-    "judge_calls": 906
+    "route": "judge can own it · humans verify",
+    "support": 26
    }
   ],
-  "method": "Calls where each side caught the issue. On audio the judge is blind (it produces no findings), so humans do 100% of it. On transcript-visible issues the judge scales the check far past the human sample, and agrees with the panel where both looked (language 85%)."
+  "method": "Each side scored against the same expert-reviewed calls. Human = the panel's reliability on that issue. LLM judge = the share of the panel's findings the judge also caught, on the calls it read. On audio the judge is blind (it works from the transcript, so it produces no findings); as issues become transcript-visible the judge catches up, until on language switching it matches the panel."
  }
 }
