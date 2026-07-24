@@ -161,7 +161,7 @@ export default function Portal() {
               </div>
             </div>
             <div style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>
-              Within {Math.abs((trust.internal_agreement || 0) - (trust.gt_agreement || 0))} points apart. The panel performs almost the same when it can&apos;t tell it&apos;s being tested.
+              Just {Math.abs((trust.internal_agreement || 0) - (trust.gt_agreement || 0))} points apart: the panel performs almost the same when it can&apos;t tell it&apos;s being tested.
             </div>
           </div>
         </div>
