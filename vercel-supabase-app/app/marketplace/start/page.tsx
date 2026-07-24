@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
+import { INK, MUT, GREEN, PURPLE, AMBER, RED, card } from "../../../lib/ui";
 
 // Client onboarding wizard — rubric-first (design review D4): the buyer's
 // first step is the intelligence (which failures need which detector), not a
@@ -11,8 +12,6 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", PURPLE = "#7c5cbf", AMBER = "#b07a15", RED = "#d6484f";
-const card: React.CSSProperties = { background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 1px 2px rgba(16,24,31,.04)" };
 
 const STEPS = ["Rubric", "Calls", "Panel", "Launch"];
 const RUBRIC: Array<{ failure: string; layer: "telemetry" | "llm" | "human" }> = [

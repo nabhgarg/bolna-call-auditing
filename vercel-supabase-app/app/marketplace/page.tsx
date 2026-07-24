@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
+import { INK, MUT, GREEN, AMBER, card } from "../../lib/ui";
 
 // Marketplace (wireframe 11a) — you hire a calibrated PANEL per role, never an
 // individual. The published reliability number (agreement on hidden ground-truth
@@ -9,8 +10,6 @@ import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", AMBER = "#b07a15";
-const card: React.CSSProperties = { background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 1px 2px rgba(16,24,31,.04)" };
 
 type Panel = {
   role: string; panelLabel: string; metric: number; metricUnit: string; metricSub: string;

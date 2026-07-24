@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "./shell";
+import { PAGE, INK, MUT, GREEN, RED, AMBER, card } from "../../lib/ui";
 
 // Overall — reads backwards from the rubric (wireframe 6a):
 // 1. Overall issues: human-identified L2s, calls affected per issue + summary box
@@ -13,8 +14,6 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", RED = "#d6484f", AMBER = "#b07a15";
-const card: React.CSSProperties = { background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 1px 2px rgba(16,24,31,.04)" };
 const CANON = "https://api.bolna.ai/recordings/call/";
 
 export default function Portal() {
@@ -58,7 +57,7 @@ export default function Portal() {
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
     }>
-      <div className={instrument.className} style={{ maxWidth: 1000, margin: "0 auto", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className={instrument.className} style={{ maxWidth: PAGE, margin: "0 auto", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
         <audio ref={audioRef} style={{ display: "none" }} />
 
         {/* 1 — Overall issues (human-identified L2s) */}

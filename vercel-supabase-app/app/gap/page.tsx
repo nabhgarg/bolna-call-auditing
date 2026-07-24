@@ -2,13 +2,13 @@
 
 import React from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
+import { INK, MUT, GREEN, PURPLE, AMBER } from "../../lib/ui";
 
 // N4 — the gap-map slide for the demo video (beat 2). 16:9, silent read in 5s:
 // where production voice calls fail, and which remedy each failure needs.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", PURPLE = "#7c5cbf", AMBER = "#b07a15";
 
 const FAILS: Array<{ label: string; to: string[] }> = [
   { label: "Latency", to: ["judge"] },

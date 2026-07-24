@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
+import { PAGE, INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
 
 // By agent (wireframe 7a) — one agent at a time, same L2 vocabulary as the
 // Overall page. Stat row → expandable L2 rows (human/LLM split, subtype
@@ -12,8 +13,6 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", PURPLE = "#7c5cbf", RED = "#d6484f", AMBER = "#b07a15";
-const card: React.CSSProperties = { background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 1px 2px rgba(16,24,31,.04)" };
 const CANON = "https://api.bolna.ai/recordings/call/";
 
 function Inner() {
@@ -88,7 +87,7 @@ function Inner() {
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
     }>
-      <div className={instrument.className} style={{ maxWidth: 1020, margin: "0 auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
+      <div className={instrument.className} style={{ maxWidth: PAGE, margin: "0 auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
         <audio ref={audioRef} style={{ display: "none" }} />
 
         {/* stat row */}

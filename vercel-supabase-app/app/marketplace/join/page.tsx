@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
+import { INK, MUT, GREEN, RED, AMBER, BLUE, card } from "../../../lib/ui";
 
 // Reviewer onboarding + calibration. Apply → 10 REAL GT-graded calls (5
 // expert-scored vibe + 5 real ASR-error transcript checks) played from the
@@ -11,7 +12,6 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", RED = "#d6484f", AMBER = "#b07a15", BLUE = "#5b8def";
 const PASS = 75;
 const CANON = "https://api.bolna.ai/recordings/call/";
 
@@ -149,7 +149,6 @@ export default function Join() {
     );
   }
 
-  const card: React.CSSProperties = { background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 1px 2px rgba(16,24,31,.04)" };
   const inWork = screen !== "apply";
   // vibe turns reveal progressively with playback
   const nTurns = (c.turns || []).length;

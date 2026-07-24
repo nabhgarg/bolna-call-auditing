@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
+import { PAGE, INK, MUT, GREEN, RED, card } from "../../../lib/ui";
 
 // Datasets (wireframe 8a) — what the reviews already generated (golden
 // transcripts hero + issue-labeled calls), plus request-more cards with
@@ -11,8 +12,6 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", RED = "#d6484f";
-const card: React.CSSProperties = { background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 1px 2px rgba(16,24,31,.04)" };
 
 function Tile({ n, l, green }: { n: string; l: string; green?: boolean }) {
   return (
@@ -69,7 +68,7 @@ export default function Datasets() {
         <span style={{ fontSize: 12, color: MUT }}>every human review doubles as training data — yours to fine-tune on</span>
       </div>
     }>
-      <div className={instrument.className} style={{ maxWidth: 980, margin: "0 auto", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className={instrument.className} style={{ maxWidth: PAGE, margin: "0 auto", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
 
         {/* hero — golden transcripts */}
         <div style={{ ...card, border: `1.5px solid ${GREEN}`, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>

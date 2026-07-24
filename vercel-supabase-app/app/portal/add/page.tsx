@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
+import { PAGE, INK, MUT, GREEN, AMBER, card } from "../../../lib/ui";
 
 // Add use case (wireframe 12a) — one screen inside the portal that launches a
 // new evaluation program, reusing the client's existing panel + pricing.
@@ -12,8 +13,6 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f", AMBER = "#b07a15";
-const card: React.CSSProperties = { background: "#fff", border: "1px solid #e2e8ee", borderRadius: 12, boxShadow: "0 1px 2px rgba(16,24,31,.04)" };
 
 function Tag({ on, children, onClick }: { on?: boolean; children: React.ReactNode; onClick?: () => void }) {
   return <span onClick={onClick} style={{ borderRadius: 6, border: `1px solid ${on ? GREEN : "#d6dee6"}`, background: on ? GREEN : "#fff", color: on ? "#fff" : "#4d5a66", fontSize: 11.5, padding: "3px 10px", cursor: onClick ? "pointer" : "default", fontWeight: on ? 600 : 400 }}>{children}</span>;
@@ -37,7 +36,7 @@ export default function AddUseCase() {
         <span style={{ fontSize: 12, color: MUT }}>a rubric + calls + a panel — reuses your existing panel and pricing</span>
       </div>
     }>
-      <div className={instrument.className} style={{ maxWidth: 1000, margin: "0 auto", padding: "18px 20px" }}>
+      <div className={instrument.className} style={{ maxWidth: PAGE, margin: "0 auto", padding: "18px 20px" }}>
         <div style={{ display: "flex", gap: 14, alignItems: "stretch", flexWrap: "wrap" }}>
           {/* left: 1-3 */}
           <div style={{ ...card, flex: 1.3, minWidth: 380, padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>

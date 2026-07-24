@@ -3,6 +3,7 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
+import { INK, MUT, GREEN } from "../../lib/ui";
 
 // Portal shell — Raindrop-style left nav. Four stable destinations:
 // Overview (how is my AI doing) · Agents (which agent breaks, how) ·
@@ -11,7 +12,6 @@ import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
-const INK = "#10181f", MUT = "#6b7885", GREEN = "#0e8a5f";
 
 const NAV = [
   { href: "/portal", label: "Overall", icon: "◍" },
