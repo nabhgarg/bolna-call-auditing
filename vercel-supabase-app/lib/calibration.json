@@ -1,0 +1,275 @@
+{
+ "calls": [
+  {
+   "type": "vibe",
+   "call_id": "00c4ccce-df45-4edf-b358-f6f27641b9e2",
+   "recording_url": "https://api.bolna.ai/recordings/call/00c4ccce-df45-4edf-b358-f6f27641b9e2",
+   "sec": 44,
+   "expert": 4,
+   "turns": [
+    {
+     "who": "agent",
+     "text": "नमस्ते Sarthak Tomar, मैं नियति बोल रही हूँ IMS Ghaziabad से। क्या अभी बात हो सकती है?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी"
+    },
+    {
+     "who": "agent",
+     "text": "very nice, मुझे यह जानना था कि क्या आप BSc Honours BioTechnology प्रोग्राम के लिए interested हैं?"
+    },
+    {
+     "who": "user",
+     "text": "no ma'am"
+    },
+    {
+     "who": "agent",
+     "text": "क्या आप मुझे बता सकते हैं कि आप किस course या program में interested हैं?"
+    },
+    {
+     "who": "user",
+     "text": "bachelor of arts ba"
+    },
+    {
+     "who": "agent",
+     "text": "very nice, thanks for sharing that. मैं आपकी जानकारी हमारे counsellor के साथ share कर दूँगी, जो Bachelor of Arts course की जानकारी के साथ आपसे जल्दी ही contact करेंगी। ठीक है, आज अपना समय देने के लिए धन्यवाद।"
+    }
+   ],
+   "explain": "The agent smoothly pivots when the user declines the initial program, naturally asks what they're interested in, and gets a clear answer (Bachelor of Arts) without any awkward loops or repetition. The call wraps up efficiently with a helpful next step and polite closure, making the interaction feel like a natural, purposeful conversation rather than a robotic checklist."
+  },
+  {
+   "type": "vibe",
+   "call_id": "097a0af0-a3af-499d-8336-b9ed630c8023",
+   "recording_url": "https://api.bolna.ai/recordings/call/097a0af0-a3af-499d-8336-b9ed630c8023",
+   "sec": 42,
+   "expert": 2,
+   "turns": [
+    {
+     "who": "agent",
+     "text": "Hi, I am Zara, Am I Talking to Omkar Murthy Rc?"
+    },
+    {
+     "who": "user",
+     "text": "hello"
+    },
+    {
+     "who": "agent",
+     "text": "Hello, I'm calling from Woxsen University to help you with B Tech admissions. May I take two minutes of your time?"
+    },
+    {
+     "who": "user",
+     "text": "btech in law ना madam btech no only engineering"
+    },
+    {
+     "who": "agent",
+     "text": "I understand, Omkar. Just to confirm, are you interested in B Tech admissions in engineering streams this year?"
+    },
+    {
+     "who": "user",
+     "text": "hello"
+    },
+    {
+     "who": "agent",
+     "text": "Omkar, क्या आप इस year B Tech admissions"
+    }
+   ],
+   "explain": "The agent fails to properly acknowledge the user's clear statement that they want engineering, not law—it asks a confirmation question that doesn't address this clarification—and then the call breaks down when the agent switches to Hindi mid-sentence without finishing the thought, leaving the user hanging. This creates a confusing loop where the agent isn't building on what the user has already told them, which is why the conversation feels broken and inefficient."
+  },
+  {
+   "type": "vibe",
+   "call_id": "2b191143-35e7-4e30-a7ff-c4c7c70694ee",
+   "recording_url": "https://api.bolna.ai/recordings/call/2b191143-35e7-4e30-a7ff-c4c7c70694ee",
+   "sec": 43,
+   "expert": 1,
+   "turns": [
+    {
+     "who": "agent",
+     "text": "Hi, I am Zara, Am I Talking to Swadhin Jena?"
+    },
+    {
+     "who": "user",
+     "text": "चलो sir"
+    },
+    {
+     "who": "agent",
+     "text": "I can only speak in English and Hindi. Hello, I'm calling from Woxsen University to help you with"
+    },
+    {
+     "who": "user",
+     "text": "अरे भाई मुंह नहीं कौन कौन"
+    },
+    {
+     "who": "agent",
+     "text": "I can"
+    },
+    {
+     "who": "user",
+     "text": "personal है sir"
+    },
+    {
+     "who": "agent",
+     "text": "I can only speak in English and Hindi. Hello, I'm calling from Woxsen University to help you with B Tech admissions. May I take two minutes of your time?"
+    }
+   ],
+   "explain": "The agent gets stuck in a loop repeating the same opening line instead of responding to the user's actual objections about privacy and personal matters. The agent never acknowledges or addresses what the user is saying, making the conversation feel robotic and frustrating rather than like a real conversation."
+  },
+  {
+   "type": "vibe",
+   "call_id": "15d68c10-2a6f-491d-a684-e64c6f0940b9",
+   "recording_url": "https://api.bolna.ai/recordings/call/15d68c10-2a6f-491d-a684-e64c6f0940b9",
+   "sec": 44,
+   "expert": 3,
+   "turns": [
+    {
+     "who": "agent",
+     "text": "Hi, I am Zara, Am I Talking to Ramcharan Nomula?"
+    },
+    {
+     "who": "user",
+     "text": "हां"
+    },
+    {
+     "who": "agent",
+     "text": "Ramcharan Nomula, क्या आप इस year B Tech admissions की planning कर रहे हैं?"
+    },
+    {
+     "who": "user",
+     "text": "हां i"
+    },
+    {
+     "who": "agent",
+     "text": "यह सुनकर अच्छा लगा। Woxsen में B Tech programs जैसे CSE, CSE in Data Science, CSE in A I and"
+    },
+    {
+     "who": "user",
+     "text": "i studying first year only one year"
+    },
+    {
+     "who": "user",
+     "text": "stop"
+    }
+   ],
+   "explain": "The agent successfully identifies the caller and understands he's a first-year student (task accomplished), but the flow becomes awkward when the agent launches into a full program pitch without pausing to confirm relevance or ask clarifying questions first. The abrupt \"stop\" from the user suggests he felt talked at rather than listened to, which is why it's \"mostly okay\" rather than a smooth, natural conversation."
+  },
+  {
+   "type": "vibe",
+   "call_id": "a7cafc0c-b06d-4a6c-abe5-1eea8ea99f09",
+   "recording_url": "https://api.bolna.ai/recordings/call/a7cafc0c-b06d-4a6c-abe5-1eea8ea99f09",
+   "sec": 42,
+   "expert": 2,
+   "turns": [
+    {
+     "who": "agent",
+     "text": "Hello, this is Neha from MiHeSo. Is this a good time to talk?"
+    },
+    {
+     "who": "user",
+     "text": "yes"
+    },
+    {
+     "who": "agent",
+     "text": "I’m calling to let you know about two special discount options available right now: Flat two hundred and forty-nine rupees OFF on orders above one thousand five hundred rupees with code P249, and Flat six hundred and forty-nine rupees OFF on orders above three thousand rupees with code P649. Would you have a couple of minutes to discuss this offer?"
+    },
+    {
+     "who": "user",
+     "text": "no no"
+    },
+    {
+     "who": "agent",
+     "text": "Sorry - is this the wrong number for the person I'm calling?"
+    }
+   ],
+   "explain": "The user clearly declined interest by saying \"no no,\" but the agent misinterpreted this refusal as a wrong number issue instead of acknowledging the rejection and gracefully ending the call. This mishandling of the user's explicit input—treating a \"no\" as a confused wrong number rather than a genuine disinterest—is why the call loops awkwardly instead of resolving cleanly."
+  },
+  {
+   "type": "trans",
+   "call_id": "c9be3c3a-626e-4e03-8191-7f14e1deccd5",
+   "recording_url": "https://api.bolna.ai/recordings/call/c9be3c3a-626e-4e03-8191-7f14e1deccd5",
+   "sec": 7,
+   "context": "राम राम जी, मैं Stage App से Neha बोल रही हूँ , आज हम आपकी किस तरह मदद",
+   "heard": "जी mam कर दीजिए",
+   "asr": [
+    "जी",
+    "line",
+    "कर",
+    "दीजिए"
+   ],
+   "wrongIdx": 1,
+   "golden": "जी mam कर दीजिए",
+   "ts": "04:01",
+   "explain": "The user said “mam” — the ASR wrote “line”. A single wrong word changes the meaning the model learns; catching these is exactly what golden transcripts fix."
+  },
+  {
+   "type": "trans",
+   "call_id": "01670c7b-a166-4947-a2db-98a493bc46af",
+   "recording_url": "https://api.bolna.ai/recordings/call/01670c7b-a166-4947-a2db-98a493bc46af",
+   "sec": 6,
+   "context": "Hi, I am Mira, Am I Talking to Sonam?",
+   "heard": "same here ma'am",
+   "asr": [
+    "same",
+    "है",
+    "ma'am"
+   ],
+   "wrongIdx": 1,
+   "golden": "same here ma'am",
+   "ts": "04:24",
+   "explain": "The user said “here” — the ASR wrote “है”. A single wrong word changes the meaning the model learns; catching these is exactly what golden transcripts fix."
+  },
+  {
+   "type": "trans",
+   "call_id": "4cd00fcc-fdbb-476f-85da-cf78aeb2e34d",
+   "recording_url": "https://api.bolna.ai/recordings/call/4cd00fcc-fdbb-476f-85da-cf78aeb2e34d",
+   "sec": 6,
+   "context": "Hello! This is Neha from the derma co. Would you prefer to speak in En",
+   "heard": "हां okay english",
+   "asr": [
+    "हां",
+    "ok",
+    "english"
+   ],
+   "wrongIdx": 1,
+   "golden": "हां okay english",
+   "ts": "00:14",
+   "explain": "The user said “okay” — the ASR wrote “ok”. A single wrong word changes the meaning the model learns; catching these is exactly what golden transcripts fix."
+  },
+  {
+   "type": "trans",
+   "call_id": "9964ef4a-2adb-4e56-87a9-64cc21e454aa",
+   "recording_url": "https://api.bolna.ai/recordings/call/9964ef4a-2adb-4e56-87a9-64cc21e454aa",
+   "sec": 9,
+   "context": "Hello, मैं Neha बोल रही हूं Pronto Company की तरफ़ से.",
+   "heard": "यह screening center कहां पड़ता है",
+   "asr": [
+    "यह",
+    "scanning",
+    "center",
+    "कहां",
+    "पड़ता",
+    "है"
+   ],
+   "wrongIdx": 1,
+   "golden": "यह screening center कहां पड़ता है",
+   "ts": "03:17",
+   "explain": "The user said “screening” — the ASR wrote “scanning”. A single wrong word changes the meaning the model learns; catching these is exactly what golden transcripts fix."
+  },
+  {
+   "type": "trans",
+   "call_id": "e6dc08d0-aa49-41d8-8a6f-40def36ed5e6",
+   "recording_url": "https://api.bolna.ai/recordings/call/e6dc08d0-aa49-41d8-8a6f-40def36ed5e6",
+   "sec": 5,
+   "context": "Hello Deepak Kumar Vijay मैं नेहा बोल रही हूँ Paytm से",
+   "heard": "हां ma'am बोलिए",
+   "asr": [
+    "हां",
+    "ma'am",
+    "बोलिए"
+   ],
+   "wrongIdx": -1,
+   "golden": "हां ma'am बोलिए",
+   "ts": "00:06",
+   "explain": "The ASR got this one right. Confirming a clean turn matters as much as catching an error — false alarms poison the dataset."
+  }
+ ]
+}
