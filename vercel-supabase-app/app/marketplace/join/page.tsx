@@ -28,11 +28,16 @@ type Verdict = "match" | "miss" | "";
 
 function tsSec(ts: string) { const [m, s] = String(ts || "0:0").split(":"); return Number(m) * 60 + Number(s || 0); }
 
-const JOBS = [
+const JOBS_REVIEWER = [
   { t: "AI Call Reviewer", d: "Rate whole calls 1-4 and log where the agent broke · the highest-volume work.", pay: "₹28 / review" },
   { t: "AI Call Transcriptor", d: "Listen to a call and fix what the AI's speech-to-text got wrong · code-mixed Hindi/English.", pay: "₹120 / call" },
   { t: "Regional Language Expert", d: "Tamil, Telugu, Marathi, Bengali calls · review and transcribe in your language.", pay: "₹40 / review" },
   { t: "Text Annotator", d: "Judge AI chat and text outputs · correctness, tone, task completion. No audio needed.", pay: "₹18 / item" }
+];
+const JOBS_EXPERT = [
+  { t: "Ground Truth Expert", d: "Set the answer key · your ratings become the hidden ground truth every reviewer is measured against.", pay: "per project" },
+  { t: "Panel QA & Calibration", d: "Vet reviewer submissions, resolve disagreements, coach the panel back to accuracy.", pay: "₹700 / hr" },
+  { t: "Use-case Onboarding", d: "Work with clients to define rubrics and train the panel on new use cases.", pay: "per use case" }
 ];
 
 export default function Join() {
@@ -53,6 +58,8 @@ export default function Join() {
   const [tText, setTText] = useState("");
   const [pTag, setPTag] = useState(""); const [pWord, setPWord] = useState("");
   const [iType, setIType] = useState(""); const [iExpl, setIExpl] = useState("");
+  const [applicantId, setApplicantId] = useState<string | null>(null);
+  const savedRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -120,6 +127,16 @@ export default function Join() {
     setCoachBusy(false);
   }
 
+  useEffect(() => {
+    if (screen !== "result" || savedRef.current || !applicantId || !total) return;
+    savedRef.current = true;
+    fetch("/api/apply", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({
+      id: applicantId, score: Math.round((ptsSum / total) * 100), total, matched: ptsSum,
+      results: [...Array(total).keys()].map((i) => ({ i, type: qs[i]?.type, verdict: results[i] }))
+    }) }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
+
   const canApply = langs.length > 0 && phone.replace(/\D/g, "").length >= 10;
   const agreementLabel = done ? Math.round((ptsSum / done) * 100) + "%" : "-";
   const pct = total ? Math.round((ptsSum / total) * 100) : 0;
@@ -171,7 +188,7 @@ export default function Join() {
           <span style={{ borderRadius: 999, background: "#e7f4ee", padding: "4px 12px", fontSize: 12, color: GREEN, fontWeight: 600 }}>{screen === "apply" ? "Become a reviewer" : screen === "result" ? "Result" : `Assignment · ${done}/${total || 5}`}</span>
           <span style={{ flex: 1 }} />
           {screen === "work" && done > 0 && <span style={{ borderRadius: 999, background: "#e7f4ee", padding: "4px 12px", fontSize: 12, color: GREEN, fontWeight: 600 }}>your agreement: {agreementLabel}</span>}
-          <span style={{ fontSize: 12.5, color: MUT }}>Open roles · <a href="/marketplace" style={{ color: MUT }}>Marketplace</a></span>
+          <span style={{ fontSize: 12.5, color: MUT }}>Open roles</span>
         </div>
 
         {screen === "apply" && (
@@ -182,15 +199,23 @@ export default function Join() {
                   <div className={grotesk.className} style={{ fontWeight: 600, fontSize: 30, lineHeight: 1.12, letterSpacing: "-.4px" }}>Review AI phone calls.<br />Work from anywhere, anytime.</div>
                   <div style={{ fontSize: 14, color: MUT, marginTop: 7, maxWidth: 520 }}>A laptop or phone and headphones are all you need. No resume, no interview · your agreement score decides your tier and pay.</div>
                 </div>
-                <div style={{ ...card, padding: "16px 20px", display: "flex", gap: 18 }}>
-                  <div style={{ flex: 1 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>₹300/hr</div><div style={{ fontSize: 11, color: MUT }}>Tier 2 · from day one</div></div>
-                  <div style={{ flex: 1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>₹500/hr</div><div style={{ fontSize: 11, color: MUT }}>Tier 1 · high agreement</div></div>
-                  <div style={{ flex: 1.1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23 }}>₹2,000+</div><div style={{ fontSize: 11, color: MUT }}>top reviewers make / day · paid weekly</div></div>
-                </div>
+                {role === "Expert" ? (
+                  <div style={{ ...card, padding: "16px 20px", display: "flex", gap: 18 }}>
+                    <div style={{ flex: 1 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>₹700/hr</div><div style={{ fontSize: 11, color: MUT }}>expert base · QA & calibration</div></div>
+                    <div style={{ flex: 1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>per project</div><div style={{ fontSize: 11, color: MUT }}>ground truth & onboarding work</div></div>
+                    <div style={{ flex: 1.1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23 }}>your name</div><div style={{ fontSize: 11, color: MUT }}>experts are credited on every dataset they resolve</div></div>
+                  </div>
+                ) : (
+                  <div style={{ ...card, padding: "16px 20px", display: "flex", gap: 18 }}>
+                    <div style={{ flex: 1 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>₹300/hr</div><div style={{ fontSize: 11, color: MUT }}>Tier 2 · from day one</div></div>
+                    <div style={{ flex: 1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23, color: GREEN }}>₹500/hr</div><div style={{ fontSize: 11, color: MUT }}>Tier 1 · high agreement</div></div>
+                    <div style={{ flex: 1.1, borderLeft: "1px solid #eef2f6", paddingLeft: 18 }}><div className={grotesk.className} style={{ fontWeight: 600, fontSize: 23 }}>₹2,000+</div><div style={{ fontSize: 11, color: MUT }}>top reviewers make / day · paid weekly</div></div>
+                  </div>
+                )}
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: MUT, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 7 }}>The work on offer</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {JOBS.map((j) => (
+                    {(role === "Expert" ? JOBS_EXPERT : JOBS_REVIEWER).map((j) => (
                       <div key={j.t} style={{ ...card, padding: "11px 14px", display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ flex: 1 }}>
                           <div className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>{j.t}</div>
@@ -200,7 +225,7 @@ export default function Join() {
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: 11.5, color: MUT, marginTop: 7 }}>Your 2-minute assignment samples the reviewer and transcriptor work. Do well and you unlock all of them.</div>
+                  <div style={{ fontSize: 11.5, color: MUT, marginTop: 7 }}>{role === "Expert" ? "Experts go deeper: the same assignment, then a calibration deep-dive with the founding team." : "Your 2-minute assignment samples the reviewer and transcriptor work. Do well and you unlock all of them."}</div>
                 </div>
               </div>
               <div style={{ ...card, borderRadius: 14, padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -222,13 +247,13 @@ export default function Join() {
                   <div style={{ fontSize: 10, color: "#93a1ae", marginTop: 3 }}>Only for your login code and onboarding call. Never shown anywhere.</div>
                 </div>
                 <div style={{ flex: 1, minHeight: 12 }} />
-                <div onClick={() => canApply && setScreen("work")} style={{ height: 46, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: canApply ? 1 : 0.45 }}>Apply → your assignment is ready</div>
+                <div onClick={() => { if (!canApply) return; setScreen("work"); fetch("/api/apply", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ role, languages: langs, education: edu, hours, phone }) }).then((r) => r.json()).then((d) => { if (d.ok) setApplicantId(d.id); }).catch(() => {}); }} style={{ height: 46, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: canApply ? 1 : 0.45 }}>{role === "Expert" ? "Apply → assignment + expert deep-dive" : "Apply → your assignment is ready"}</div>
                 <div style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>{canApply ? "No wait · 5 real questions, about 2 minutes." : "Pick at least one language and enter a valid phone number."}</div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 12, padding: "0 32px 26px" }}>
               {[["14", "reviewers working today"], ["1,733+", "paid reviews delivered"], ["weekly", "payouts, UPI"], ["7", "open roles"]].map(([n, l]) => (
-                <div key={l} style={{ ...card, flex: 1, padding: "14px 16px" }}><div className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{n}</div><div style={{ fontSize: 11.5, color: MUT }}>{l === "open roles" ? <>open roles · <a href="/marketplace" style={{ color: GREEN }}>see all</a></> : l}</div></div>
+                <div key={l} style={{ ...card, flex: 1, padding: "14px 16px" }}><div className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{n}</div><div style={{ fontSize: 11.5, color: MUT }}>{l}</div></div>
               ))}
             </div>
           </div>

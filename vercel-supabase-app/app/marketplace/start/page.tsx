@@ -65,7 +65,7 @@ export default function StartProgram() {
         <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>realloop</span>
         <span style={{ display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eef2f6", padding: "4px 11px", fontSize: 12, color: "#4d5a66" }}>Start a program</span>
         <span style={{ flex: 1 }} />
-        <a href="/marketplace" style={{ fontSize: 12.5, color: MUT, textDecoration: "none" }}>← Marketplace</a>
+        <a href="/portal/add" style={{ fontSize: 12.5, color: MUT, textDecoration: "none" }}>← Back to portal</a>
       </div>
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "20px", display: "flex", gap: 18, alignItems: "flex-start" }}>
