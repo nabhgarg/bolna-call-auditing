@@ -5,28 +5,31 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
 
-// Reliability tab (wireframe 22a, readable rev) · "can you trust the numbers?"
-// Reads top-down: one overall verdict, then where it comes from (per agent),
-// then the same number split by activity with its formula, then human-vs-LLM
-// to prove the routing. Every figure computed from real review data
-// (/api/portal/reliability). inter-panel = reviewers agree with each other;
-// vs GT = reviewers match the hidden expert. Green = human, purple = machine.
+// Reliability tab (wireframe 22a) · exact design layout: a horizontal overall
+// strip, then Reliability by agent + by issue type SIDE BY SIDE, then a
+// full-width Human-panel-vs-LLM-judge split into two columns. Every figure is
+// computed from real review data (/api/portal/reliability). inter-panel =
+// reviewers agree with each other; vs GT = reviewers match the hidden expert.
+// Green = human, purple = machine.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
 type AgentRow = { agent: string; raters: number; inter_panel: number | null; vs_gt: number | null; gt_calls: number; trust: string };
 type IssueRow = { key: string; label: string; inter_panel: number | null; vs_gt: number | null; unit: string; formula: string };
-type HWin = { label: string; human: number | null; llm: number; machine: string; human_calls: number; judge_calls: number };
+type HWin = { label: string; human: number | null; llm: number; machine: string };
 type MWin = { label: string; human: number | null; llm: number | null; llm_support: number; human_calls: number; judge_calls: number };
-type Data = { overall: { inter_panel: number; vs_gt: number; delta: number; calls: number }; gt_calls: number; by_agent: AgentRow[]; by_issue: IssueRow[]; human_vs_llm: { human_wins: HWin[]; machine_wins: MWin[]; method: string } };
+type Data = { overall: { inter_panel: number; vs_gt: number; delta: number; calls: number }; by_agent: AgentRow[]; by_issue: IssueRow[]; human_vs_llm: { human_wins: HWin[]; machine_wins: MWin[]; method: string } };
 
-const trustStyle = (t: string) =>
-  t === "high" ? { bg: "#e7f4ee", fg: GREEN, label: "high" }
-  : t === "medium" ? { bg: "#fdf4e3", fg: AMBER, label: "medium" }
-  : t === "low" ? { bg: "#fbeaea", fg: RED, label: "low" }
-  : { bg: "#eef2f6", fg: MUT, label: "n thin" };
-const valColor = (v: number | null) => v == null ? MUT : v >= 70 ? GREEN : v >= 55 ? AMBER : RED;
+const trustPill = (t: string) =>
+  t === "high" ? { bg: "#e7f4ee", fg: GREEN }
+  : t === "medium" ? { bg: "#faf3e3", fg: AMBER }
+  : t === "low" ? { bg: "#fbeaea", fg: RED }
+  : { bg: "#faf3e3", fg: AMBER };
+const gtColor = (v: number | null) => v == null ? MUT : v >= 70 ? GREEN : v >= 55 ? AMBER : RED;
+
+const AGENT_COLS = "1.7fr 58px 84px 84px 62px";
+const ISSUE_COLS = "1.5fr 66px 66px";
 
 export default function Reliability() {
   const [d, setD] = useState<Data | null>(null);
@@ -41,21 +44,19 @@ export default function Reliability() {
   if (!d) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>Loading reliability…</main>;
 
   const o = d.overall;
-  const maxCov = Math.max(1, ...d.human_vs_llm.machine_wins.map((m) => Math.max(m.human_calls, m.judge_calls)));
+  const fmt = (v: number | null, unit: string) => v == null ? "·" : unit === "F1" ? String(v) : v + "%";
 
-  // one activity row for the human-vs-LLM box: two labelled bars, 0-100 scale
-  const Bars = ({ human, llm, blind }: { human: number | null; llm: number | null; blind?: boolean }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 240, flex: 1 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ width: 70, fontSize: 10.5, color: GREEN, flex: "none" }}>● human</span>
-        <div style={{ flex: 1, height: 13, borderRadius: 6, background: "#eef2f6", overflow: "hidden" }}><div style={{ width: `${human ?? 0}%`, height: 13, background: GREEN }} /></div>
-        <span className={mono.className} style={{ width: 40, textAlign: "right", fontSize: 12, flex: "none" }}>{human == null ? "·" : human + "%"}</span>
+  // one human-vs-LLM row: label, two side-by-side bars (green human / purple machine), "H v L"
+  const HvL = ({ label, human, llm, blind, tail }: { label: string; human: number | null; llm: number | null; blind?: boolean; tail?: string }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
+      <span style={{ width: 148, flex: "none" }}>{label}</span>
+      <div style={{ flex: 1, display: "flex", gap: 5 }}>
+        <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#eef2f6", overflow: "hidden" }}><div style={{ width: `${human ?? 0}%`, height: 20, borderRadius: 5, background: GREEN }} /></div>
+        <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#eef2f6", overflow: "hidden" }}><div style={{ width: `${blind ? 0 : (llm ?? 0)}%`, height: 20, borderRadius: 5, background: PURPLE }} /></div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ width: 70, fontSize: 10.5, color: PURPLE, flex: "none" }}>● LLM judge</span>
-        <div style={{ flex: 1, height: 13, borderRadius: 6, background: "#eef2f6", overflow: "hidden" }}><div style={{ width: `${blind ? 0 : (llm ?? 0)}%`, height: 13, background: PURPLE }} /></div>
-        <span className={mono.className} style={{ width: 40, textAlign: "right", fontSize: 12, flex: "none", color: blind ? MUT : INK }}>{blind ? "blind" : llm == null ? "·" : llm + "%"}</span>
-      </div>
+      <span className={mono.className} style={{ width: 82, textAlign: "right", fontSize: 11.5, flex: "none", color: MUT }}>
+        {human ?? "·"} v {blind ? "0" : (llm == null ? "·" : llm)}
+      </span>
     </div>
   );
 
@@ -68,110 +69,122 @@ export default function Reliability() {
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
     }>
-      <div className={instrument.className} style={{ maxWidth: 1120, margin: "0 auto", padding: "16px 22px 30px", display: "flex", flexDirection: "column", gap: 14, color: INK }}>
+      <div className={instrument.className} style={{ display: "flex", flexDirection: "column", gap: 14, padding: "16px 22px 30px", color: INK }}>
 
-        {/* 0 · overall panel reliability */}
-        <div style={{ ...card, padding: "18px 20px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-            <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Overall panel reliability</span>
-            <span style={{ fontSize: 12, color: MUT }}>across all {o.calls.toLocaleString()} scored calls · the same dataset feeds every breakdown below</span>
+        {/* overall strip */}
+        <div style={{ ...card, padding: "16px 22px", display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
+          <div style={{ maxWidth: 230 }}>
+            <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Overall panel reliability</div>
+            <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>across all {o.calls.toLocaleString()} calls · the same dataset feeds every breakdown below</div>
           </div>
-          <div style={{ display: "flex", gap: 14, alignItems: "stretch", flexWrap: "wrap" }}>
-            <div style={{ flex: 1, minWidth: 200, background: "#f7fbf9", border: "1px solid #dcefe5", borderRadius: 12, padding: "14px 16px" }}>
-              <div className={grotesk.className} style={{ fontSize: 34, fontWeight: 600, color: GREEN }}>{o.inter_panel}%</div>
-              <div style={{ fontSize: 12.5, color: "#4d5a66" }}>inter-panel · raters agree with each other (±1)</div>
+          <div style={{ width: 1, alignSelf: "stretch", background: "#e2e8ee" }} />
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+            <span className={grotesk.className} style={{ fontSize: 34, fontWeight: 600 }}>{o.inter_panel}%</span>
+            <div><div style={{ fontSize: 13, fontWeight: 600 }}>inter-panel</div><div style={{ fontSize: 11, color: MUT }}>raters agree with each other (±1)</div></div>
+          </div>
+          <div style={{ width: 1, alignSelf: "stretch", background: "#e2e8ee" }} />
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+            <span className={grotesk.className} style={{ fontSize: 34, fontWeight: 600, color: GREEN }}>{o.vs_gt}%</span>
+            <div><div style={{ fontSize: 13, fontWeight: 600 }}>vs ground truth</div><div style={{ fontSize: 11, color: MUT }}>panel matches the hidden expert (±1)</div></div>
+          </div>
+          <span style={{ flex: 1 }} />
+          <div style={{ fontSize: 11, color: MUT, maxWidth: 230, lineHeight: 1.5, textAlign: "right" }}>Δ {o.delta} {o.delta === 1 ? "pt" : "pts"} · the panel performs the same when it can&apos;t tell it&apos;s being tested</div>
+        </div>
+
+        {/* agent + issue type, side by side */}
+        <div style={{ display: "flex", gap: 14, alignItems: "stretch", flexWrap: "wrap" }}>
+
+          {/* reliability by agent */}
+          <div style={{ ...card, flex: 1, minWidth: 400, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Reliability by agent</span>
+              <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>where the overall number comes from · per agent, raters × agreement</div>
             </div>
-            <div style={{ flex: 1, minWidth: 200, background: "#f7fbf9", border: "1px solid #dcefe5", borderRadius: 12, padding: "14px 16px" }}>
-              <div className={grotesk.className} style={{ fontSize: 34, fontWeight: 600, color: GREEN }}>{o.vs_gt}%</div>
-              <div style={{ fontSize: 12.5, color: "#4d5a66" }}>vs ground truth · panel matches the hidden expert (±1)</div>
+            <div style={{ display: "grid", gridTemplateColumns: AGENT_COLS, fontSize: 11, color: "#93a1ae" }}>
+              <span>agent</span><span style={{ textAlign: "right" }}>raters</span><span style={{ textAlign: "right" }}>inter-panel</span><span style={{ textAlign: "right" }}>vs GT</span><span style={{ textAlign: "right" }}>trust</span>
             </div>
-            <div style={{ flex: 1.3, minWidth: 220, background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 12, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <div className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>Δ {o.delta} {o.delta === 1 ? "pt" : "pts"}</div>
-              <div style={{ fontSize: 12.5, color: MUT, lineHeight: 1.5, marginTop: 2 }}>the panel performs the same when it can&apos;t tell it&apos;s being tested · the hidden-GT calls are seeded unmarked into every batch.</div>
+            {d.by_agent.map((a) => {
+              const p = trustPill(a.trust); const thin = a.trust === "thin";
+              return (
+                <div key={a.agent} style={{ display: "grid", gridTemplateColumns: AGENT_COLS, fontSize: 13, alignItems: "center", borderTop: "1px solid #eef2f6", padding: "10px 0" }}>
+                  <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.agent}</b>
+                  <span className={mono.className} style={{ textAlign: "right" }}>{a.raters}</span>
+                  <span className={mono.className} style={{ textAlign: "right", color: thin ? AMBER : INK }}>{thin ? "low n" : a.inter_panel + "%"}</span>
+                  <span className={mono.className} style={{ textAlign: "right", color: thin ? AMBER : gtColor(a.vs_gt) }}>{thin ? "low n" : a.vs_gt + "%"}</span>
+                  <span style={{ textAlign: "right" }}><span style={{ borderRadius: 999, background: p.bg, color: p.fg, fontSize: 10, fontWeight: 600, padding: "3px 9px" }}>{a.trust}</span></span>
+                </div>
+              );
+            })}
+            <div style={{ background: "#f5f7f9", borderRadius: 9, padding: "11px 13px", marginTop: "auto", fontSize: 11.5, color: "#4d5a66", lineHeight: 1.55 }}>
+              <b style={{ color: INK }}>How this is computed:</b> <b style={{ color: INK }}>inter-panel</b> = how often this agent&apos;s raters agree with each other (±1); <b style={{ color: INK }}>vs GT</b> = how often they match the hidden expert (±1). High needs ≥3 raters and both ≥70% · <b style={{ color: INK }}>thin</b> = too few raters yet, we auto-route more next batch.
+            </div>
+          </div>
+
+          {/* reliability by issue type */}
+          <div style={{ ...card, flex: 1, minWidth: 400, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Reliability by issue type</span>
+              <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>the same number split by activity · each uses its own formula</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: ISSUE_COLS, fontSize: 11, color: "#93a1ae", padding: "0 14px" }}>
+              <span>activity</span><span style={{ textAlign: "right" }}>inter-panel</span><span style={{ textAlign: "right" }}>vs GT</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
+              {d.by_issue.map((b) => {
+                const [lead, ...rest] = b.formula.split(" · ");
+                return (
+                  <div key={b.key} style={{ border: "1px solid #e2e8ee", borderRadius: 10, padding: "11px 14px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: ISSUE_COLS, alignItems: "center" }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{b.label}</span>
+                      <span className={mono.className} style={{ textAlign: "right", fontSize: 13 }}>{fmt(b.inter_panel, b.unit)}</span>
+                      <span className={mono.className} style={{ textAlign: "right", fontSize: 13, color: gtColor(b.vs_gt) }}>{fmt(b.vs_gt, b.unit)}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: MUT, lineHeight: 1.5, marginTop: 4 }}><b style={{ color: INK }}>{lead}</b>{rest.length ? " · " + rest.join(" · ") : ""}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* 1 · reliability by agent */}
-        <div style={{ ...card, padding: "16px 18px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, paddingBottom: 4, flexWrap: "wrap" }}>
-            <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Reliability by agent</span>
-            <span style={{ fontSize: 12, color: MUT }}>where the overall number comes from · per agent, raters × agreement</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 130px 130px 90px", gap: 10, fontSize: 11, color: MUT, textTransform: "uppercase", letterSpacing: 0.4, padding: "8px 0 6px", borderBottom: "1px solid #eef2f6" }}>
-            <span>agent</span><span style={{ textAlign: "right" }}>raters</span><span>inter-panel</span><span>vs GT</span><span style={{ textAlign: "right" }}>trust</span>
-          </div>
-          {d.by_agent.map((a) => {
-            const ts = trustStyle(a.trust);
-            const Cell = ({ v }: { v: number | null }) => (
-              <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <div style={{ flex: 1, height: 8, borderRadius: 5, background: "#eef2f6", overflow: "hidden", maxWidth: 74 }}><div style={{ width: `${v ?? 0}%`, height: 8, background: v == null ? "#c7d0d8" : valColor(v) }} /></div>
-                <span className={mono.className} style={{ fontSize: 11.5, width: 32 }}>{v == null ? "·" : v + "%"}</span>
-              </span>
-            );
-            return (
-              <div key={a.agent} style={{ display: "grid", gridTemplateColumns: "1fr 90px 130px 130px 90px", gap: 10, alignItems: "center", fontSize: 12.5, padding: "9px 0", borderBottom: "1px solid #f4f7f9" }}>
-                <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.agent}</span>
-                <span className={mono.className} style={{ textAlign: "right" }}>{a.raters}</span>
-                <Cell v={a.inter_panel} />
-                <Cell v={a.vs_gt} />
-                <span style={{ textAlign: "right" }}><span style={{ borderRadius: 999, background: ts.bg, color: ts.fg, fontSize: 11, fontWeight: 600, padding: "3px 10px" }}>{ts.label}</span></span>
-              </div>
-            );
-          })}
-          <div style={{ fontSize: 11, color: MUT, marginTop: 9, lineHeight: 1.5 }}>
-            <b style={{ color: INK }}>inter-panel</b> = how often this agent&apos;s raters agree with each other (±1) · <b style={{ color: INK }}>vs GT</b> = how often they match the hidden expert (±1). <b style={{ color: INK }}>High</b> needs ≥3 raters and both ≥70% · <b style={{ color: INK }}>thin</b> = too few raters yet, so we auto-route more next batch.
-          </div>
-        </div>
-
-        {/* 2 · reliability by issue type */}
-        <div style={{ ...card, padding: "16px 18px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, paddingBottom: 4, flexWrap: "wrap" }}>
-            <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Reliability by issue type</span>
-            <span style={{ fontSize: 12, color: MUT }}>the same number split by activity · each uses its own formula</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "150px 80px 80px 1fr", gap: 12, fontSize: 11, color: MUT, textTransform: "uppercase", letterSpacing: 0.4, padding: "8px 0 6px", borderBottom: "1px solid #eef2f6" }}>
-            <span>activity</span><span style={{ textAlign: "right" }}>inter-panel</span><span style={{ textAlign: "right" }}>vs GT</span><span>formula</span>
-          </div>
-          {d.by_issue.map((b) => (
-            <div key={b.key} style={{ display: "grid", gridTemplateColumns: "150px 80px 80px 1fr", gap: 12, alignItems: "center", padding: "11px 0", borderBottom: "1px solid #f4f7f9" }}>
-              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{b.label}</span>
-              <span className={grotesk.className} style={{ textAlign: "right", fontSize: 17, fontWeight: 600, color: valColor(b.inter_panel) }}>{b.inter_panel == null ? "·" : b.unit === "F1" ? b.inter_panel : b.inter_panel + "%"}</span>
-              <span className={grotesk.className} style={{ textAlign: "right", fontSize: 17, fontWeight: 600, color: valColor(b.vs_gt) }}>{b.vs_gt == null ? "·" : b.unit === "F1" ? b.vs_gt : b.vs_gt + "%"}</span>
-              <span style={{ fontSize: 11.5, color: MUT, lineHeight: 1.45 }}>{b.formula}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* 3 · human panel vs LLM judge */}
-        <div style={{ ...card, padding: "16px 18px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, paddingBottom: 2, flexWrap: "wrap" }}>
+        {/* human panel vs LLM judge */}
+        <div style={{ ...card, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
             <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Human panel vs LLM judge</span>
-            <span style={{ fontSize: 12, color: MUT }}>both against the same expert ground truth · this is why routing sends each activity where it does</span>
+            <span style={{ fontSize: 11.5, color: MUT }}>scored against the same expert ground truth · this is why routing sends each activity where it does</span>
+            <span style={{ flex: 1 }} />
+            <span style={{ fontSize: 11.5 }}><span style={{ color: GREEN }}>●</span> human</span>
+            <span style={{ fontSize: 11.5 }}><span style={{ color: PURPLE }}>●</span> LLM judge</span>
           </div>
-
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: GREEN, textTransform: "uppercase", letterSpacing: 0.6, margin: "14px 0 4px" }}>Only humans can see it → 100% human route</div>
-          {d.human_vs_llm.human_wins.map((h) => (
-            <div key={h.label} style={{ display: "flex", alignItems: "center", gap: 16, padding: "9px 0", borderTop: "1px solid #eef2f6", flexWrap: "wrap" }}>
-              <span style={{ width: 160, fontSize: 13, fontWeight: 600, flex: "none" }}>{h.label}</span>
-              <Bars human={h.human} llm={0} blind />
-              <span style={{ fontSize: 11, color: MUT, width: 150, flex: "none" }}>judge is audio-blind · 0 findings</span>
+          <div style={{ display: "flex", gap: 26, flexWrap: "wrap" }}>
+            {/* human wins */}
+            <div style={{ flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 11 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: GREEN }}>Human wins → 100% human route</div>
+              {d.human_vs_llm.human_wins.map((h) => <HvL key={h.label} label={h.label} human={h.human} llm={0} blind />)}
+              <div style={{ fontSize: 10.5, color: MUT }}>the judge is audio-blind here · it produces no findings, so these lanes stay 100% human.</div>
             </div>
-          ))}
-
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: PURPLE, textTransform: "uppercase", letterSpacing: 0.6, margin: "16px 0 4px" }}>Transcript-visible → judge owns it</div>
-          {d.human_vs_llm.machine_wins.map((m) => (
-            <div key={m.label} style={{ display: "flex", alignItems: "center", gap: 16, padding: "9px 0", borderTop: "1px solid #eef2f6", flexWrap: "wrap" }}>
-              <span style={{ width: 160, fontSize: 13, fontWeight: 600, flex: "none" }}>{m.label}</span>
-              <Bars human={m.human} llm={m.llm} />
-              <span style={{ fontSize: 11, color: MUT, width: 150, flex: "none" }}>
-                {m.llm == null
-                  ? <>judge flags <b className={mono.className} style={{ color: PURPLE }}>{m.judge_calls}</b> calls at scale</>
-                  : <>agrees with the panel where both looked</>}
-              </span>
+            <div style={{ width: 1, background: "#e2e8ee" }} />
+            {/* machine wins */}
+            <div style={{ flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 11 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: PURPLE }}>Transcript-visible → judge owns it</div>
+              {d.human_vs_llm.machine_wins.map((m) => (
+                m.llm != null
+                  ? <HvL key={m.label} label={m.label} human={m.human} llm={m.llm} />
+                  : (
+                    <div key={m.label} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
+                      <span style={{ width: 148, flex: "none" }}>{m.label}</span>
+                      <div style={{ flex: 1, display: "flex", gap: 5 }}>
+                        <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#eef2f6", overflow: "hidden" }}><div style={{ width: `${m.human ?? 0}%`, height: 20, borderRadius: 5, background: GREEN }} /></div>
+                        <div style={{ flex: 1, height: 20, borderRadius: 5, background: "#f3eefc", display: "flex", alignItems: "center", justifyContent: "center" }}><span className={mono.className} style={{ fontSize: 10, color: PURPLE }}>{m.judge_calls.toLocaleString()} calls at scale</span></div>
+                      </div>
+                      <span className={mono.className} style={{ width: 82, textAlign: "right", fontSize: 11.5, flex: "none", color: MUT }}>{m.human ?? "·"} v +</span>
+                    </div>
+                  )
+              ))}
+              <div style={{ fontSize: 10.5, color: MUT }}>where the judge and panel both looked, they agree (language 85%); elsewhere the judge covers these at scale for the panel to verify.</div>
             </div>
-          ))}
-          <div style={{ fontSize: 11, color: MUT, marginTop: 10, lineHeight: 1.5 }}>{d.human_vs_llm.method}</div>
+          </div>
+          <div style={{ fontSize: 11.5, color: MUT, borderTop: "1px solid #eef2f6", paddingTop: 10, lineHeight: 1.5 }}>{d.human_vs_llm.method}</div>
         </div>
 
       </div>
