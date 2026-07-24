@@ -1,0 +1,65 @@
+{
+ "trans": [
+  {
+   "ts": "01:25",
+   "context": "barcode number बता दीजिए ma'am",
+   "asr": "vargoor तो है ma'am",
+   "golden": "barcode तो है ma'am",
+   "wrongLang": "same",
+   "isCorrect": false,
+   "explain": "The user said “barcode” · the ASR wrote “vargoor”. A field-support ticket keyed on a wrong barcode fails silently. This is exactly the kind of miss only a human ear catches.",
+   "call_id": "8ba3abab-4c74-44a6-af62-c1c3be1a9f00",
+   "recording_url": "https://api.bolna.ai/recordings/call/8ba3abab-4c74-44a6-af62-c1c3be1a9f00"
+  },
+  {
+   "ts": "00:19",
+   "context": "क्या अभी बात कर सकती हैं?",
+   "asr": "नहीं अभी ring कर रही",
+   "golden": "नहीं अभी नहीं कर रही",
+   "wrongLang": "same",
+   "isCorrect": false,
+   "explain": "The user said “नहीं” · the ASR heard the English word “ring”. Code-switched speech trips ASR constantly; the correction keeps meaning intact.",
+   "call_id": "9a47317d-749e-441b-b186-39c7fd418698",
+   "recording_url": "https://api.bolna.ai/recordings/call/9a47317d-749e-441b-b186-39c7fd418698"
+  },
+  {
+   "ts": "00:03",
+   "context": "क्या मेरी बात हो रही है?",
+   "asr": "हां जी ma'am",
+   "golden": "हां जी ma'am",
+   "wrongLang": "same",
+   "isCorrect": true,
+   "explain": "The ASR got this one right. Saying “Correct” when it is correct matters as much as catching errors · false alarms poison the dataset.",
+   "call_id": "6d9885f4-87bb-4ad1-b6a6-89db72cbc2e6",
+   "recording_url": "https://api.bolna.ai/recordings/call/6d9885f4-87bb-4ad1-b6a6-89db72cbc2e6"
+  }
+ ],
+ "pron": [
+  {
+   "ts": "00:10",
+   "content_tag": "City",
+   "word_heard": "Surat",
+   "options": [
+    "General",
+    "City",
+    "Proper Noun"
+   ],
+   "explain": "The agent mispronounced the city “Surat”. City names are one of the top reasons clients buy the pronunciation-audit dataset · the model has to say them the way locals do.",
+   "call_id": "6bc14dc7-3b32-4dcb-95c6-ad434f8da84a",
+   "recording_url": "https://api.bolna.ai/recordings/call/6bc14dc7-3b32-4dcb-95c6-ad434f8da84a"
+  },
+  {
+   "ts": "00:01",
+   "content_tag": "Proper Noun",
+   "word_heard": "Ananya",
+   "options": [
+    "General",
+    "City",
+    "Proper Noun"
+   ],
+   "explain": "The agent mispronounced the caller's name “Ananya”. Getting a customer's own name wrong on the first line breaks trust instantly · this is a proper-noun miss.",
+   "call_id": "6f2c04fc-3390-47f6-afdd-8413b0d8cfe4",
+   "recording_url": "https://api.bolna.ai/recordings/call/6f2c04fc-3390-47f6-afdd-8413b0d8cfe4"
+  }
+ ]
+}
