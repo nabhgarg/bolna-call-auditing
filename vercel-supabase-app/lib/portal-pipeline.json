@@ -1,0 +1,519 @@
+{
+ "generated_at": "2026-07-24T14:57:46+00:00",
+ "program": "Bolna",
+ "funnel": [
+  {
+   "id": "dump",
+   "label": "Call dump lands",
+   "n": 2448,
+   "pct": 100,
+   "desc": "production calls with recording + telemetry"
+  },
+  {
+   "id": "performs",
+   "label": "Agent performs",
+   "n": 2448,
+   "pct": 100,
+   "desc": "every call transcribed by the agent stack (ASR + LLM + TTS)"
+  },
+  {
+   "id": "vibe",
+   "label": "Vibe scoring · sampled",
+   "n": 849,
+   "pct": 35,
+   "desc": "panel rates whole calls 1-4 · at least 3 raters per call"
+  },
+  {
+   "id": "issues",
+   "label": "Issue logging · sub-sample",
+   "n": 574,
+   "pct": 23,
+   "desc": "bad and representative calls get turn-level issue logs · L1 discovery"
+  },
+  {
+   "id": "themes",
+   "label": "Top themes identified",
+   "n": 5,
+   "pct": null,
+   "desc": "discovery rolls up into the issue taxonomy on the right"
+  },
+  {
+   "id": "routed",
+   "label": "Routed: LLM judge + human lanes",
+   "n": 1263,
+   "pct": 52,
+   "desc": "transcript-visible themes go to the judge with human verification · audio themes stay 100% human"
+  }
+ ],
+ "taxonomy": [
+  {
+   "id": "asr",
+   "label": "ASR transcription",
+   "occurrences": 4754,
+   "calls": 420,
+   "routing": {
+    "lane": "human",
+    "policy": "100% human review",
+    "why": "needs ears on audio · no reliable machine signal"
+   },
+   "note": "wrong or missing words in what the user actually said"
+  },
+  {
+   "id": "pronunciation",
+   "label": "Pronunciation",
+   "occurrences": 206,
+   "calls": 114,
+   "routing": {
+    "lane": "human",
+    "policy": "100% human review",
+    "why": "needs ears on audio · no reliable machine signal"
+   },
+   "children": [
+    {
+     "id": "proper_noun",
+     "label": "Proper nouns & city names",
+     "occurrences": 53,
+     "calls": 40,
+     "routing": {
+      "lane": "human",
+      "policy": "100% human review",
+      "why": "needs ears on audio · no reliable machine signal"
+     }
+    },
+    {
+     "id": "pron_other",
+     "label": "Words & numbers",
+     "occurrences": 153,
+     "calls": 86,
+     "routing": {
+      "lane": "human",
+      "policy": "100% human review",
+      "why": "needs ears on audio · no reliable machine signal"
+     }
+    }
+   ]
+  },
+  {
+   "id": "response",
+   "label": "Response appropriateness",
+   "occurrences": 542,
+   "calls": 216,
+   "routing": {
+    "lane": "llm_judge",
+    "policy": "LLM judge on every call · human verification on flags",
+    "why": "transcript-visible · judge scales, humans confirm"
+   },
+   "children": [
+    {
+     "id": "wrong_response",
+     "label": "Wrong response",
+     "occurrences": 491,
+     "calls": null,
+     "routing": {
+      "lane": "llm_judge",
+      "policy": "LLM judge on every call · human verification on flags",
+      "why": "transcript-visible · judge scales, humans confirm"
+     },
+     "judge_signal": {
+      "count": 31,
+      "calls": 30
+     },
+     "children": [
+      {
+       "id": "wr_irrelevant_response",
+       "label": "Irrelevant response",
+       "occurrences": 228,
+       "calls": null,
+       "routing": {
+        "lane": "llm_judge",
+        "policy": "LLM judge on every call · human verification on flags",
+        "why": "transcript-visible · judge scales, humans confirm"
+       }
+      },
+      {
+       "id": "wr_repetition",
+       "label": "Repetition",
+       "occurrences": 109,
+       "calls": null,
+       "routing": {
+        "lane": "llm_judge",
+        "policy": "LLM judge on every call · human verification on flags",
+        "why": "transcript-visible · judge scales, humans confirm"
+       }
+      },
+      {
+       "id": "wr_number_input_capture",
+       "label": "Number & input capture",
+       "occurrences": 97,
+       "calls": null,
+       "routing": {
+        "lane": "llm_judge",
+        "policy": "LLM judge on every call · human verification on flags",
+        "why": "transcript-visible · judge scales, humans confirm"
+       }
+      },
+      {
+       "id": "wr_other_wrong_response",
+       "label": "Other wrong response",
+       "occurrences": 46,
+       "calls": null,
+       "routing": {
+        "lane": "llm_judge",
+        "policy": "LLM judge on every call · human verification on flags",
+        "why": "transcript-visible · judge scales, humans confirm"
+       }
+      },
+      {
+       "id": "wr_factual_inaccuracy_hallucination",
+       "label": "Factual inaccuracy / hallucination",
+       "occurrences": 11,
+       "calls": null,
+       "routing": {
+        "lane": "llm_judge",
+        "policy": "LLM judge on every call · human verification on flags",
+        "why": "transcript-visible · judge scales, humans confirm"
+       }
+      }
+     ]
+    },
+    {
+     "id": "instruction",
+     "label": "Instruction not followed",
+     "occurrences": 51,
+     "calls": null,
+     "routing": {
+      "lane": "llm_judge",
+      "policy": "LLM judge on every call · human verification on flags",
+      "why": "transcript-visible · judge scales, humans confirm"
+     },
+     "children": [
+      {
+       "id": "in_context_not_carried_through",
+       "label": "Context not carried through",
+       "occurrences": 48,
+       "calls": null,
+       "routing": {
+        "lane": "llm_judge",
+        "policy": "LLM judge on every call · human verification on flags",
+        "why": "transcript-visible · judge scales, humans confirm"
+       }
+      },
+      {
+       "id": "in_instruction_conflict",
+       "label": "Instruction conflict",
+       "occurrences": 3,
+       "calls": null,
+       "routing": {
+        "lane": "llm_judge",
+        "policy": "LLM judge on every call · human verification on flags",
+        "why": "transcript-visible · judge scales, humans confirm"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "language_switch",
+   "label": "Language switching",
+   "occurrences": 61,
+   "calls": 32,
+   "routing": {
+    "lane": "llm_judge",
+    "policy": "LLM judge on every call · human verification on flags",
+    "why": "transcript-visible · judge scales, humans confirm"
+   },
+   "judge_signal": {
+    "count": 1109,
+    "calls": 878
+   }
+  },
+  {
+   "id": "tone",
+   "label": "Tone & naturalness",
+   "occurrences": 33,
+   "calls": 21,
+   "routing": {
+    "lane": "mixed",
+    "policy": "LLM judge screens · humans grade tone on sampled calls",
+    "why": "tone is audible, judge only sees text"
+   }
+  }
+ ],
+ "routing": {
+  "llm_judge": {
+   "model": "claude-haiku-4-5",
+   "calls_judged": 1263,
+   "calls_flagged": 493,
+   "calls_with_issues": 1020,
+   "coverage_pct": 52
+  },
+  "human": {
+   "calls_vibe_scored": 849,
+   "calls_issue_logged": 574,
+   "asr_corrections": 4754,
+   "pronunciation_flags": 206
+  },
+  "verification": {
+   "calls_seen_by_both": 513,
+   "note": "judge flags route to the human panel · transcription and pronunciation never go through the judge"
+  },
+  "hundred_pct_human_lanes": [
+   "asr",
+   "pronunciation"
+  ]
+ },
+ "agents": [
+  {
+   "agent": "Voice Agent",
+   "calls_reviewed": 347,
+   "avg_vibe": 3.1,
+   "raters": 23,
+   "themes": {
+    "asr": 1691,
+    "response": 242,
+    "pronunciation": 53,
+    "proper_noun": 26,
+    "language_switch": 17
+   }
+  },
+  {
+   "agent": "Cart Recovery · E-commerce B",
+   "calls_reviewed": 127,
+   "avg_vibe": 2.9,
+   "raters": 4,
+   "themes": {
+    "asr": 177,
+    "response": 8,
+    "pronunciation": 3,
+    "language_switch": 2
+   }
+  },
+  {
+   "agent": "Seller Activation · B2B Marketplace",
+   "calls_reviewed": 109,
+   "avg_vibe": 2.88,
+   "raters": 4,
+   "themes": {
+    "asr": 113,
+    "response": 6
+   }
+  },
+  {
+   "agent": "Order Confirmation · E-commerce",
+   "calls_reviewed": 106,
+   "avg_vibe": 2.69,
+   "raters": 4,
+   "themes": {
+    "asr": 96,
+    "response": 17,
+    "language_switch": 5,
+    "proper_noun": 3
+   }
+  },
+  {
+   "agent": "Cart Recovery · E-commerce A",
+   "calls_reviewed": 98,
+   "avg_vibe": 2.92,
+   "raters": 4,
+   "themes": {
+    "asr": 121,
+    "response": 23,
+    "proper_noun": 4,
+    "language_switch": 1
+   }
+  },
+  {
+   "agent": "Hiring & Onboarding",
+   "calls_reviewed": 19,
+   "avg_vibe": 3.17,
+   "raters": 8,
+   "themes": {
+    "asr": 260,
+    "response": 48,
+    "tone": 17,
+    "pronunciation": 16,
+    "proper_noun": 1
+   }
+  },
+  {
+   "agent": "Referral Outreach · Hindi",
+   "calls_reviewed": 18,
+   "avg_vibe": 3.43,
+   "raters": 8,
+   "themes": {
+    "asr": 280,
+    "pronunciation": 38,
+    "response": 27,
+    "tone": 8
+   }
+  },
+  {
+   "agent": "Cart Recovery · D2C Brand A",
+   "calls_reviewed": 15,
+   "avg_vibe": 2.94,
+   "raters": 10,
+   "themes": {
+    "asr": 175,
+    "language_switch": 12,
+    "response": 10,
+    "pronunciation": 6
+   }
+  },
+  {
+   "agent": "Lead Qualification",
+   "calls_reviewed": 15,
+   "avg_vibe": 3.18,
+   "raters": 10,
+   "themes": {
+    "asr": 164,
+    "response": 13,
+    "proper_noun": 8,
+    "language_switch": 6,
+    "pronunciation": 2
+   }
+  },
+  {
+   "agent": "Lead Qualification · EdTech",
+   "calls_reviewed": 15,
+   "avg_vibe": 3.14,
+   "raters": 10,
+   "themes": {
+    "asr": 204,
+    "response": 18,
+    "language_switch": 6,
+    "pronunciation": 2
+   }
+  },
+  {
+   "agent": "Field Support · Appliances",
+   "calls_reviewed": 14,
+   "avg_vibe": 2.52,
+   "raters": 9,
+   "themes": {
+    "asr": 392,
+    "response": 61,
+    "language_switch": 6,
+    "pronunciation": 5,
+    "proper_noun": 3
+   }
+  },
+  {
+   "agent": "Lead Qualification · EdTech B",
+   "calls_reviewed": 11,
+   "avg_vibe": 3.27,
+   "raters": 10,
+   "themes": {
+    "asr": 120,
+    "response": 5,
+    "pronunciation": 2
+   }
+  },
+  {
+   "agent": "Payment Reminder · Fintech",
+   "calls_reviewed": 7,
+   "avg_vibe": 3.03,
+   "raters": 9,
+   "themes": {
+    "asr": 115,
+    "response": 9,
+    "pronunciation": 2,
+    "proper_noun": 1
+   }
+  },
+  {
+   "agent": "Cart Recovery · D2C Jewelry",
+   "calls_reviewed": 7,
+   "avg_vibe": 3.44,
+   "raters": 10,
+   "themes": {
+    "asr": 72,
+    "pronunciation": 7,
+    "response": 6,
+    "language_switch": 1,
+    "proper_noun": 1
+   }
+  },
+  {
+   "agent": "Field Support",
+   "calls_reviewed": 6,
+   "avg_vibe": 3.26,
+   "raters": 10,
+   "themes": {
+    "asr": 99,
+    "response": 5,
+    "language_switch": 1
+   }
+  },
+  {
+   "agent": "Collections · D2C",
+   "calls_reviewed": 6,
+   "avg_vibe": 1.5,
+   "raters": 6,
+   "themes": {
+    "asr": 63
+   }
+  },
+  {
+   "agent": "Loan Reminder · Fintech",
+   "calls_reviewed": 5,
+   "avg_vibe": 3.0,
+   "raters": 7,
+   "themes": {
+    "asr": 52,
+    "response": 12,
+    "proper_noun": 1,
+    "pronunciation": 1
+   }
+  },
+  {
+   "agent": "Cart Recovery · D2C Skincare",
+   "calls_reviewed": 5,
+   "avg_vibe": 2.76,
+   "raters": 8,
+   "themes": {
+    "asr": 79,
+    "response": 2,
+    "language_switch": 1,
+    "pronunciation": 1
+   }
+  },
+  {
+   "agent": "Payment Reminder · Fintech B",
+   "calls_reviewed": 4,
+   "avg_vibe": 2.71,
+   "raters": 7,
+   "themes": {
+    "proper_noun": 4,
+    "asr": 3,
+    "pronunciation": 3,
+    "response": 2
+   }
+  },
+  {
+   "agent": "Cart Recovery · D2C Fashion",
+   "calls_reviewed": 4,
+   "avg_vibe": 3.05,
+   "raters": 8,
+   "themes": {
+    "asr": 29,
+    "pronunciation": 3,
+    "response": 1,
+    "proper_noun": 1
+   }
+  }
+ ],
+ "reliability": {
+  "panel": {
+   "agreement_pct": 76,
+   "pairs": 255,
+   "desc": "share of ratings within 1 point of the panel median (calls with 3+ raters)"
+  },
+  "ground_truth": {
+   "agreement_pct": 73,
+   "pairs": 2204,
+   "gt_calls": 478,
+   "desc": "share of panel ratings within 1 point of the hidden expert rating"
+  }
+ }
+}
