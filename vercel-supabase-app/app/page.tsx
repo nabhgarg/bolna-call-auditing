@@ -123,6 +123,10 @@ export default function Page() {
   const [reviewerEmail, setReviewerEmail] = useState("");
   const [reviewerDisplay, setReviewerDisplay] = useState("");
   const [reviewerRole, setReviewerRole] = useState("reviewer");
+  // Only redirect issue-loggers to /transcribe once the role is confirmed by the
+  // server — a stale cached role (e.g. someone temporarily made an issue_logger
+  // for an experiment, then switched back to reviewer) must not bounce them.
+  const [roleConfirmed, setRoleConfirmed] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
@@ -189,6 +193,7 @@ export default function Page() {
         .then((p) => {
           if (!p) return;
           setReviewerRole(p.role || "reviewer");
+          setRoleConfirmed(true);
           setReviewerDisplay(p.display_name || storedEmail);
           window.localStorage.setItem("auditReviewerRole", p.role || "reviewer");
           window.localStorage.setItem("auditReviewerDisplay", p.display_name || storedEmail);
@@ -200,8 +205,8 @@ export default function Page() {
   // Issue loggers now work exclusively in the transcription workbench ·
   // send them straight there once their role is known.
   useEffect(() => {
-    if (!loginVisible && reviewerRole === "issue_logger") window.location.replace("/transcribe");
-  }, [reviewerRole, loginVisible]);
+    if (!loginVisible && roleConfirmed && reviewerRole === "issue_logger") window.location.replace("/transcribe");
+  }, [reviewerRole, loginVisible, roleConfirmed]);
 
   // Draw waveform: agent channel up (green), user channel down (blue), playhead line
   useEffect(() => {
@@ -617,6 +622,7 @@ export default function Page() {
         setReviewerEmail(result.email);
         setReviewerDisplay(result.display_name || result.email);
         setReviewerRole(result.role || "reviewer");
+        setRoleConfirmed(true);
         setLoginVisible(false);
         window.localStorage.setItem("auditReviewerEmail", result.email);
         window.localStorage.setItem("auditReviewerDisplay", result.display_name || result.email);
@@ -649,6 +655,7 @@ export default function Page() {
       setReviewerEmail(profile.email);
       setReviewerDisplay(profile.display_name || profile.email);
       setReviewerRole(profile.role || "reviewer");
+      setRoleConfirmed(true);
       setLoginVisible(false);
       window.localStorage.setItem("auditReviewerEmail", profile.email);
       window.localStorage.setItem("auditReviewerDisplay", profile.display_name || profile.email);
