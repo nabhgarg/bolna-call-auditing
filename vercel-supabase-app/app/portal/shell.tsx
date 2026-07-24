@@ -14,6 +14,7 @@ const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", 
 
 
 const NAV = [
+  { href: "/portal/evaluation", label: "Evaluation design", icon: "⇶" },
   { href: "/portal", label: "Overall", icon: "◍" },
   { href: "/portal/agents", label: "By agent", icon: "◐" },
   { href: "/portal/datasets", label: "Datasets", icon: "▤" }
