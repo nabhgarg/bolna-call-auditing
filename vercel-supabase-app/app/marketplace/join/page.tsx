@@ -29,9 +29,10 @@ type Verdict = "match" | "miss" | "";
 function tsSec(ts: string) { const [m, s] = String(ts || "0:0").split(":"); return Number(m) * 60 + Number(s || 0); }
 
 const JOBS = [
-  { t: "Transcription review", d: "Listen to a call and fix what the AI's speech-to-text got wrong · code-mixed Hindi/English.", pay: "₹120 / call" },
-  { t: "Pronunciation audit", d: "Catch names, cities and brands the agent mispronounced · with the exact word.", pay: "₹52 / name" },
-  { t: "Call scoring", d: "Rate whole calls 1-4 and log where the agent broke · the highest-volume work.", pay: "₹28 / review" }
+  { t: "AI Call Reviewer", d: "Rate whole calls 1-4 and log where the agent broke · the highest-volume work.", pay: "₹28 / review" },
+  { t: "AI Call Transcriptor", d: "Listen to a call and fix what the AI's speech-to-text got wrong · code-mixed Hindi/English.", pay: "₹120 / call" },
+  { t: "Regional Language Expert", d: "Tamil, Telugu, Marathi, Bengali calls · review and transcribe in your language.", pay: "₹40 / review" },
+  { t: "Text Annotator", d: "Judge AI chat and text outputs · correctness, tone, task completion. No audio needed.", pay: "₹18 / item" }
 ];
 
 export default function Join() {
@@ -199,7 +200,7 @@ export default function Join() {
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: 11.5, color: MUT, marginTop: 7 }}>Your 2-minute assignment samples the first two. Do well and you unlock all of them.</div>
+                  <div style={{ fontSize: 11.5, color: MUT, marginTop: 7 }}>Your 2-minute assignment samples the reviewer and transcriptor work. Do well and you unlock all of them.</div>
                 </div>
               </div>
               <div style={{ ...card, borderRadius: 14, padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
