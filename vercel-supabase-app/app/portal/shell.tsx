@@ -38,7 +38,8 @@ export default function PortalShell({ children, right }: { children: React.React
       {/* sidebar */}
       <div className="portal-sidebar" style={{ width: 200, flex: "none", background: "#fff", borderRight: "1px solid #e2e8ee", display: "flex", flexDirection: "column", padding: "14px 10px", position: "sticky", top: 0, height: "100vh" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 10px 12px" }}>
-          <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>realloop</span>
+          <span style={{ width: 18, height: 18, borderRadius: 5, background: GREEN, flex: "none" }} />
+          <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 700 }}>realloop</span>
         </div>
         <div style={{ margin: "0 10px 14px", position: "relative" }}>
           <button onClick={() => programs.length > 1 && setOpen(!open)} style={{ width: "100%", textAlign: "left", borderRadius: 8, background: "#f5f7f9", padding: "8px 10px", border: "none", cursor: programs.length > 1 ? "pointer" : "default" }}>

@@ -62,7 +62,8 @@ export default function StartProgram() {
   return (
     <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", color: INK }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "12px 20px" }}>
-        <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>realloop</span>
+        <span style={{ width: 18, height: 18, borderRadius: 5, background: GREEN, flex: "none" }} />
+        <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 700 }}>realloop</span>
         <span style={{ display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eef2f6", padding: "4px 11px", fontSize: 12, color: "#4d5a66" }}>Start a program</span>
         <span style={{ flex: 1 }} />
         <a href="/portal/add" style={{ fontSize: 12.5, color: MUT, textDecoration: "none" }}>← Back to portal</a>

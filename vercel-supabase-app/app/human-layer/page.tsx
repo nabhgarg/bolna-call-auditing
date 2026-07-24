@@ -34,7 +34,8 @@ export default function HumanLayer() {
   return (
     <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", color: INK }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "12px 20px" }}>
-        <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>realloop</span>
+        <span style={{ width: 18, height: 18, borderRadius: 5, background: GREEN, flex: "none" }} />
+        <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 700 }}>realloop</span>
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 12.5, color: MUT }}><a href="/portal" style={{ color: MUT }}>Portal</a> · <a href="/portal/agents" style={{ color: MUT }}>Agents</a></span>
       </div>
