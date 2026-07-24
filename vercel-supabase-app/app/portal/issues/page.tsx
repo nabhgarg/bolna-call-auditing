@@ -50,7 +50,7 @@ function Inner() {
     <PortalShell right={
       <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issue evidence</span>
-        <a href="/portal" style={{ fontSize: 12, color: MUT, textDecoration: "none" }}>← Overview</a>
+        <a href="/portal/agents" style={{ fontSize: 12, color: MUT, textDecoration: "none" }}>← Agent insights</a>
         <span style={{ flex: 1 }} />
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>

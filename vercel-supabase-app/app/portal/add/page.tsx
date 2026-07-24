@@ -85,7 +85,7 @@ export default function AddUseCase() {
             <div style={{ flex: 1 }} />
             {launched ? (
               <div style={{ background: "#f2faf6", border: `1.5px solid ${GREEN}`, borderRadius: 9, padding: "12px 14px", fontSize: 13, color: "#4d5a66", lineHeight: 1.5 }}>
-                <b style={{ color: GREEN }}>✓ Program launched.</b> Queues and reviewer assignments created · reviews start today. Track it on the <a href="/portal" style={{ color: GREEN }}>Overall</a> page.
+                <b style={{ color: GREEN }}>✓ Program launched.</b> Queues and reviewer assignments created · reviews start today. Track it on the <a href="/portal/agents" style={{ color: GREEN }}>Agent insights</a> page.
               </div>
             ) : (
               <div onClick={() => { try { const list = JSON.parse(window.localStorage.getItem("rlPrograms") || "[]"); if (!list.includes(name)) { list.push(name); window.localStorage.setItem("rlPrograms", JSON.stringify(list)); } window.localStorage.setItem("rlActiveProgram", name); } catch {} setLaunched(true); }} style={{ height: 44, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>Launch use case</div>
