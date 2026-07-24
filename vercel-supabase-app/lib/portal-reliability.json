@@ -1,0 +1,159 @@
+{
+ "generated_at": "2026-07-24T17:01:27+00:00",
+ "program": "Bolna",
+ "fleet_vs_gt": 73,
+ "gt_calls": 495,
+ "by_agent": [
+  {
+   "agent": "Order Confirmation · E-commerce",
+   "raters_per_call": 2.5,
+   "vs_gt": 76,
+   "gt_calls": 10,
+   "trust": "thin"
+  },
+  {
+   "agent": "Cart Recovery · E-commerce B",
+   "raters_per_call": 2,
+   "vs_gt": 78,
+   "gt_calls": 9,
+   "trust": "thin"
+  },
+  {
+   "agent": "Cart Recovery · E-commerce A",
+   "raters_per_call": 2,
+   "vs_gt": 67,
+   "gt_calls": 3,
+   "trust": "thin"
+  },
+  {
+   "agent": "Field Support · Appliances",
+   "raters_per_call": 3.4,
+   "vs_gt": 58,
+   "gt_calls": 14,
+   "trust": "medium"
+  },
+  {
+   "agent": "Hiring & Onboarding",
+   "raters_per_call": 4.4,
+   "vs_gt": 83,
+   "gt_calls": 19,
+   "trust": "high"
+  },
+  {
+   "agent": "Referral Outreach · Hindi",
+   "raters_per_call": 4.1,
+   "vs_gt": 76,
+   "gt_calls": 15,
+   "trust": "high"
+  },
+  {
+   "agent": "Lead Qualification · EdTech",
+   "raters_per_call": 4.9,
+   "vs_gt": 85,
+   "gt_calls": 15,
+   "trust": "high"
+  },
+  {
+   "agent": "Cart Recovery · D2C Brand A",
+   "raters_per_call": 5.5,
+   "vs_gt": 73,
+   "gt_calls": 15,
+   "trust": "high"
+  },
+  {
+   "agent": "Lead Qualification · EdTech B",
+   "raters_per_call": 5.8,
+   "vs_gt": 89,
+   "gt_calls": 11,
+   "trust": "high"
+  },
+  {
+   "agent": "Seller Activation · B2B Marketplace",
+   "raters_per_call": 4,
+   "vs_gt": 85,
+   "gt_calls": 5,
+   "trust": "high"
+  }
+ ],
+ "by_issue": [
+  {
+   "key": "vibe",
+   "label": "Vibe score 1-4",
+   "value": 73,
+   "unit": "%",
+   "support": 495,
+   "formula": "±1 agreement vs hidden ground truth, backed by Krippendorff's α (ordinal) · a 3-vs-4 split is noise, 1-vs-4 isn't."
+  },
+  {
+   "key": "transcription",
+   "label": "Transcription",
+   "value": 66,
+   "unit": "%",
+   "support": 2077,
+   "formula": "1 − WER between independent transcribers on the same segment (2077 paired segments) · exact token match, not \"within 1\"."
+  },
+  {
+   "key": "issue",
+   "label": "Issue logging",
+   "value": 68,
+   "unit": "%",
+   "support": 77,
+   "formula": "reviewers who both flagged a call agree on the error type (77 paired calls) · same category, not just \"something's wrong\"."
+  },
+  {
+   "key": "pronunciation",
+   "label": "Pronunciation",
+   "value": 68,
+   "unit": "%",
+   "support": 31,
+   "formula": "tag agreement between reviewers on the same call (31 paired calls), across speakers."
+  }
+ ],
+ "human_vs_llm": {
+  "human_only": [
+   {
+    "label": "Transcription",
+    "human_calls": 452,
+    "llm_calls": 0,
+    "route": "100% human",
+    "agreement": 0,
+    "agreement_support": 206
+   },
+   {
+    "label": "Pronunciation",
+    "human_calls": 115,
+    "llm_calls": 0,
+    "route": "100% human",
+    "agreement": 0,
+    "agreement_support": 29
+   }
+  ],
+  "machine_scales": [
+   {
+    "label": "Language errors",
+    "human_calls": 40,
+    "llm_calls": 878,
+    "route": "LLM judge + spot-check",
+    "agreement": 85,
+    "agreement_support": 26
+   },
+   {
+    "label": "Repetition / loops",
+    "human_calls": 44,
+    "llm_calls": 501,
+    "route": "LLM judge + spot-check",
+    "agreement": null,
+    "agreement_support": 0
+   },
+   {
+    "label": "Instruction / context",
+    "human_calls": 244,
+    "llm_calls": 1006,
+    "route": "LLM judge + spot-check",
+    "agreement": 78,
+    "agreement_support": 78
+   }
+  ],
+  "method": "Calls where each side caught the issue. On audio the judge is blind · it produces zero findings, so humans do 100% of it. On transcript-visible issues the judge scales the check far past the human sample; where both looked, it agrees with the panel (e.g. language errors)."
+ }
+}
