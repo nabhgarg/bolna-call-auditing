@@ -68,16 +68,16 @@ export default function Portal() {
             <span style={{ flex: 1 }} />
             <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>Human-identified L2s</span>
           </div>
-          <div style={{ display: "flex", gap: 14, alignItems: "stretch" }}>
-            <div style={{ width: 195, flex: "none", background: "#f5f7f9", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", gap: 3 }}>
+          <div className="ov-issues" style={{ display: "flex", gap: 14, alignItems: "stretch" }}>
+            <div className="ov-summary" style={{ width: 195, flex: "none", background: "#f5f7f9", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", gap: 3 }}>
               <div className={grotesk.className} style={{ fontSize: 30, fontWeight: 600 }}>{Number(s.occurrences || 0).toLocaleString()}</div>
               <div style={{ fontSize: 12, color: MUT, lineHeight: 1.4 }}>issue occurrences across <b style={{ color: INK }}>{s.calls_with_issue} calls</b> ({s.pct_calls}% of evaluated)</div>
               <div style={{ marginTop: 8, fontSize: 11.5, color: GREEN, fontWeight: 600 }}>{s.human_only_pct}% only a human could catch</div>
             </div>
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
               {l2.map((i: any) => (
-                <a key={i.key} href={`/portal/agents?l2=${i.key}`} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, textDecoration: "none", color: INK }}>
-                  <span style={{ width: 205, flex: "none" }}>{i.label}</span>
+                <a className="l2-row" key={i.key} href={`/portal/agents?l2=${i.key}`} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, textDecoration: "none", color: INK }}>
+                  <span className="l2-label" style={{ width: 205, flex: "none" }}>{i.label}</span>
                   <div style={{ flex: 1, height: 13, borderRadius: 7, background: "#eef2f6", overflow: "hidden" }}>
                     <div style={{ width: `${(i.calls / maxCalls) * 100}%`, height: "100%", borderRadius: 7, background: GREEN }} />
                   </div>
@@ -98,7 +98,7 @@ export default function Portal() {
               <span style={{ borderRadius: 999, background: "#fbeaea", color: RED, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>{vbl.bad_pct}% of calls rated bad</span>
             </div>
             <div style={{ fontSize: 13, color: "#4d5a66", marginTop: 3, lineHeight: 1.5 }}>
-              What&apos;s breaking: the agent <b>captures the wrong barcode / input in {vblCapture ? vblCapture[1] : "-"} findings</b> and repeats itself in {vblRepeat ? vblRepeat[1] : "-"} · the ASR can&apos;t hear &quot;barcode&quot;, so everything downstream breaks; users hang up mid-call.
+              What&apos;s breaking: the agent <b>captures the wrong barcode / input ({vblCapture ? vblCapture[1] : 0} findings)</b> and repeats itself ({vblRepeat ? vblRepeat[1] : 0}). The ASR can&apos;t hear &quot;barcode&quot;, so everything downstream breaks; users hang up mid-call.
             </div>
           </div>
           <button onClick={playVbl} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "8px 10px", fontSize: 12, cursor: "pointer" }}>
@@ -109,7 +109,7 @@ export default function Portal() {
         </div>
 
         {/* 3 + 4 · agents table & trust */}
-        <div style={{ display: "flex", gap: 14, alignItems: "stretch", flexWrap: "wrap" }}>
+        <div className="ov-bottom" style={{ display: "flex", gap: 14, alignItems: "stretch", flexWrap: "wrap" }}>
           <div style={{ ...card, flex: 1.35, minWidth: 380, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 9 }}>
             <div style={{ display: "flex", alignItems: "baseline" }}>
               <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Agents needing attention</span>
@@ -161,7 +161,7 @@ export default function Portal() {
               </div>
             </div>
             <div style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>
-              Within {Math.abs((trust.internal_agreement || 0) - (trust.gt_agreement || 0))} points · the panel performs almost the same when it can&apos;t tell it&apos;s being tested.
+              Within {Math.abs((trust.internal_agreement || 0) - (trust.gt_agreement || 0))} points apart. The panel performs almost the same when it can&apos;t tell it&apos;s being tested.
             </div>
           </div>
         </div>

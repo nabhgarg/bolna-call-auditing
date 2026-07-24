@@ -662,7 +662,7 @@
     },
     {
      "call_id": "b982ea07-dae8-40b7-a253-f7f7a6a73bb1",
-     "org": "BVDU M&T MBA",
+     "org": "Lead Qualification",
      "turn": 12,
      "quote": "Thank you for connecting with us and Ramesh Kumar, you have a great day! ... Would you like to learn more ... should I reach out to you ... Thank you for connec",
      "description": "Agent cycles through multiple farewells, closure attempts, and then restarts info-confirmation logic after apparent call end."
@@ -1697,7 +1697,7 @@
  },
  "orgs": [
   {
-   "org": "GoKwik 2",
+   "org": "Cart Recovery · E-commerce A",
    "calls": 300,
    "outcomes": {
     "partial": 195,
@@ -1772,7 +1772,7 @@
    "label": "Cart Recovery · E-commerce A"
   },
   {
-   "org": "BiteSpeed",
+   "org": "Cart Recovery · E-commerce B",
    "calls": 298,
    "outcomes": {
     "partial": 173,
@@ -1846,7 +1846,7 @@
    "label": "Cart Recovery · E-commerce B"
   },
   {
-   "org": "Unicommerce",
+   "org": "Order Confirmation · E-commerce",
    "calls": 297,
    "outcomes": {
     "completed": 67,
@@ -1920,7 +1920,7 @@
    "label": "Order Confirmation · E-commerce"
   },
   {
-   "org": "Alibaba India",
+   "org": "Seller Activation · B2B Marketplace",
    "calls": 295,
    "outcomes": {
     "failed": 101,
@@ -1995,7 +1995,7 @@
    "label": "Seller Activation · B2B Marketplace"
   },
   {
-   "org": "[Prod] Abandoned Cart",
+   "org": "Cart Recovery · D2C Brand A",
    "calls": 11,
    "outcomes": {
     "partial": 4,
@@ -2069,7 +2069,7 @@
    "label": "Cart Recovery · D2C Brand A"
   },
   {
-   "org": "Indian Online Version",
+   "org": "Lead Qualification · EdTech",
    "calls": 7,
    "outcomes": {
     "partial": 4,
@@ -2136,7 +2136,7 @@
    "label": "Lead Qualification · EdTech"
   },
   {
-   "org": "[giva-jewelry.myshopify.com] abandoned-checkout",
+   "org": "Cart Recovery · D2C Jewelry",
    "calls": 7,
    "outcomes": {
     "completed": 4,
@@ -2197,7 +2197,7 @@
    "label": "Cart Recovery · D2C Jewelry"
   },
   {
-   "org": "pocketly-bkt0-due-reminder-priya-vobiz",
+   "org": "Payment Reminder · Fintech",
    "calls": 6,
    "outcomes": {
     "completed": 5,
@@ -2264,7 +2264,7 @@
    "label": "Payment Reminder · Fintech"
   },
   {
-   "org": "[thedermaco.myshopify.com] abandoned-checkout",
+   "org": "Cart Recovery · D2C Skincare",
    "calls": 4,
    "outcomes": {
     "partial": 3,
@@ -2313,7 +2313,7 @@
    "label": "Cart Recovery · D2C Skincare"
   },
   {
-   "org": "Zara - [Prod] Abandon Cart",
+   "org": "Cart Recovery · D2C Fashion",
    "calls": 3,
    "outcomes": {
     "partial": 1,
@@ -2358,7 +2358,7 @@
    "label": "Cart Recovery · D2C Fashion"
   },
   {
-   "org": "iGolf Final AI Agent Phone Today",
+   "org": "Voice Agent",
    "calls": 3,
    "outcomes": {
     "partial": 2,
@@ -2415,7 +2415,7 @@
    "label": "Lead Qualification · Sports"
   },
   {
-   "org": "Neha",
+   "org": "Voice Agent",
    "calls": 3,
    "outcomes": {
     "completed": 1,

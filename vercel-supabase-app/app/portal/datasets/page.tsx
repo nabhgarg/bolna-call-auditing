@@ -78,7 +78,7 @@ export default function Datasets() {
                 <span className={grotesk.className} style={{ fontSize: 17, fontWeight: 600 }}>Golden transcripts · Hindi/Hinglish</span>
                 <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>generated · growing</span>
               </div>
-              <div style={{ fontSize: 12.5, color: MUT, marginTop: 2 }}>Word-level, expert-resolved transcriptions of real production calls · the dataset your ASR fine-tunes on.</div>
+              <div style={{ fontSize: 12.5, color: MUT, marginTop: 2 }}>Word-level, expert-resolved transcriptions of real production calls. This is the dataset your ASR fine-tunes on.</div>
             </div>
             <a href="/api/datasets/golden?sample=1" style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Download sample</a>
             <a href="/api/datasets/golden" style={{ fontWeight: 600, fontSize: 13.5, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "9px 16px", textDecoration: "none" }}>Export JSONL</a>

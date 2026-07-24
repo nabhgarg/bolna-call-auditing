@@ -87,7 +87,7 @@ export default function StartProgram() {
           {step === 0 && (
             <div style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
               <div className={grotesk.className} style={{ fontSize: 18, fontWeight: 600 }}>Your rubric · who catches what</div>
-              <div style={{ fontSize: 12.5, color: MUT }}>Voice-AI template, prefilled from 2,400+ audited production calls. Every failure type routes to the cheapest detector that can actually catch it · change any routing.</div>
+              <div style={{ fontSize: 12.5, color: MUT }}>Voice-AI template, prefilled from 2,400+ audited production calls. Every failure type routes to the cheapest detector that can actually catch it. Change any routing.</div>
               {RUBRIC.map((r) => (
                 <div key={r.failure} style={{ display: "flex", alignItems: "center", gap: 12, borderTop: "1px solid #eef2f6", paddingTop: 9 }}>
                   <span style={{ flex: 1, fontSize: 13.5 }}>{r.failure}</span>
@@ -95,7 +95,7 @@ export default function StartProgram() {
                 </div>
               ))}
               <div style={{ fontSize: 11.5, color: MUT }}>
-                {Object.values(layers).filter((l) => l === "human").length} failure types routed to the human panel · the rest run on 100% of traffic automatically.
+                {Object.values(layers).filter((l) => l === "human").length} failure types routed to the human panel. The rest run on 100% of traffic automatically.
               </div>
             </div>
           )}

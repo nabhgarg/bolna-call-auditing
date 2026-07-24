@@ -147,8 +147,8 @@ export default function Join() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {[
-                    ["1", "Apply in 2 minutes", " · the form on the right", "~2 min", true],
-                    ["2", "Do 10 real tasks", " · the tool teaches you as you go", "~40 min", false],
+                    ["1", "Apply in 2 minutes", " (the form on the right)", "~2 min", true],
+                    ["2", "Do 10 real tasks", " (the tool teaches you as you go)", "~40 min", false],
                     ["3", "Short onboarding", " · 30 min on WhatsApp", "same week", false],
                     ["4", "Your agreement score sets your tier and pay", " · improve it, earn more", "ongoing", false]
                   ].map(([n, b, rest, when, dark], i) => (
@@ -305,8 +305,8 @@ export default function Join() {
                   <div style={{ background: fVerdict === "match" ? "#f2faf6" : "#fffafa", border: `1.5px solid ${fVerdict === "match" ? GREEN : RED}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 9 }}>
                     <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 16, color: fVerdict === "match" ? GREEN : RED }}>
                       {fIsTrans
-                        ? (fVerdict === "match" ? ((fT!.wrongIdx ?? -1) < 0 ? "✓ Right · the transcript was correct" : `✓ Caught it · “${(fT!.asr || [])[fT!.wrongIdx!]}” was wrong`) : (picked === -2 ? `✗ There was an error · “${(fT!.asr || [])[fT!.wrongIdx!]}” is wrong` : ((fT!.wrongIdx ?? -1) < 0 ? "✗ The transcript was actually correct" : `✗ Not that word · the error was “${(fT!.asr || [])[fT!.wrongIdx!]}”`)))
-                        : (fVerdict === "match" ? `✓ Exactly · ${fQ!.options[fQ!.correct].toLowerCase()}` : `✗ Not quite · the issue was: ${fQ!.options[fQ!.correct].toLowerCase()}`)}
+                        ? (fVerdict === "match" ? ((fT!.wrongIdx ?? -1) < 0 ? "✓ Right: the transcript was correct" : `✓ Caught it: “${(fT!.asr || [])[fT!.wrongIdx!]}” was wrong`) : (picked === -2 ? `✗ There was an error: “${(fT!.asr || [])[fT!.wrongIdx!]}” is wrong` : ((fT!.wrongIdx ?? -1) < 0 ? "✗ The transcript was actually correct" : `✗ Not that word: the error was “${(fT!.asr || [])[fT!.wrongIdx!]}”`)))
+                        : (fVerdict === "match" ? `✓ Exactly: ${fQ!.options[fQ!.correct].toLowerCase()}` : `✗ Not quite. The issue was: ${fQ!.options[fQ!.correct].toLowerCase()}`)}
                     </span>
                     <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>{fIsTrans ? fT!.explain : fQ!.explain}</div>
                     {fIsTrans && (

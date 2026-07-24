@@ -13,8 +13,8 @@ const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", 
 
 
 const TYPES: Array<[string, string]> = [
-  ["asr", "ASR / transcription"], ["response", "Response appropriateness"], ["pronunciation", "Pronunciation"],
-  ["tone", "Naturalness / tone"], ["latency", "Slow responses"], ["bargein", "Barge-ins"]
+  ["asr", "Wrong / missing transcription"], ["response", "Response appropriateness"], ["pronunciation", "Pronunciation misses"],
+  ["proper_noun", "Proper nouns & city names"], ["tone", "Naturalness of the call"], ["latency", "Slow responses"], ["bargein", "Barge-ins"]
 ];
 
 function Inner() {

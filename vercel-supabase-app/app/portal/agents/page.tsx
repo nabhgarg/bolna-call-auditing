@@ -166,7 +166,7 @@ function Inner() {
                         <span style={{ color: MUT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.note}</span>
                       </div>
                     ))}
-                    <a href={`/portal/issues?type=${r.key === "transcription" ? "asr" : r.key === "response" ? "response" : r.key === "naturalness" ? "tone" : "pronunciation"}`}
+                    <a href={`/portal/issues?type=${r.key === "transcription" ? "asr" : r.key === "response" ? "response" : r.key === "naturalness" ? "tone" : r.key === "proper_noun" ? "proper_noun" : "pronunciation"}`}
                       style={{ fontSize: 12, color: GREEN, textDecoration: "none" }}>all {r.human_calls} calls with evidence →</a>
                   </div>
                 )}

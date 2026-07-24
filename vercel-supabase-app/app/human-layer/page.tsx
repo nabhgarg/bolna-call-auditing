@@ -99,7 +99,7 @@ export default function HumanLayer() {
           <div style={{ ...card, flex: 1, padding: 16, background: INK, border: "none" }}>
             <div className={grotesk.className} style={{ fontSize: 14.5, fontWeight: 600, color: "#fff" }}>The vision</div>
             <div style={{ fontSize: 12.5, color: "#93a1ae", marginTop: 4, lineHeight: 1.6 }}>
-              Every production AI system needs a human to judge it, teach it, or catch what it can&apos;t do. Evals are the wedge · the human layer is the company.
+              Every production AI system needs a human to judge it, teach it, or catch what it can&apos;t do. Evals are the wedge. The human layer is the company.
             </div>
           </div>
         </div>

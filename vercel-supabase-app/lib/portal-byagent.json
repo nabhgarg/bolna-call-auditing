@@ -170,8 +170,7 @@
      "count": 13
     }
    ],
-   "evaluated": 14,
-   "real": "Visi Cooler Support v5.1 | Prod"
+   "evaluated": 14
   },
   {
    "agent": "Order Confirmation · E-commerce",
@@ -258,8 +257,7 @@
     }
    ],
    "fixes": [],
-   "evaluated": 51,
-   "real": "Unicommerce"
+   "evaluated": 51
   },
   {
    "agent": "Cart Recovery · D2C Brand A",
@@ -414,8 +412,7 @@
      "count": 2
     }
    ],
-   "evaluated": 15,
-   "real": "[Prod] Abandoned Cart"
+   "evaluated": 15
   },
   {
    "agent": "Cart Recovery · E-commerce A",
@@ -502,8 +499,7 @@
     }
    ],
    "fixes": [],
-   "evaluated": 40,
-   "real": "GoKwik 2"
+   "evaluated": 40
   },
   {
    "agent": "Hiring & Onboarding",
@@ -658,8 +654,7 @@
      "count": 1
     }
    ],
-   "evaluated": 11,
-   "real": "NCR v6 - onboarding"
+   "evaluated": 11
   },
   {
    "agent": "Lead Qualification · EdTech",
@@ -814,8 +809,7 @@
      "count": 5
     }
    ],
-   "evaluated": 15,
-   "real": "Indian Online Version"
+   "evaluated": 15
   },
   {
    "agent": "Cart Recovery · E-commerce B",
@@ -902,8 +896,7 @@
     }
    ],
    "fixes": [],
-   "evaluated": 43,
-   "real": "BiteSpeed"
+   "evaluated": 43
   },
   {
    "agent": "Seller Activation · B2B Marketplace",
@@ -990,8 +983,7 @@
     }
    ],
    "fixes": [],
-   "evaluated": 36,
-   "real": "Alibaba India"
+   "evaluated": 36
   },
   {
    "agent": "Lead Qualification · EdTech B",
@@ -1143,8 +1135,7 @@
      "count": 1
     }
    ],
-   "evaluated": 11,
-   "real": "Online MBA_Skillup"
+   "evaluated": 11
   },
   {
    "agent": "Referral Outreach · Hindi",
@@ -1223,7 +1214,7 @@
       {
        "call_id": "2c10bd88-adf2-46e2-854c-71e7860e46ba",
        "ts": "00:50",
-       "note": "user said that she is working in pronto but bot misunderstand it"
+       "note": "user said that she is working in [brand] but bot misunderstand it"
       },
       {
        "call_id": "584b1a66-373b-41e5-a031-2d5d7c6ec9c7",
@@ -1299,8 +1290,7 @@
      "count": 4
     }
    ],
-   "evaluated": 18,
-   "real": "Referral-Hindi"
+   "evaluated": 18
   }
  ]
 }
