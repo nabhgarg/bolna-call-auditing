@@ -3,7 +3,6 @@
   {
    "call_id": "250f1855-8fd4-4f91-b4f7-1ea54a2885ad",
    "recording_url": "https://api.bolna.ai/recordings/call/250f1855-8fd4-4f91-b4f7-1ea54a2885ad",
-   "ts": "00:39",
    "turns": [
     {
      "who": "agent",
@@ -132,21 +131,77 @@
      "e": 88.98
     }
    ],
-   "seg": {
-    "s": 39.76,
-    "e": 41.79
-   },
-   "context": "क्या आपको कोई spare part चाहिए या कोई और मदद?",
-   "asr": "and self part",
-   "golden": "and spare part",
-   "wrongLang": "same",
-   "isCorrect": false,
-   "explain": "The user asked about a spare part; the ASR wrote \"self part\". One word, but it changes what the customer wants — downstream the agent searched the wrong thing. This is exactly the judgment ASR can't do: \"self\" and \"spare\" sound close on a phone line, the meaning doesn't."
+   "segments": [
+    {
+     "ts": "00:05",
+     "s": 5.56,
+     "e": 6.85,
+     "asr": "hello",
+     "golden": "hello",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:16",
+     "s": 16.36,
+     "e": 17.4,
+     "asr": "जी",
+     "golden": "जी",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:27",
+     "s": 27.76,
+     "e": 29.98,
+     "asr": "जी",
+     "golden": "जी",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:39",
+     "s": 39.76,
+     "e": 41.79,
+     "asr": "and self part",
+     "golden": "and spare part",
+     "isCorrect": false
+    },
+    {
+     "ts": "00:46",
+     "s": 46.56,
+     "e": 49.59,
+     "asr": "हिंदी हिंदी हिंदी हिंदी हिंदी",
+     "golden": "हिंदी हिंदी हिंदी हिंदी हिंदी",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:55",
+     "s": 55.56,
+     "e": 58.78,
+     "asr": "ठीक",
+     "golden": "ठीक",
+     "isCorrect": true
+    },
+    {
+     "ts": "01:17",
+     "s": 77.16,
+     "e": 79.23,
+     "asr": "what",
+     "golden": "what",
+     "isCorrect": true
+    },
+    {
+     "ts": "01:25",
+     "s": 85.96,
+     "e": 88.98,
+     "asr": "जी भेजिए",
+     "golden": "जी भेजिए",
+     "isCorrect": true
+    }
+   ],
+   "explain": "One wrong segment in this call: the user asked about a spare part, the ASR wrote \"self part\". One word, but it changes what the customer wants and the agent searched the wrong thing. Every other turn here was clean, so the skill is catching the one that isn't without flagging the rest."
   },
   {
    "call_id": "37b2d355-5bf9-4be8-bb40-14b0c4f89ba5",
    "recording_url": "https://api.bolna.ai/recordings/call/37b2d355-5bf9-4be8-bb40-14b0c4f89ba5",
-   "ts": "00:37",
    "turns": [
     {
      "who": "agent",
@@ -239,21 +294,77 @@
      "e": 73.41
     }
    ],
-   "seg": {
-    "s": 37.57,
-    "e": 44.0
-   },
-   "context": "इस order का total ₹100 है। कितने का order करना चाहेंगे?",
-   "asr": "कितना",
-   "golden": "कितना one hundred",
-   "wrongLang": "same",
-   "isCorrect": false,
-   "explain": "The user said \"कितना... one hundred\" — the amount got dropped by the transcript. One reviewer even marked this segment correct; the experts caught it because the number the user gives IS the order. Numbers, names and amounts are where a missed word costs money."
+   "segments": [
+    {
+     "ts": "00:02",
+     "s": 2.97,
+     "e": 6.03,
+     "asr": "अब",
+     "golden": "अब",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:08",
+     "s": 8.17,
+     "e": 13.03,
+     "asr": "हां बोलिए",
+     "golden": "हां बोलिए",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:17",
+     "s": 17.97,
+     "e": 20.41,
+     "asr": "हां बोलिए",
+     "golden": "हां बोलिए",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:24",
+     "s": 24.57,
+     "e": 27.03,
+     "asr": "हां बोल हां",
+     "golden": "हां बोल हां",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:37",
+     "s": 37.57,
+     "e": 41.6,
+     "asr": "कितना",
+     "golden": "कितना one hundred",
+     "isCorrect": false
+    },
+    {
+     "ts": "00:43",
+     "s": 43.37,
+     "e": 43.97,
+     "asr": "one hundred",
+     "golden": "one hundred",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:51",
+     "s": 51.57,
+     "e": 53.8,
+     "asr": "हां भेज दीजिए",
+     "golden": "हां भेज दीजिए",
+     "isCorrect": true
+    },
+    {
+     "ts": "01:08",
+     "s": 68.77,
+     "e": 73.41,
+     "asr": "नहीं बस यही वाला order करना था",
+     "golden": "नहीं बस यही वाला order करना था",
+     "isCorrect": true
+    }
+   ],
+   "explain": "The user said \"कितना... one hundred\" and the amount got dropped. The number the user gives IS the order, so a missed word here costs money. The rest of the call was transcribed correctly."
   },
   {
    "call_id": "113885dc-92da-4e70-a76d-df66647a77f6",
    "recording_url": "https://api.bolna.ai/recordings/call/113885dc-92da-4e70-a76d-df66647a77f6",
-   "ts": "00:28",
    "turns": [
     {
      "who": "agent",
@@ -342,16 +453,73 @@
      "e": 52.0
     }
    ],
-   "seg": {
-    "s": 28.38,
-    "e": 30.23
-   },
-   "context": "This Zara satin midi dress is still in your cart. Would you like to complete the order?",
-   "asr": "what colors do you have",
-   "golden": "what colors do you have",
-   "wrongLang": "same",
-   "isCorrect": true,
-   "explain": "This one was clean — the ASR heard it right. Half the skill is NOT flagging good segments: marking correct ASR as wrong wastes expert time and poisons the golden dataset. Trust your ears, not your suspicion."
+   "segments": [
+    {
+     "ts": "00:06",
+     "s": 6.38,
+     "e": 7.8,
+     "asr": "yes",
+     "golden": "yes",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:12",
+     "s": 12.18,
+     "e": 13.0,
+     "asr": "yes",
+     "golden": "yes",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:17",
+     "s": 17.38,
+     "e": 22.4,
+     "asr": "yeah it has some rooms also",
+     "golden": "yeah it has some rooms also",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:26",
+     "s": 26.38,
+     "e": 28.2,
+     "asr": "what colors is it",
+     "golden": "what colors is it",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:28",
+     "s": 28.38,
+     "e": 30.23,
+     "asr": "what colors do you have",
+     "golden": "what colors do you have",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:35",
+     "s": 35.58,
+     "e": 42.02,
+     "asr": "ok yeah i would like but on cash only when it is delivered i can pay cash",
+     "golden": "ok yeah i would like but on cash only when it is delivered i can pay cash",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:44",
+     "s": 44.18,
+     "e": 45.02,
+     "asr": "hello",
+     "golden": "hello",
+     "isCorrect": true
+    },
+    {
+     "ts": "00:51",
+     "s": 51.39,
+     "e": 52.0,
+     "asr": "ok",
+     "golden": "ok",
+     "isCorrect": true
+    }
+   ],
+   "explain": "A clean call: the ASR heard every turn right. Half the skill is NOT flagging good segments, so the correct move is to mark them all correct. False-flagging wastes expert time and poisons the golden dataset."
   }
  ],
  "pron": [

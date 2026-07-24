@@ -22,7 +22,9 @@ const T_GREEN = "#1f7a5c", T_ORANGE = "#c05621", T_SLATE = "#4a5568", T_RED = "#
 type Turn = { who: string; text: string };
 type Anchor = { text: string; s: number; e: number };
 type Seg = { s: number; e: number } | null;
-type Trans = { type: "trans"; call_id: string; recording_url?: string; ts: string; context: string; asr: string; golden: string; wrongLang: string; isCorrect: boolean; explain: string; turns?: Turn[]; anchors?: Anchor[]; seg?: Seg };
+type TransSeg = { ts: string; s: number; e: number; asr: string; golden: string; isCorrect: boolean };
+type Trans = { type: "trans"; call_id: string; recording_url?: string; explain: string; turns?: Turn[]; anchors?: Anchor[]; segments: TransSeg[] };
+type SegKind = "correct" | "wrong" | "noise" | "deleted";
 type Pron = { type: "pron"; call_id: string; recording_url?: string; ts: string; content_tag: string; word_heard: string; options: string[]; explain: string; turns?: Turn[]; anchors?: Anchor[]; seg?: Seg };
 type Iss = { type: "issue"; call_id: string; recording_url?: string; ts: string; setup: string; options: string[]; correct: string; explain: string; turns?: Turn[]; anchors?: Anchor[]; seg?: Seg };
 type Q = Trans | Pron | Iss;
@@ -85,6 +87,9 @@ export default function Join() {
   const [tKind, setTKind] = useState<"" | "correct" | "wrong" | "noise">("");
   const [tLang, setTLang] = useState("same");
   const [tText, setTText] = useState("");
+  // multi-segment transcription (whole user side of the call, like /transcribe)
+  const [segState, setSegState] = useState<Record<number, Record<number, SegKind>>>({});
+  const [segCur, setSegCur] = useState(0);
   const [pTag, setPTag] = useState(""); const [pWord, setPWord] = useState("");
   const [iType, setIType] = useState(""); const [iExpl, setIExpl] = useState("");
   const [applicantId, setApplicantId] = useState<string | null>(null);
@@ -113,13 +118,13 @@ export default function Join() {
   const ptsSum = Object.values(results).reduce((a, v) => a + (v === "match" ? 1 : 0), 0);
   const q: Q | undefined = idx >= 0 ? qs[idx] : undefined;
 
-  function play(i: number, seekTs?: string) {
+  function play(i: number, seekTs?: string, seekSec?: number) {
     const a = audioRef.current; if (!a) return;
     if (playingIdx === i && !a.paused) { a.pause(); setPlayingIdx(null); return; }
     const item = qs[i]; const url = item?.recording_url || (item ? CANON + item.call_id : "");
     const src = url ? `/api/audio?url=${encodeURIComponent(url)}` : "";
     if (a.getAttribute("data-src") !== src) { a.src = src; a.setAttribute("data-src", src); }
-    const go = () => { try { if (item?.seg) a.currentTime = Math.max(0, item.seg.s - 0.15); else if (seekTs) a.currentTime = Math.max(0, tsSec(seekTs) - 2); } catch {} a.play().then(() => setPlayingIdx(i)).catch(() => setPlayingIdx(null)); };
+    const go = () => { try { if (seekSec != null) a.currentTime = Math.max(0, seekSec - 0.15); else if (seekTs) a.currentTime = Math.max(0, tsSec(seekTs) - 2); } catch {} a.play().then(() => setPlayingIdx(i)).catch(() => setPlayingIdx(null)); };
     if (a.readyState >= 1) go(); else { a.addEventListener("loadedmetadata", go, { once: true }); a.load(); }
   }
   function stopAudio() { audioRef.current?.pause(); setPlayingIdx(null); }
@@ -189,27 +194,38 @@ export default function Join() {
       ctx.fillStyle = "#5b8def";
       ctx.fillRect(i * bw, mid, Math.max(bw - 0.5, 0.5), down);
     }
+    const fi2 = feedback !== null ? feedback : idx;
     const item = feedback !== null ? qs[feedback] : (idx >= 0 ? qs[idx] : undefined);
     if (item && wave.duration > 0) {
-      // telemetry anchors = user speech · highlight bottom half like the tool
-      // (current segment amber + outline, the rest the pending red tint)
       const anchors = item.anchors || [];
-      const qs0 = item.seg ? item.seg.s : Math.max(0, tsSec(item.ts) - 0.5);
-      const qe0 = item.seg ? item.seg.e : Math.min(wave.duration, tsSec(item.ts) + 4);
-      anchors.forEach((a) => {
-        const isQ = Math.min(a.e, qe0) - Math.max(a.s, qs0) > 0.2;
-        const x1 = (a.s / wave.duration) * W, x2 = (a.e / wave.duration) * W;
-        ctx.fillStyle = isQ ? "rgba(183,121,31,0.4)" : "rgba(214,69,69,0.18)";
-        ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
-        if (isQ) { ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2); }
-      });
-      // the question moment itself always gets the amber box (covers pron/issue
-      // questions whose moment is agent speech, not a user anchor)
-      if (!anchors.some((a) => Math.min(a.e, qe0) - Math.max(a.s, qs0) > 0.2)) {
-        const x1 = (qs0 / wave.duration) * W, x2 = (qe0 / wave.duration) * W;
-        ctx.fillStyle = "rgba(183,121,31,0.4)";
-        ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
-        ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2);
+      if (item.type === "trans") {
+        // whole-call transcription: colour every user segment by its state -
+        // current amber (outlined), resolved-correct green, resolved-wrong/noise
+        // red, pending red-tint, exactly like the workbench.
+        const st = segState[fi2] || {};
+        anchors.forEach((a, si) => {
+          const k = st[si]; const isCur = feedback === null && si === segCur;
+          const x1 = (a.s / wave.duration) * W, x2 = (a.e / wave.duration) * W;
+          ctx.fillStyle = isCur ? "rgba(183,121,31,0.4)" : k === "correct" ? "rgba(31,122,92,0.28)" : k ? "rgba(176,54,54,0.3)" : "rgba(214,69,69,0.16)";
+          ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
+          if (isCur) { ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2); }
+        });
+      } else {
+        // pron / issue: highlight the one moment in question (amber), other user turns faint
+        const qs0 = Math.max(0, tsSec(item.ts) - 0.5), qe0 = Math.min(wave.duration, tsSec(item.ts) + 4);
+        anchors.forEach((a) => {
+          const isQ = Math.min(a.e, qe0) - Math.max(a.s, qs0) > 0.2;
+          const x1 = (a.s / wave.duration) * W, x2 = (a.e / wave.duration) * W;
+          ctx.fillStyle = isQ ? "rgba(183,121,31,0.4)" : "rgba(214,69,69,0.16)";
+          ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
+          if (isQ) { ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2); }
+        });
+        if (!anchors.some((a) => Math.min(a.e, qe0) - Math.max(a.s, qs0) > 0.2)) {
+          const x1 = (qs0 / wave.duration) * W, x2 = (qe0 / wave.duration) * W;
+          ctx.fillStyle = "rgba(183,121,31,0.4)";
+          ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
+          ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2);
+        }
       }
     }
     if (wave.duration > 0) {
@@ -218,7 +234,7 @@ export default function Join() {
       ctx.fillRect(x - 1, 0, 2, H);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wave, playhead, idx, feedback]);
+  }, [wave, playhead, idx, feedback, segState, segCur]);
 
   function seekWave(e: React.MouseEvent<HTMLCanvasElement>) {
     const a = audioRef.current; if (!a || !wave || wave.duration <= 0) return;
@@ -241,21 +257,43 @@ export default function Join() {
   }
 
   function clearTransState() { setTKind(""); setTLang("same"); setTText(""); tTextRef.current = ""; setTTokens([]); setAltPick(null); }
-  function openQ(i: number) { if (results[i] !== undefined) return; stopAudio(); setIdx(i); setFeedback(null); clearTransState(); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); }
+  function openQ(i: number) { if (results[i] !== undefined) return; stopAudio(); setIdx(i); setFeedback(null); clearTransState(); setSegCur(0); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); }
   function record(i: number, v: Verdict) { stopAudio(); setResults((r) => ({ ...r, [i]: v })); setFeedback(i); }
-  function next() { const n = [...Array(total).keys()].find((i) => results[i] === undefined); stopAudio(); setFeedback(null); clearTransState(); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); if (n === undefined) setScreen("result"); else setIdx(n); }
+  function next() { const n = [...Array(total).keys()].find((i) => results[i] === undefined); stopAudio(); setFeedback(null); clearTransState(); setSegCur(0); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA(""); if (n === undefined) setScreen("result"); else setIdx(n); }
 
-  // like the workbench: ✓ Correct / {noise} resolve the segment instantly;
-  // ✏ Edit opens the editor (ASR prefilled) and "Save & next" resolves it
-  function resolveTrans(kind: "correct" | "wrong" | "noise") {
+  // --- multi-segment transcription: step through every user turn of the call ---
+  const transSegs = q && q.type === "trans" ? q.segments : [];
+  const qState = (idx >= 0 ? segState[idx] : undefined) || {};
+  const transAllResolved = transSegs.length > 0 && transSegs.every((_, si) => qState[si] !== undefined);
+  function setSeg(si: number, kind: SegKind) { setSegState((s) => ({ ...s, [idx]: { ...(s[idx] || {}), [si]: kind } })); }
+  function firstUnresolved(state: Record<number, SegKind>) { return transSegs.findIndex((_, si) => state[si] === undefined); }
+  function gotoSeg(si: number) { clearTransState(); setSegCur(si); const g = transSegs[si]; if (g) play(idx, undefined, g.s); }
+  // ✓ Correct / {noise} / 🗑 resolve instantly and jump to the next open segment;
+  // ✏ Edit opens the transliteration editor prefilled with the ASR text.
+  function resolveSeg(kind: SegKind) {
     if (!q || q.type !== "trans") return;
-    setTKind(kind);
-    if (kind === "wrong") { onRoman(q.asr); return; }
-    record(idx, ((kind === "noise") !== q.isCorrect) ? "match" : "miss");
+    if (kind === "wrong") { setTKind("wrong"); onRoman(transSegs[segCur]?.asr || ""); return; }
+    const nextState = { ...qState, [segCur]: kind };
+    setSeg(segCur, kind);
+    const nu = transSegs.findIndex((_, si) => nextState[si] === undefined);
+    if (nu >= 0) gotoSeg(nu); else clearTransState();
   }
-  function saveTransEdit() {
+  function saveSegEdit() {
     if (!q || q.type !== "trans" || !goldOf(tTokens, tText)) return;
-    record(idx, (true !== q.isCorrect) ? "match" : "miss");
+    const nextState = { ...qState, [segCur]: "wrong" as SegKind };
+    setSeg(segCur, "wrong");
+    const nu = transSegs.findIndex((_, si) => nextState[si] === undefined);
+    if (nu >= 0) gotoSeg(nu); else clearTransState();
+  }
+  function submitTransCall() {
+    if (!q || q.type !== "trans" || !transAllResolved) return;
+    let caughtAll = true, falseFlags = 0;
+    transSegs.forEach((seg, si) => {
+      const flagged = qState[si] !== "correct";      // reviewer said this ASR is not right
+      if (!seg.isCorrect && !flagged) caughtAll = false;
+      if (seg.isCorrect && flagged) falseFlags += 1;
+    });
+    record(idx, (caughtAll && falseFlags === 0) ? "match" : "miss");
   }
   function submitPron() {
     if (!q || q.type !== "pron" || !pTag || !pWord.trim()) return;
@@ -270,8 +308,9 @@ export default function Join() {
     const qq = coachQ.trim(); if (!qq || coachBusy) return;
     setCoachBusy(true); setCoachA("");
     const fi = feedback ?? idx; const c = qs[fi];
+    const cWrong = c.type === "trans" ? c.segments.filter((s) => !s.isCorrect) : [];
     const ctx = c.type === "trans"
-      ? `Task: transcription review. Agent said: "${c.context}". ASR wrote: "${c.asr}". Golden: "${c.golden}". ${c.isCorrect ? "The ASR was correct." : "The ASR was wrong and should be edited."} Expert note: ${c.explain}`
+      ? `Task: transcription review of a whole call (${c.segments.length} user turns). The wrong segments were: ${cWrong.length ? cWrong.map((s) => `at ${s.ts} ASR "${s.asr}" should be "${s.golden}"`).join("; ") : "none, every turn was transcribed correctly"}. Expert note: ${c.explain}`
       : c.type === "pron"
         ? `Task: pronunciation audit. The agent mispronounced "${c.word_heard}", tagged as ${c.content_tag}. Expert note: ${c.explain}`
         : `Task: issue logging. ${c.setup} Correct error type: "${c.correct}". Expert note: ${c.explain}`;
@@ -297,7 +336,7 @@ export default function Join() {
 
   function Row({ i }: { i: number }) {
     const st = results[i]; const cur = idx === i && screen === "work"; const answered = st !== undefined;
-    const label = qs[i].type === "trans" ? "call · segment" : qs[i].type === "pron" ? "call · pronunciation" : "call · issue log";
+    const label = qs[i].type === "trans" ? "full call · transcription" : qs[i].type === "pron" ? "call · pronunciation" : "call · issue log";
     return (
       <div onClick={() => !answered && openQ(i)} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, border: `1.5px solid ${cur ? GREEN : "transparent"}`, background: cur ? "#f2faf6" : "transparent", borderRadius: 8, padding: "6px 8px", cursor: answered ? "default" : "pointer" }}>
         <span style={{ color: answered ? (st === "match" ? GREEN : RED) : GREEN }}>{answered ? (st === "match" ? "✓" : "✗") : "▶"}</span>
@@ -309,6 +348,7 @@ export default function Join() {
   }
 
   const fi = feedback ?? 0; const fq = feedback !== null ? qs[fi] : undefined; const fVerdict = feedback !== null ? results[fi] : "";
+  const fWrong = fq && fq.type === "trans" ? fq.segments.filter((s) => !s.isCorrect) : [];
 
   // which user turn is playing right now: the k-th telemetry anchor whose window
   // holds the playhead maps to the k-th user turn in the transcript. This makes
@@ -465,22 +505,34 @@ export default function Join() {
                 </div>
               )}
 
-              {feedback === null && q && q.type === "trans" && (
+              {feedback === null && q && q.type === "trans" && transSegs[segCur] && (() => {
+                const seg = transSegs[segCur]; const curKind = qState[segCur];
+                const kindColor: Record<string, string> = { correct: T_GREEN, wrong: T_ORANGE, noise: T_SLATE, deleted: T_RED };
+                return (
                 <div className="jn-q" style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 12, alignItems: "start" }}>
                 <div style={{ border: `2px solid ${T_AMBER}`, background: "#fff", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 0 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                    <button onClick={() => play(idx, q.ts)} style={{ fontSize: 13, padding: "4px 10px", borderRadius: 7, border: "1px solid #cfd8e0", background: "#fff", cursor: "pointer" }}>{playingIdx === idx ? "❚❚" : "🔁"} @{q.ts}</button>
-                    <strong style={{ fontSize: 13, color: "#5b6b64" }}>segment · question {idx + 1} of {total}</strong>
+                    <strong style={{ fontSize: 13, color: "#5b6b64" }}>question {idx + 1} of {total} · transcribe the user side</strong>
+                    <span style={{ flex: 1 }} />
+                    <span className={mono.className} style={{ fontSize: 12, color: T_GREEN }}>{Object.keys(qState).length}/{transSegs.length} segments</span>
                   </div>
-                  <div style={{ fontSize: 11.5, color: "#8a988f", marginTop: 10 }}>Conversation:</div>
-                  <div style={{ fontSize: 13.5, color: "#5b6b64", margin: "2px 0 8px" }}><b style={{ color: T_GREEN }}>agent:</b> {q.context}</div>
-                  <div style={{ fontSize: 11.5, color: "#8a988f" }}>ASR heard (user):</div>
-                  <p style={{ fontSize: 16, margin: "4px 0 10px", color: "#1f2d28", lineHeight: 1.6 }}>{q.asr}</p>
+                  {/* segment progress · click to revisit any turn */}
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", margin: "9px 0 4px" }}>
+                    {transSegs.map((_, si) => { const k = qState[si]; const active = si === segCur;
+                      return <button key={si} onClick={() => gotoSeg(si)} title={`segment ${si + 1}`} style={{ width: 22, height: 22, borderRadius: 6, fontSize: 10, cursor: "pointer", border: active ? `2px solid ${T_AMBER}` : "1px solid #dfe5ea", background: k ? kindColor[k] : "#f2f5f7", color: k ? "#fff" : "#93a1ae", fontWeight: 600 }}>{si + 1}</button>; })}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
+                    <button onClick={() => play(idx, undefined, seg.s)} style={{ fontSize: 13, padding: "4px 10px", borderRadius: 7, border: "1px solid #cfd8e0", background: "#fff", cursor: "pointer" }}>{playingIdx === idx ? "❚❚" : "🔁"} play @{seg.ts}</button>
+                    <button onClick={() => segCur > 0 && gotoSeg(segCur - 1)} disabled={segCur === 0} style={{ fontSize: 13, padding: "4px 9px", borderRadius: 7, border: "1px solid #dfe5ea", background: "#fff", color: segCur === 0 ? "#c8d0d6" : "#4a5568", cursor: segCur === 0 ? "default" : "pointer" }}>← prev</button>
+                    <button onClick={() => segCur < transSegs.length - 1 && gotoSeg(segCur + 1)} disabled={segCur >= transSegs.length - 1} style={{ fontSize: 13, padding: "4px 9px", borderRadius: 7, border: "1px solid #dfe5ea", background: "#fff", color: segCur >= transSegs.length - 1 ? "#c8d0d6" : "#4a5568", cursor: segCur >= transSegs.length - 1 ? "default" : "pointer" }}>next →</button>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#8a988f", marginTop: 10 }}>ASR heard (user) · segment {segCur + 1}:</div>
+                  <p style={{ fontSize: 16, margin: "4px 0 10px", color: "#1f2d28", lineHeight: 1.6 }}>{seg.asr}</p>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <button onClick={() => resolveTrans("correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_GREEN}`, background: tKind === "correct" ? T_GREEN : "#fff", color: tKind === "correct" ? "#fff" : T_GREEN, cursor: "pointer" }}>✓ Correct</button>
-                    <button onClick={() => resolveTrans("wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_ORANGE}`, background: tKind === "wrong" ? T_ORANGE : "#fff", color: tKind === "wrong" ? "#fff" : T_ORANGE, cursor: "pointer" }}>✏ Edit · ASR is wrong</button>
-                    <button onClick={() => resolveTrans("noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_SLATE}`, background: tKind === "noise" ? T_SLATE : "#fff", color: tKind === "noise" ? "#fff" : T_SLATE, cursor: "pointer" }}>{"{noise}"}</button>
-                    <button style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_RED}`, background: "#fff", color: T_RED, cursor: "pointer" }} title="This isn't a user turn; the detector was wrong.">🗑 Not a user turn</button>
+                    <button onClick={() => resolveSeg("correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_GREEN}`, background: curKind === "correct" ? T_GREEN : "#fff", color: curKind === "correct" ? "#fff" : T_GREEN, cursor: "pointer" }}>✓ Correct</button>
+                    <button onClick={() => resolveSeg("wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_ORANGE}`, background: (tKind === "wrong" || curKind === "wrong") ? T_ORANGE : "#fff", color: (tKind === "wrong" || curKind === "wrong") ? "#fff" : T_ORANGE, cursor: "pointer" }}>✏ Edit · ASR is wrong</button>
+                    <button onClick={() => resolveSeg("noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_SLATE}`, background: curKind === "noise" ? T_SLATE : "#fff", color: curKind === "noise" ? "#fff" : T_SLATE, cursor: "pointer" }}>{"{noise}"}</button>
+                    <button onClick={() => resolveSeg("deleted")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_RED}`, background: curKind === "deleted" ? T_RED : "#fff", color: curKind === "deleted" ? "#fff" : T_RED, cursor: "pointer" }} title="This isn't a user turn; the detector was wrong.">🗑 Not a user turn</button>
                   </div>
                   {tKind === "wrong" && (
                     <div style={{ marginTop: 10 }}>
@@ -540,16 +592,22 @@ export default function Join() {
                         </div>
                       )}
                       {lint(goldOf(tTokens, tText)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "#b7791f", marginTop: 3 }}>⚠ {w}</div>)}
-                      <button onClick={saveTransEdit} disabled={!goldOf(tTokens, tText)}
+                      <button onClick={saveSegEdit} disabled={!goldOf(tTokens, tText)}
                         style={{ marginTop: 8, fontSize: 13, padding: "7px 16px", borderRadius: 7, border: "none", background: goldOf(tTokens, tText) ? "#1f7a5c" : "#c8d6d0", color: "#fff", cursor: goldOf(tTokens, tText) ? "pointer" : "not-allowed" }}>
                         Save & next
                       </button>
                     </div>
                   )}
+                  <div style={{ borderTop: "1px solid #eef2f6", marginTop: 12, paddingTop: 10 }}>
+                    {transAllResolved
+                      ? <button onClick={submitTransCall} style={{ width: "100%", padding: "10px 0", fontSize: 14, borderRadius: 9, border: "none", cursor: "pointer", background: T_GREEN, color: "#fff", fontWeight: 600 }}>Submit call · all {transSegs.length} segments resolved</button>
+                      : <div style={{ fontSize: 11.5, color: "#93a1ae", textAlign: "center" }}>Resolve every segment to submit the call · {Object.keys(qState).length} of {transSegs.length} done</div>}
+                  </div>
                 </div>
-                <TranscriptPanel item={q} highlight={q.asr} activeUserIdx={activeUserIdx} />
+                <TranscriptPanel item={q} highlight={seg.asr} activeUserIdx={activeUserIdx} />
                 </div>
-              )}
+                );
+              })()}
 
               {feedback === null && q && q.type === "pron" && (
                 <div className="jn-q" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 12, alignItems: "start" }}>
@@ -624,19 +682,23 @@ export default function Join() {
                   <div style={{ background: fVerdict === "match" ? "#f2faf6" : "#fffafa", border: `1.5px solid ${fVerdict === "match" ? GREEN : RED}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 9 }}>
                     <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 16, color: fVerdict === "match" ? GREEN : RED }}>
                       {fq.type === "trans"
-                        ? (fVerdict === "match" ? (fq.isCorrect ? "✓ Right: the ASR was correct" : "✓ Caught it: the ASR was wrong") : (fq.isCorrect ? "✗ The ASR was actually correct" : "✗ Missed it: the ASR was wrong"))
+                        ? (fVerdict === "match" ? (fWrong.length ? `✓ Nailed it: caught all ${fWrong.length} wrong segment${fWrong.length > 1 ? "s" : ""}, no false flags` : "✓ Right: a clean call, you flagged nothing") : "✗ Not quite: check the segments below")
                         : fq.type === "pron"
                           ? (fVerdict === "match" ? `✓ Right: it's a ${fq.content_tag}` : `✗ Not quite: it's a ${fq.content_tag}`)
                           : (fVerdict === "match" ? `✓ Exactly: ${fq.correct.toLowerCase()}` : `✗ Not quite: the expert logged ${fq.correct.toLowerCase()}`)}
                     </span>
                     <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>{fq.explain}</div>
                     {fq.type === "trans"
-                      ? <div style={{ background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "9px 11px", fontSize: 13, lineHeight: 1.6 }}><span style={{ color: MUT }}>ASR:</span> {fq.asr}<br /><span style={{ color: MUT }}>Golden:</span> <b style={{ color: GREEN }}>{fq.golden}</b></div>
+                      ? <div style={{ background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "9px 11px", fontSize: 13, lineHeight: 1.6, display: "flex", flexDirection: "column", gap: 5 }}>
+                          {fWrong.length === 0
+                            ? <span style={{ color: MUT }}>Every one of the {fq.segments.length} user turns was transcribed correctly · the right move was to mark them all correct.</span>
+                            : fWrong.map((s, i) => <span key={i}><span className={mono.className} style={{ color: MUT, fontSize: 11.5 }}>@{s.ts}</span> <span style={{ color: MUT }}>ASR:</span> {s.asr} <span style={{ color: MUT }}>→</span> <b style={{ color: GREEN }}>{s.golden}</b></span>)}
+                        </div>
                       : fq.type === "pron"
                         ? <div style={{ background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "9px 11px", fontSize: 13 }}><span style={{ color: MUT }}>Expert logged:</span> <b>{fq.word_heard}</b> · <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, padding: "2px 8px", fontSize: 11.5, fontWeight: 600 }}>{fq.content_tag}</span></div>
                         : <div style={{ background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "9px 11px", fontSize: 13 }}><span style={{ color: MUT }}>Expert logged:</span> <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, padding: "2px 8px", fontSize: 11.5, fontWeight: 600 }}>{fq.correct}</span></div>}
                     <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                      <div onClick={() => play(fi, fq.ts)} style={{ width: 26, height: 26, borderRadius: 999, background: INK, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, cursor: "pointer" }}>{playingIdx === fi ? "❚❚" : "▶"}</div>
+                      <div onClick={() => play(fi, fq.type === "trans" ? undefined : fq.ts, fq.type === "trans" ? (fWrong[0]?.s ?? 0) : undefined)} style={{ width: 26, height: 26, borderRadius: 999, background: INK, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, cursor: "pointer" }}>{playingIdx === fi ? "❚❚" : "▶"}</div>
                       <span style={{ fontSize: 11.5, color: MUT }}>replay with the answer in mind</span>
                     </div>
                   </div>
