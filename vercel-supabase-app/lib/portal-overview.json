@@ -78,12 +78,13 @@
   "example": {
    "call_id": "8ba3abab-4c74-44a6-af62-c1c3be1a9f00",
    "ts": "01:25",
-   "note": "user says 'barcode', ASR hears 'vargoor' — 6 reviewers caught it"
-  }
+   "note": "user says 'barcode', ASR hears 'vargoor' · 6 reviewers caught it"
+  },
+  "agent_label": "Field Support · Appliances"
  },
  "agents": [
   {
-   "agent": "Visi Cooler Support v5.1 | Prod",
+   "agent": "Field Support · Appliances",
    "avg": 2.5,
    "dist": [
     29,
@@ -96,7 +97,7 @@
    "issues_per_100": 3336
   },
   {
-   "agent": "Unicommerce",
+   "agent": "Order Confirmation · E-commerce",
    "avg": 2.8,
    "dist": [
     9,
@@ -109,7 +110,7 @@
    "issues_per_100": 104
   },
   {
-   "agent": "[Prod] Abandoned Cart",
+   "agent": "Cart Recovery · D2C Brand A",
    "avg": 2.9,
    "dist": [
     14,
@@ -122,7 +123,7 @@
    "issues_per_100": 1353
   },
   {
-   "agent": "GoKwik 2",
+   "agent": "Cart Recovery · E-commerce A",
    "avg": 2.9,
    "dist": [
     12,
@@ -135,7 +136,7 @@
    "issues_per_100": 175
   },
   {
-   "agent": "NCR v6 - onboarding",
+   "agent": "Hiring & Onboarding",
    "avg": 3.0,
    "dist": [
     8,
@@ -148,7 +149,7 @@
    "issues_per_100": 2155
   },
   {
-   "agent": "Indian Online Version",
+   "agent": "Lead Qualification · EdTech",
    "avg": 3.1,
    "dist": [
     8,
@@ -162,7 +163,7 @@
   }
  ],
  "healthy": {
-  "agent": "Referral-Hindi",
+  "agent": "Referral Outreach · Hindi",
   "avg": 3.4,
   "dist": [
    1,

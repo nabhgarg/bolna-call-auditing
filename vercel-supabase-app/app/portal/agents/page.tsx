@@ -6,7 +6,7 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "../shell";
 import { PAGE, INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
 
-// By agent (wireframe 7a) — one agent at a time, same L2 vocabulary as the
+// By agent (wireframe 7a) · one agent at a time, same L2 vocabulary as the
 // Overall page. Stat row → expandable L2 rows (human/LLM split, subtype
 // chips, playable evidence) → daily vibe chart + what-to-fix-first.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
@@ -203,7 +203,7 @@ function Inner() {
             {(a.fixes || []).map((f: any, i: number) => (
               <div key={f.title} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12.5 }}>
                 <span style={{ borderRadius: 999, fontSize: 11, padding: "3px 9px", background: i === 0 ? INK : "#eef2f6", color: i === 0 ? "#fff" : "#4d5a66", fontWeight: 600 }}>{i + 1}</span>
-                <span><b>{f.title}</b> — {f.count} findings by the human panel</span>
+                <span><b>{f.title}</b> · {f.count} findings by the human panel</span>
               </div>
             ))}
             <div style={{ fontSize: 11.5, color: MUT }}>Ranked by findings · severity weighting comes from the human ratings on those calls.</div>

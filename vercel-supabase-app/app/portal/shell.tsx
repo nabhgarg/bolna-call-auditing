@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 import { INK, MUT, GREEN } from "../../lib/ui";
 
-// Portal shell — Raindrop-style left nav. Four stable destinations:
+// Portal shell · Raindrop-style left nav. Four stable destinations:
 // Overview (how is my AI doing) · Agents (which agent breaks, how) ·
 // Datasets (what am I accumulating) · Add use case (give realloop more).
 // Issues drill-down stays reachable from Overview/Agents, not a nav item.

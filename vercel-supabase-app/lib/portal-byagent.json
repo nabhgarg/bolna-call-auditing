@@ -2,7 +2,7 @@
  "generated_at": "2026-07-23T23:29:43.152024+00:00",
  "agents": [
   {
-   "agent": "Visi Cooler Support v5.1 | Prod",
+   "agent": "Field Support · Appliances",
    "avg": 2.5,
    "dist": [
     29,
@@ -170,10 +170,11 @@
      "count": 13
     }
    ],
-   "evaluated": 14
+   "evaluated": 14,
+   "real": "Visi Cooler Support v5.1 | Prod"
   },
   {
-   "agent": "Unicommerce",
+   "agent": "Order Confirmation · E-commerce",
    "avg": 2.8,
    "dist": [
     9,
@@ -257,10 +258,11 @@
     }
    ],
    "fixes": [],
-   "evaluated": 51
+   "evaluated": 51,
+   "real": "Unicommerce"
   },
   {
-   "agent": "[Prod] Abandoned Cart",
+   "agent": "Cart Recovery · D2C Brand A",
    "avg": 2.9,
    "dist": [
     14,
@@ -412,10 +414,11 @@
      "count": 2
     }
    ],
-   "evaluated": 15
+   "evaluated": 15,
+   "real": "[Prod] Abandoned Cart"
   },
   {
-   "agent": "GoKwik 2",
+   "agent": "Cart Recovery · E-commerce A",
    "avg": 2.9,
    "dist": [
     12,
@@ -499,10 +502,11 @@
     }
    ],
    "fixes": [],
-   "evaluated": 40
+   "evaluated": 40,
+   "real": "GoKwik 2"
   },
   {
-   "agent": "NCR v6 - onboarding",
+   "agent": "Hiring & Onboarding",
    "avg": 3.0,
    "dist": [
     8,
@@ -654,10 +658,11 @@
      "count": 1
     }
    ],
-   "evaluated": 11
+   "evaluated": 11,
+   "real": "NCR v6 - onboarding"
   },
   {
-   "agent": "Indian Online Version",
+   "agent": "Lead Qualification · EdTech",
    "avg": 3.1,
    "dist": [
     8,
@@ -809,10 +814,11 @@
      "count": 5
     }
    ],
-   "evaluated": 15
+   "evaluated": 15,
+   "real": "Indian Online Version"
   },
   {
-   "agent": "BiteSpeed",
+   "agent": "Cart Recovery · E-commerce B",
    "avg": 3.1,
    "dist": [
     9,
@@ -896,10 +902,11 @@
     }
    ],
    "fixes": [],
-   "evaluated": 43
+   "evaluated": 43,
+   "real": "BiteSpeed"
   },
   {
-   "agent": "Alibaba India",
+   "agent": "Seller Activation · B2B Marketplace",
    "avg": 3.1,
    "dist": [
     8,
@@ -983,10 +990,11 @@
     }
    ],
    "fixes": [],
-   "evaluated": 36
+   "evaluated": 36,
+   "real": "Alibaba India"
   },
   {
-   "agent": "Online MBA_Skillup",
+   "agent": "Lead Qualification · EdTech B",
    "avg": 3.3,
    "dist": [
     6,
@@ -1135,10 +1143,11 @@
      "count": 1
     }
    ],
-   "evaluated": 11
+   "evaluated": 11,
+   "real": "Online MBA_Skillup"
   },
   {
-   "agent": "Referral-Hindi",
+   "agent": "Referral Outreach · Hindi",
    "avg": 3.4,
    "dist": [
     1,
@@ -1290,7 +1299,8 @@
      "count": 4
     }
    ],
-   "evaluated": 18
+   "evaluated": 18,
+   "real": "Referral-Hindi"
   }
  ]
 }

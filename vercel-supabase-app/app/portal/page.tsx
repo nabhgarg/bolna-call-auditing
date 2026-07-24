@@ -5,7 +5,7 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "./shell";
 import { PAGE, INK, MUT, GREEN, RED, AMBER, card } from "../../lib/ui";
 
-// Overall — reads backwards from the rubric (wireframe 6a):
+// Overall · reads backwards from the rubric (wireframe 6a):
 // 1. Overall issues: human-identified L2s, calls affected per issue + summary box
 // 2. VBL spotlight: the worst agent, what's breaking, playable proof
 // 3. Agents needing attention: avg human vibe /4, score distribution, raters
@@ -60,7 +60,7 @@ export default function Portal() {
       <div className={instrument.className} style={{ maxWidth: PAGE, margin: "0 auto", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
         <audio ref={audioRef} style={{ display: "none" }} />
 
-        {/* 1 — Overall issues (human-identified L2s) */}
+        {/* 1 · Overall issues (human-identified L2s) */}
         <div style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
             <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Overall issues</span>
@@ -89,32 +89,32 @@ export default function Portal() {
           </div>
         </div>
 
-        {/* 2 — VBL spotlight */}
+        {/* 2 · VBL spotlight */}
         <div style={{ ...card, border: `1.5px solid ${RED}`, background: "#fffafa", padding: "16px 18px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <div style={{ width: 8, alignSelf: "stretch", borderRadius: 4, background: RED, flex: "none" }} />
           <div style={{ flex: 1, minWidth: 260 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-              <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>VBL · Visi Cooler v5.1 is your worst agent</span>
+              <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>{vbl.agent_label || "Field Support · Appliances"} is your worst agent</span>
               <span style={{ borderRadius: 999, background: "#fbeaea", color: RED, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>{vbl.bad_pct}% of calls rated bad</span>
             </div>
             <div style={{ fontSize: 13, color: "#4d5a66", marginTop: 3, lineHeight: 1.5 }}>
-              What&apos;s breaking: the agent <b>captures the wrong barcode / input in {vblCapture ? vblCapture[1] : "—"} findings</b> and repeats itself in {vblRepeat ? vblRepeat[1] : "—"} — the ASR can&apos;t hear &quot;barcode&quot;, so everything downstream breaks; users hang up mid-call.
+              What&apos;s breaking: the agent <b>captures the wrong barcode / input in {vblCapture ? vblCapture[1] : "-"} findings</b> and repeats itself in {vblRepeat ? vblRepeat[1] : "-"} · the ASR can&apos;t hear &quot;barcode&quot;, so everything downstream breaks; users hang up mid-call.
             </div>
           </div>
           <button onClick={playVbl} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "8px 10px", fontSize: 12, cursor: "pointer" }}>
             <span style={{ width: 22, height: 22, borderRadius: 11, background: RED, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9 }}>▶</span>
             <span className={mono.className}>{String(vbl.example?.call_id || "").slice(0, 8)} @{vbl.example?.ts}</span>
           </button>
-          <a href="/portal/agents?agent=Visi" style={{ flex: "none", fontSize: 13, fontWeight: 600, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Open agent →</a>
+          <a href={`/portal/agents?agent=${encodeURIComponent(vbl.agent_label || "Field Support")}`} style={{ flex: "none", fontSize: 13, fontWeight: 600, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Open agent →</a>
         </div>
 
-        {/* 3 + 4 — agents table & trust */}
+        {/* 3 + 4 · agents table & trust */}
         <div style={{ display: "flex", gap: 14, alignItems: "stretch", flexWrap: "wrap" }}>
           <div style={{ ...card, flex: 1.35, minWidth: 380, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 9 }}>
             <div style={{ display: "flex", alignItems: "baseline" }}>
               <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Agents needing attention</span>
               <span style={{ flex: 1 }} />
-              <span style={{ fontSize: 11.5, color: MUT }}>human ratings · 1–4 scale</span>
+              <span style={{ fontSize: 11.5, color: MUT }}>human ratings · 1-4 scale</span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 78px 120px 74px", fontSize: 12.5 }}>
               <div style={{ color: MUT, fontSize: 11, padding: "4px 0" }}>agent</div>
@@ -161,7 +161,7 @@ export default function Portal() {
               </div>
             </div>
             <div style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>
-              Within {Math.abs((trust.internal_agreement || 0) - (trust.gt_agreement || 0))} points — the panel performs almost the same when it can&apos;t tell it&apos;s being tested.
+              Within {Math.abs((trust.internal_agreement || 0) - (trust.gt_agreement || 0))} points · the panel performs almost the same when it can&apos;t tell it&apos;s being tested.
             </div>
           </div>
         </div>

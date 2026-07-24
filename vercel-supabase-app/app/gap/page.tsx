@@ -4,7 +4,7 @@ import React from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 import { INK, MUT, GREEN, PURPLE, AMBER } from "../../lib/ui";
 
-// N4 — the gap-map slide for the demo video (beat 2). 16:9, silent read in 5s:
+// N4 · the gap-map slide for the demo video (beat 2). 16:9, silent read in 5s:
 // where production voice calls fail, and which remedy each failure needs.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
@@ -31,7 +31,7 @@ export default function Gap() {
       <div style={{ width: "min(1180px, 96vw)", aspectRatio: "16/9", background: "#fff", border: "1px solid #e2e8ee", borderRadius: 16, boxShadow: "0 1px 2px rgba(16,24,31,.04)", padding: "clamp(20px,4vw,56px)", display: "flex", flexDirection: "column", gap: 28 }}>
         <div>
           <div className={grotesk.className} style={{ fontSize: "clamp(20px,2.6vw,34px)", fontWeight: 600, lineHeight: 1.15 }}>
-            Where production voice calls fail — and what each failure needs
+            Where production voice calls fail · and what each failure needs
           </div>
           <div style={{ fontSize: "clamp(11px,1.2vw,14px)", color: MUT, marginTop: 6 }}>
             realloop · evals + data generation for voice AI, delivered by a calibrated reviewer marketplace

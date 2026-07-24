@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN, PURPLE, AMBER, RED, card } from "../../../lib/ui";
 
-// Client onboarding wizard — rubric-first (design review D4): the buyer's
+// Client onboarding wizard · rubric-first (design review D4): the buyer's
 // first step is the intelligence (which failures need which detector), not a
 // file-upload chore. Every option shown maps to something the service really
 // does; the wizard is the "this is a real product" proof for the demo.
@@ -86,8 +86,8 @@ export default function StartProgram() {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
           {step === 0 && (
             <div style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
-              <div className={grotesk.className} style={{ fontSize: 18, fontWeight: 600 }}>Your rubric — who catches what</div>
-              <div style={{ fontSize: 12.5, color: MUT }}>Voice-AI template, prefilled from 2,400+ audited production calls. Every failure type routes to the cheapest detector that can actually catch it — change any routing.</div>
+              <div className={grotesk.className} style={{ fontSize: 18, fontWeight: 600 }}>Your rubric · who catches what</div>
+              <div style={{ fontSize: 12.5, color: MUT }}>Voice-AI template, prefilled from 2,400+ audited production calls. Every failure type routes to the cheapest detector that can actually catch it · change any routing.</div>
               {RUBRIC.map((r) => (
                 <div key={r.failure} style={{ display: "flex", alignItems: "center", gap: 12, borderTop: "1px solid #eef2f6", paddingTop: 9 }}>
                   <span style={{ flex: 1, fontSize: 13.5 }}>{r.failure}</span>
@@ -125,7 +125,7 @@ export default function StartProgram() {
                     ))}
                   </div>
                   <div style={{ background: "#fbeaea", border: `1px solid ${RED}`, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: RED }}>
-                    <b>12 rows missing recording_url</b> — <span style={{ textDecoration: "underline", cursor: "pointer" }}>download error report</span> · they&apos;ll be skipped
+                    <b>12 rows missing recording_url</b> · <span style={{ textDecoration: "underline", cursor: "pointer" }}>download error report</span> · they&apos;ll be skipped
                   </div>
                   <button onClick={() => setStep(2)} style={{ alignSelf: "flex-start", fontWeight: 600, fontSize: 13.5, color: "#fff", background: INK, border: "none", borderRadius: 8, padding: "10px 18px", cursor: "pointer" }}>Continue with 200 valid rows →</button>
                 </>
@@ -161,7 +161,7 @@ export default function StartProgram() {
                 {[5, 10, 20].map((n) => (
                   <button key={n} onClick={() => setGtPct(n)} style={{ borderRadius: 8, border: `1px solid ${gtPct === n ? GREEN : "#e2e8ee"}`, background: gtPct === n ? "#e7f4ee" : "#fff", color: gtPct === n ? GREEN : MUT, padding: "7px 16px", fontWeight: 600, cursor: "pointer" }}>{n}%</button>
                 ))}
-                <span style={{ fontSize: 11.5, color: MUT }}>expert-graded calls, invisible to reviewers — keeps agreement honest</span>
+                <span style={{ fontSize: 11.5, color: MUT }}>expert-graded calls, invisible to reviewers · keeps agreement honest</span>
               </div>
               <div style={{ fontSize: 11.5, color: MUT, background: "#f5f7f9", borderRadius: 8, padding: "8px 10px" }}>n≥3 per call is what makes the agreement math (and your trust box) possible. 1 reviewer = numbers without error bars.</div>
             </div>

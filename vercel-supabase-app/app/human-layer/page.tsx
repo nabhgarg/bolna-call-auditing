@@ -4,7 +4,7 @@ import React from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 import { INK, MUT, GREEN, PURPLE, AMBER, card } from "../../lib/ui";
 
-// Marketplace one-pager — the narrative screen: realloop as the human layer
+// Marketplace one-pager · the narrative screen: realloop as the human layer
 // for production AI. Marketplace of calibrated reviewers + managed service.
 // All numbers are real floors from the live system (July 2026).
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
@@ -45,7 +45,7 @@ export default function HumanLayer() {
             The human layer for your production AI
           </h1>
           <p style={{ margin: "8px 0 0", fontSize: 15, color: MUT, maxWidth: 720 }}>
-            A marketplace of pre-screened, trained, <b style={{ color: INK }}>calibrated</b> reviewers — with the platform that makes
+            A marketplace of pre-screened, trained, <b style={{ color: INK }}>calibrated</b> reviewers · with the platform that makes
             human judgment fast, mobile-friendly and measurably reliable. Managed end-to-end, or run it yourself.
           </p>
         </div>
@@ -53,18 +53,18 @@ export default function HumanLayer() {
         <div style={{ display: "flex", gap: 12 }}>
           <Big n="14" l="trained, calibrated reviewers" />
           <Big n="1,733" l="structured reviews delivered" />
-          <Big n="78%" l="panel agreement ±1 — published, rising" color={GREEN} />
+          <Big n="78%" l="panel agreement ±1 · published, rising" color={GREEN} />
           <Big n="247" l="expert golden-transcript calls" />
         </div>
 
         <div style={{ display: "flex", gap: 12 }}>
-          <Step k="01 · RUBRIC" color={INK} title="We define what good looks like — with you"
-            body="Every engagement starts with your rubric: which failures matter, and which layer catches each — telemetry, LLM judge, or a human ear. The rubric decides where humans are actually needed." />
+          <Step k="01 · RUBRIC" color={INK} title="We define what good looks like · with you"
+            body="Every engagement starts with your rubric: which failures matter, and which layer catches each · telemetry, LLM judge, or a human ear. The rubric decides where humans are actually needed." />
           <Step k="02 · TRIAGE" color={PURPLE} title="Machines cover everything, humans where it counts"
-            body="Telemetry and our LLM judge read 100% of traffic. Only what genuinely needs human judgment reaches the panel — transcription truth, pronunciation, tone, nuanced appropriateness." />
+            body="Telemetry and our LLM judge read 100% of traffic. Only what genuinely needs human judgment reaches the panel · transcription truth, pronunciation, tone, nuanced appropriateness." />
           <Step k="03 · JUDGMENT" color={GREEN} title="Human review with subjectivity engineered out"
-            body="One-screen, one-tap review flows anyone can run from a phone. Blind modes prevent anchoring. Ground-truth calls are inserted invisibly. Every reviewer's agreement is tracked — and published." />
-          <Step k="04 · DELIVERY" color={AMBER} title="Findings you can act on — and trust"
+            body="One-screen, one-tap review flows anyone can run from a phone. Blind modes prevent anchoring. Ground-truth calls are inserted invisibly. Every reviewer's agreement is tracked · and published." />
+          <Step k="04 · DELIVERY" color={AMBER} title="Findings you can act on · and trust"
             body="Agent-level dashboards with evidence you can hear, golden datasets for fine-tuning, and reliability metrics on every number. You always know who caught what, and how much to trust it." />
         </div>
 
@@ -73,7 +73,7 @@ export default function HumanLayer() {
             <div className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>We measure our reviewers the way you measure your AI</div>
             <div style={{ fontSize: 12.5, color: MUT, marginTop: 4, lineHeight: 1.6 }}>
               We ran a controlled experiment on our own panel: reviewers shown the ASR transcript rubber-stamped it 80% of the time;
-              blind reviewers independently reproduced it only ~55%. So we redesigned the workflow — blind transcription, trust tiers,
+              blind reviewers independently reproduced it only ~55%. So we redesigned the workflow · blind transcription, trust tiers,
               expert ground truth on every batch. Most eval vendors can&apos;t tell you their reliability. We publish ours.
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function HumanLayer() {
           <div style={{ ...card, flex: 1, padding: 16 }}>
             <div className={grotesk.className} style={{ fontSize: 14.5, fontWeight: 600, color: GREEN }}>Managed service</div>
             <div style={{ fontSize: 12.5, color: MUT, marginTop: 4, lineHeight: 1.6 }}>
-              We run your evals end-to-end — rubric, panel, calibration, reporting — and deliver the outcome. This is how Bolna runs today.
+              We run your evals end-to-end · rubric, panel, calibration, reporting · and deliver the outcome. This is how Bolna runs today.
             </div>
           </div>
           <div style={{ ...card, flex: 1, padding: 16 }}>
@@ -99,7 +99,7 @@ export default function HumanLayer() {
           <div style={{ ...card, flex: 1, padding: 16, background: INK, border: "none" }}>
             <div className={grotesk.className} style={{ fontSize: 14.5, fontWeight: 600, color: "#fff" }}>The vision</div>
             <div style={{ fontSize: 12.5, color: "#93a1ae", marginTop: 4, lineHeight: 1.6 }}>
-              Every production AI system needs a human to judge it, teach it, or catch what it can&apos;t do. Evals are the wedge — the human layer is the company.
+              Every production AI system needs a human to judge it, teach it, or catch what it can&apos;t do. Evals are the wedge · the human layer is the company.
             </div>
           </div>
         </div>

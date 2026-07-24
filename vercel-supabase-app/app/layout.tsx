@@ -8,7 +8,7 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-mono" });
 
 export const metadata = {
-  title: "realloop — Call Audit",
+  title: "realloop · Call Audit",
   description: "Calibrated human + LLM evaluation for voice agents"
 };
 

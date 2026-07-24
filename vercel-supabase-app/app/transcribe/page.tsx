@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
-// Transcription workbench — golden dataset, audio-first.
+// Transcription workbench · golden dataset, audio-first.
 // Same shell as the main app (sidebar call list + workspace). The waveform is
 // the classic dual-channel view (agent up/green, user down/blue) with USER
 // speech segments highlighted and clickable; each segment is the unit of work.
@@ -29,9 +29,9 @@ type Wave = { agent: number[]; user: number[]; duration: number };
 const MODE = "timing_transcription";
 
 const RULES: Array<[string, string]> = [
-  ["Script", "Hindi in Devanagari, English in Roman — never translate. Type Roman; the tool converts."],
-  ["Numbers", "As spoken words, not digits — पांच / five, not 5"],
-  ["Decimals", "No \".\" — \"two point two five\", written out"],
+  ["Script", "Hindi in Devanagari, English in Roman · never translate. Type Roman; the tool converts."],
+  ["Numbers", "As spoken words, not digits · पांच / five, not 5"],
+  ["Decimals", "No \".\" · \"two point two five\", written out"],
   ["Names", "Indian names/places in Devanagari; foreign in Roman"],
   ["No shortcuts", "okay not ok · please not pls · you not u"],
   ["Noise", "Unclear / gibberish / non-speech → {noise}, never guess"]
@@ -44,8 +44,8 @@ const SHORTHAND: Record<string, string> = {
 
 function lint(text: string): string[] {
   const w: string[] = [];
-  if (/\d+\.\d+/.test(text)) w.push("Decimal digits — write as spoken: \"two point two five\"");
-  else if (/\d/.test(text)) w.push("Digits — write numbers as words (पांच / five)");
+  if (/\d+\.\d+/.test(text)) w.push("Decimal digits · write as spoken: \"two point two five\"");
+  else if (/\d/.test(text)) w.push("Digits · write numbers as words (पांच / five)");
   for (const word of text.toLowerCase().split(/[^a-z0-9']+/)) if (SHORTHAND[word]) w.push(`"${word}" → "${SHORTHAND[word]}"`);
   return [...new Set(w)];
 }
@@ -96,10 +96,10 @@ function segmentsFromEnv(env: Float32Array, hop: number) {
     else merged.push({ ...g });
   }
   // 0.25s floor: short "हां"/"जी" backchannels are real user speech and must
-  // become spikes — a 0.35s floor silently dropped them (seen on e8addc83).
+  // become spikes · a 0.35s floor silently dropped them (seen on e8addc83).
   return merged.filter((g) => g.end - g.start >= 0.25);
 }
-// Agent-window alignment: agent turns are long, distinctive TTS — align THEM
+// Agent-window alignment: agent turns are long, distinctive TTS · align THEM
 // to the agent channel first (merging sub-1.2s pauses: TTS turns are
 // continuous), then each user turn must sit in the silence window between its
 // surrounding agent turns. Duration-only matching on user spikes ties/flips;
@@ -198,7 +198,7 @@ export default function Transcribe() {
   const [states, setStates] = useState<Record<number, SegState>>({});
   const [rulesOpen, setRulesOpen] = useState(false);
   const [playhead, setPlayhead] = useState(0);
-  const [rate, setRate] = useState(1); // playback speed — 0.5x/0.75x help catch fast/slurred speech
+  const [rate, setRate] = useState(1); // playback speed · 0.5x/0.75x help catch fast/slurred speech
   const rateRef = useRef(1);
   // click-a-word chooser: 3 Devanagari options + keep Roman
   const [altPick, setAltPick] = useState<{ ti: number; alts: string[]; loading: boolean } | null>(null);
@@ -208,7 +208,7 @@ export default function Transcribe() {
   const stopAtRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const debounceRef = useRef<any>(null);
-  // Spike playback goes through Web Audio from the decoded buffer — the
+  // Spike playback goes through Web Audio from the decoded buffer · the
   // <audio> element can't reliably seek into unbuffered ranges through the
   // proxy, which made spike clicks restart from 0:00 in production.
   const ctxRef = useRef<AudioContext | null>(null);
@@ -245,7 +245,7 @@ export default function Transcribe() {
       const pos = info.offset + (ctxRef.current.currentTime - info.startedAt) * info.rate;
       setPlayhead(Math.min(pos, info.until));
       // keep the visible <audio> player in step with spike playback (it stays
-      // paused — we just move its position so the time display follows)
+      // paused · we just move its position so the time display follows)
       const a = audioRef.current;
       if (a && a.paused && Math.abs(a.currentTime - pos) > 0.25) {
         try { a.currentTime = Math.min(pos, info.until); } catch { /* not seekable yet */ }
@@ -279,7 +279,7 @@ export default function Transcribe() {
     ctxRef.current?.close().catch(() => {});
     ctxRef.current = null; bufRef.current = null;
     setCall(null); setSegs([]); setStates({}); setCur(0); setApproxMode(false); setWave(null); setPlayhead(0);
-    // queue_id is shared across a person's whole batch (e.g. b4t_nabh) — track
+    // queue_id is shared across a person's whole batch (e.g. b4t_nabh) · track
     // the open call by composite key so exactly one card shows active.
     setCurrentQueueId(`${item.queue_id}:${item.execution_id}`);
     const d: Call = await fetch(`/api/calls/${item.execution_id}`).then((r) => r.json());
@@ -310,7 +310,7 @@ export default function Transcribe() {
           }
         } else {
           // These calls open with the agent greeting (first transcript turn is
-          // assistant), so the channel that speaks first is the AGENT — much
+          // assistant), so the channel that speaks first is the AGENT · much
           // sturdier than count-matching, which flips on backchannel-heavy calls.
           const gs0 = segmentsFromEnv(envs[0].env, envs[0].hop);
           const gs1 = segmentsFromEnv(envs[1].env, envs[1].hop);
@@ -361,7 +361,7 @@ export default function Transcribe() {
       setWave({ agent: agentEnv ? buckets(agentEnv.env) : new Array(700).fill(0), user: buckets(userEnv.env), duration: audio.duration });
       setTimeout(() => playSeg(0, built), 350);
     } catch {
-      // decode failed — use official telemetry timing if we have it, else estimate
+      // decode failed · use official telemetry timing if we have it, else estimate
       if (hasTel) {
         setSegs(anchors.map((a) => ({ start: a.startSec, end: a.endSec, asr: a.text, official: true })));
       } else {
@@ -461,7 +461,7 @@ export default function Transcribe() {
 
   function onRoman(i: number, value: string) {
     patch(i, { roman: value });
-    setAltPick(null); // tokens are about to refresh — stale chooser index
+    setAltPick(null); // tokens are about to refresh · stale chooser index
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
@@ -478,7 +478,7 @@ export default function Transcribe() {
     const s = st(i);
     if (kind === "correct" || kind === "noise" || kind === "deleted") {
       // "deleted" = the detector was wrong, this spike is not a user turn at all
-      // (agent bleed / line click) — resolve it and drop it from the transcript.
+      // (agent bleed / line click) · resolve it and drop it from the transcript.
       patch(i, { kind, status: "done", tokens: kind === "correct" ? s.tokens : [], roman: kind === "noise" ? "{noise}" : kind === "deleted" ? "" : s.roman });
       next(i);
     } else if (kind === "wrong") {
@@ -504,7 +504,7 @@ export default function Transcribe() {
       const issues = segs.map((g, i) => {
         const s = st(i);
         const asr = g.asr || "";
-        const gold = s.kind === "correct" ? asr : s.kind === "noise" ? "{noise}" : s.kind === "deleted" ? "(not a user turn — wrongly detected)" : goldOf(s.tokens, s.roman) || "{noise}";
+        const gold = s.kind === "correct" ? asr : s.kind === "noise" ? "{noise}" : s.kind === "deleted" ? "(not a user turn · wrongly detected)" : goldOf(s.tokens, s.roman) || "{noise}";
         return {
           type: "transcription",
           timestamp: fmt(g.start),
@@ -563,7 +563,7 @@ export default function Transcribe() {
 
   const pendingCount = queue.filter((c) => !c.reviewed).length;
   // Blind arm of the transcript-visibility experiment: txb_* queue rows hide
-  // the ASR everywhere — the reviewer transcribes from audio alone.
+  // the ASR everywhere · the reviewer transcribes from audio alone.
   const blind = currentQueueId.startsWith("txb_");
   const g = segs[cur];
   const s = g ? st(cur) : null;
@@ -601,9 +601,9 @@ export default function Transcribe() {
             );
             return (
               <>
-                {vis.length > 0 && header("PART 1 — transcript shown", vis.filter((c) => c.reviewed).length, vis.length, "#1f7a5c")}
+                {vis.length > 0 && header("PART 1 · transcript shown", vis.filter((c) => c.reviewed).length, vis.length, "#1f7a5c")}
                 {vis.map(card)}
-                {bl.length > 0 && header("PART 2 — no transcript (listen & write)", bl.filter((c) => c.reviewed).length, bl.length, "#9b2c2c")}
+                {bl.length > 0 && header("PART 2 · no transcript (listen & write)", bl.filter((c) => c.reviewed).length, bl.length, "#9b2c2c")}
                 {bl.map(card)}
                 {rest.map(card)}
               </>
@@ -646,7 +646,7 @@ export default function Transcribe() {
                     else seekPlay(t, null);
                   }} />
                 <div style={{ fontSize: 10.5, color: "#8a988f" }}>
-                  <span style={{ color: "#1f7a5c" }}>▮ agent</span> · <span style={{ color: "#5b8def" }}>▮ user</span> — user spikes: <span style={{ color: "#d64545" }}>pending</span> / <span style={{ color: "#1f7a5c" }}>done</span> / <span style={{ color: "#b7791f" }}>current</span> · click a spike to jump · Space replay · ←/→
+                  <span style={{ color: "#1f7a5c" }}>▮ agent</span> · <span style={{ color: "#5b8def" }}>▮ user</span> · user spikes: <span style={{ color: "#d64545" }}>pending</span> / <span style={{ color: "#1f7a5c" }}>done</span> / <span style={{ color: "#b7791f" }}>current</span> · click a spike to jump · Space replay · ←/→
                 </div>
               </>
             ) : call && analyzing ? <div style={{ fontSize: 12, color: "#5b6b64" }}>Analyzing waveform…</div> : null}
@@ -672,7 +672,7 @@ export default function Transcribe() {
                 {g && s && (
                   <div style={{ border: "2px solid #b7791f", background: "#fff", borderRadius: 12, padding: 14 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      <button onClick={() => playSeg(cur)} style={{ fontSize: 13 }}>🔁 {fmt(g.start)}–{fmt(g.end)}</button>
+                      <button onClick={() => playSeg(cur)} style={{ fontSize: 13 }}>🔁 {fmt(g.start)}-{fmt(g.end)}</button>
                       <strong style={{ fontSize: 13, color: "#5b6b64" }}>spike {cur + 1} of {segs.length}</strong>
                       {s.status === "done" && <span style={{ fontSize: 11, color: "#1f7a5c" }}>✓ {s.kind}</span>}
                       <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
@@ -689,21 +689,21 @@ export default function Transcribe() {
                     ) : g.asr !== null && blind ? (
                       <p style={{ fontSize: 13.5, margin: "10px 0", color: "#4a5568" }}>Listen and write what the user said.</p>
                     ) : (
-                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "#9b2c2c" }}>No official transcript for this spike — listen and write what was said.</p>
+                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "#9b2c2c" }}>No official transcript for this spike · listen and write what was said.</p>
                     )}
 
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {g.asr !== null && !blind && (
                         <>
                           <button onClick={() => resolve(cur, "correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #1f7a5c", background: s.kind === "correct" ? "#1f7a5c" : "#fff", color: s.kind === "correct" ? "#fff" : "#1f7a5c", cursor: "pointer" }}>✓ Correct</button>
-                          <button onClick={() => resolve(cur, "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "wrong" ? "#c05621" : "#fff", color: s.kind === "wrong" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Edit — ASR is wrong</button>
+                          <button onClick={() => resolve(cur, "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "wrong" ? "#c05621" : "#fff", color: s.kind === "wrong" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Edit · ASR is wrong</button>
                         </>
                       )}
                       {(g.asr === null || blind) && (
                         <button onClick={() => resolve(cur, g.asr === null ? "missing" : "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: (s.kind === "missing" || (blind && s.kind === "wrong")) ? "#c05621" : "#fff", color: (s.kind === "missing" || (blind && s.kind === "wrong")) ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Write it</button>
                       )}
                       <button onClick={() => resolve(cur, "noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #4a5568", background: s.kind === "noise" ? "#4a5568" : "#fff", color: s.kind === "noise" ? "#fff" : "#4a5568", cursor: "pointer" }}>{"{noise}"}</button>
-                      <button onClick={() => resolve(cur, "deleted")} title="This isn't a user turn — the detector was wrong. Removes it from the transcript." style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #b03636", background: s.kind === "deleted" ? "#b03636" : "#fff", color: s.kind === "deleted" ? "#fff" : "#b03636", cursor: "pointer" }}>🗑 Not a user turn</button>
+                      <button onClick={() => resolve(cur, "deleted")} title="This isn't a user turn · the detector was wrong. Removes it from the transcript." style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #b03636", background: s.kind === "deleted" ? "#b03636" : "#fff", color: s.kind === "deleted" ? "#fff" : "#b03636", cursor: "pointer" }}>🗑 Not a user turn</button>
                       <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto" }}>
                         <input type="checkbox" checked={s.unclear} onChange={(e) => patch(cur, { unclear: e.target.checked })} /> audio unclear
                       </label>
@@ -719,7 +719,7 @@ export default function Transcribe() {
                           </div>
                         )}
                         <textarea value={s.roman} rows={2} autoFocus style={{ width: "100%", fontSize: 14.5 }}
-                          placeholder="Type in Roman — hindi words convert automatically (e.g. haan didi main kaam kar rahi hoon)"
+                          placeholder="Type in Roman · hindi words convert automatically (e.g. haan didi main kaam kar rahi hoon)"
                           onChange={(e) => onRoman(cur, e.target.value)} />
                         {s.tokens.length > 0 && (
                           <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 15.5, lineHeight: 1.9 }}>
@@ -743,7 +743,7 @@ export default function Transcribe() {
                               </span>
                             ))}
                             </div>
-                            <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari — click any word to fix it</div>
+                            <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari · click any word to fix it</div>
                             {altPick && s.tokens[altPick.ti] && (() => {
                               const tk0 = s.tokens[altPick.ti];
                               const apply = (out: string | null) => { // null = keep Roman
@@ -794,7 +794,7 @@ export default function Transcribe() {
                 {/* User turns = the spikes themselves, so mapping is always 1:1.
                     Bolna's telemetry ASR turns don't line up with the cleaned
                     agent-context transcript, so the segment list is authoritative. */}
-                <div style={{ fontSize: 12, color: "#8a988f", marginBottom: 8 }}>User turns ({segs.length}) — click to jump</div>
+                <div style={{ fontSize: 12, color: "#8a988f", marginBottom: 8 }}>User turns ({segs.length}) · click to jump</div>
                 {segs.map((sg, i) => {
                   const deleted = st(i).kind === "deleted";
                   const said = st(i).status === "done"

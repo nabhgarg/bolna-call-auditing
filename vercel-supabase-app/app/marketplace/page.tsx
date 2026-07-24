@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 import { INK, MUT, GREEN, AMBER, card } from "../../lib/ui";
 
-// Marketplace (wireframe 11a) — you hire a calibrated PANEL per role, never an
+// Marketplace (wireframe 11a) · you hire a calibrated PANEL per role, never an
 // individual. The published reliability number (agreement on hidden ground-truth
 // calls the panel can't detect) is the product; individuals rotate underneath.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
@@ -18,12 +18,12 @@ type Panel = {
 };
 
 const PANELS: Panel[] = [
-  { role: "AI Call Review", panelLabel: "18-reviewer panel", metric: 81, metricUnit: "%", metricSub: "panel reliability · ±1 on hidden GT · n=546", blurb: "Vibe scores 1–4 + timestamped issue logs · n≥3 per call · 4,800 reviews/wk capacity", langs: ["Hindi", "Hinglish", "English"], price: "₹28", priceUnit: "/ review · <24h", cta: "Add to program", primary: true, real: true },
+  { role: "AI Call Review", panelLabel: "18-reviewer panel", metric: 81, metricUnit: "%", metricSub: "panel reliability · ±1 on hidden GT · n=546", blurb: "Vibe scores 1-4 + timestamped issue logs · n≥3 per call · 4,800 reviews/wk capacity", langs: ["Hindi", "Hinglish", "English"], price: "₹28", priceUnit: "/ review · <24h", cta: "Add to program", primary: true, real: true },
   { role: "Golden Transcription", panelLabel: "4-transcriber panel", metric: 84, metricUnit: "%", metricSub: "word agreement vs expert resolution", blurb: "Word-level Devanagari transcripts, every spike expert-resolved · 90 calls/wk capacity", langs: ["Hindi · native"], price: "₹120", priceUnit: "/ call · 48h", cta: "Add to program", real: true },
   { role: "Pronunciation Audit", panelLabel: "3-specialist panel", metric: 92, metricUnit: "%", metricSub: "panel reliability on brand/proper-noun GT", blurb: "Brand names, SKUs & city names verified across speakers, with audio evidence", langs: ["Hindi + English"], price: "₹52", priceUnit: "/ name · 72h", cta: "Add to program", real: true },
-  { role: "AI Chat Review", panelLabel: "panel forming", metric: 87, metricUnit: "%", metricSub: "target reliability · pilot underway", calibrating: true, blurb: "Chatbot & WhatsApp-bot conversations — correctness, tone, task completion · 6,000/wk", langs: ["English", "Hinglish"], price: "₹18", priceUnit: "/ review · <24h", cta: "Add to program" },
-  { role: "Regional Languages", panelLabel: "panel building", metric: 84, metricUnit: "%", metricSub: "early reliability · still building batch history", calibrating: true, blurb: "Tamil, Telugu, Marathi, Bengali call review — panel still building batch history", langs: ["Tamil", "Telugu", "+2"], price: "₹28", priceUnit: "/ review · 48h", cta: "Join waitlist" },
-  { role: "Live Agent Testing", panelLabel: "4-tester panel", metric: 98, metricUnit: "%", metricSub: "script coverage per pre-launch run", blurb: "Scripted test calls to your agent before launch — every branch exercised, breaks noted", langs: ["any language"], price: "₹90", priceUnit: "/ test call · 24h", cta: "Add to program" }
+  { role: "AI Chat Review", panelLabel: "panel forming", metric: 87, metricUnit: "%", metricSub: "target reliability · pilot underway", calibrating: true, blurb: "Chatbot & WhatsApp-bot conversations · correctness, tone, task completion · 6,000/wk", langs: ["English", "Hinglish"], price: "₹18", priceUnit: "/ review · <24h", cta: "Add to program" },
+  { role: "Regional Languages", panelLabel: "panel building", metric: 84, metricUnit: "%", metricSub: "early reliability · still building batch history", calibrating: true, blurb: "Tamil, Telugu, Marathi, Bengali call review · panel still building batch history", langs: ["Tamil", "Telugu", "+2"], price: "₹28", priceUnit: "/ review · 48h", cta: "Join waitlist" },
+  { role: "Live Agent Testing", panelLabel: "4-tester panel", metric: 98, metricUnit: "%", metricSub: "script coverage per pre-launch run", blurb: "Scripted test calls to your agent before launch · every branch exercised, breaks noted", langs: ["any language"], price: "₹90", priceUnit: "/ test call · 24h", cta: "Add to program" }
 ];
 
 function Tag({ t }: { t: string }) {
@@ -99,7 +99,7 @@ export default function Marketplace() {
         <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14, background: "#f2faf6", borderColor: "#bfe2d2" }}>
           <span style={{ width: 20, height: 20, borderRadius: 999, background: GREEN, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flex: "none" }}>✓</span>
           <span style={{ fontSize: 12.5, color: "#4d5a66", lineHeight: 1.5 }}>
-            <b style={{ color: INK }}>How reliability is measured:</b> expert-rated calls are seeded unmarked into every batch. The number you see is the panel&apos;s agreement on calls it didn&apos;t know were tests — recomputed weekly, never self-reported. Every panel includes expert QA; individuals rotate, the reliability number is the contract.
+            <b style={{ color: INK }}>How reliability is measured:</b> expert-rated calls are seeded unmarked into every batch. The number you see is the panel&apos;s agreement on calls it didn&apos;t know were tests · recomputed weekly, never self-reported. Every panel includes expert QA; individuals rotate, the reliability number is the contract.
           </span>
         </div>
         <div style={{ fontSize: 11, color: MUT }}>

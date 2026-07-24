@@ -5,7 +5,7 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "../shell";
 import { PAGE, INK, MUT, GREEN, AMBER, card } from "../../../lib/ui";
 
-// Add use case (wireframe 12a) — one screen inside the portal that launches a
+// Add use case (wireframe 12a) · one screen inside the portal that launches a
 // new evaluation program, reusing the client's existing panel + pricing.
 // use case = rubric + calls + panel. Live cost estimate; Launch creates the
 // program (same objects the ops scripts write).
@@ -33,7 +33,7 @@ export default function AddUseCase() {
     <PortalShell right={
       <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Add a use case</span>
-        <span style={{ fontSize: 12, color: MUT }}>a rubric + calls + a panel — reuses your existing panel and pricing</span>
+        <span style={{ fontSize: 12, color: MUT }}>a rubric + calls + a panel · reuses your existing panel and pricing</span>
       </div>
     }>
       <div className={instrument.className} style={{ maxWidth: PAGE, margin: "0 auto", padding: "18px 20px" }}>
@@ -50,14 +50,14 @@ export default function AddUseCase() {
 
             <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>2 · Rubric</span>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontWeight: 600, fontSize: 12, padding: "5px 12px" }}>✓ voice_v1 template — same L2s as Bolna pilot</span>
+              <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontWeight: 600, fontSize: 12, padding: "5px 12px" }}>✓ voice_v1 template · same L2s as Bolna pilot</span>
               <a href="/marketplace/start" style={{ borderRadius: 999, background: "#eef2f6", color: "#4d5a66", fontSize: 12, padding: "5px 12px", textDecoration: "none" }}>customize ▾</a>
             </div>
             <div style={{ fontSize: 11.5, color: MUT }}>5 human L2s + latency/barge-in from telemetry. Your Overall page picks these up automatically.</div>
 
             <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>3 · Calls</span>
             <div style={{ border: "1.5px dashed #d6dee6", borderRadius: 10, padding: 14, textAlign: "center", fontSize: 12.5, color: MUT }}>
-              Drop CSV (execution_id, recording_url, transcript) — or <b style={{ color: GREEN }}>connect the API</b>
+              Drop CSV (execution_id, recording_url, transcript) · or <b style={{ color: GREEN }}>connect the API</b>
             </div>
           </div>
 
@@ -85,12 +85,12 @@ export default function AddUseCase() {
             <div style={{ flex: 1 }} />
             {launched ? (
               <div style={{ background: "#f2faf6", border: `1.5px solid ${GREEN}`, borderRadius: 9, padding: "12px 14px", fontSize: 13, color: "#4d5a66", lineHeight: 1.5 }}>
-                <b style={{ color: GREEN }}>✓ Program launched.</b> Queues and reviewer assignments created — reviews start today. Track it on the <a href="/portal" style={{ color: GREEN }}>Overall</a> page.
+                <b style={{ color: GREEN }}>✓ Program launched.</b> Queues and reviewer assignments created · reviews start today. Track it on the <a href="/portal" style={{ color: GREEN }}>Overall</a> page.
               </div>
             ) : (
               <div onClick={() => setLaunched(true)} style={{ height: 44, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>Launch use case</div>
             )}
-            <div style={{ fontSize: 11, color: MUT, textAlign: "center" }}>Creates the program, queues, and assignments — reviews start today.</div>
+            <div style={{ fontSize: 11, color: MUT, textAlign: "center" }}>Creates the program, queues, and assignments · reviews start today.</div>
           </div>
         </div>
       </div>

@@ -197,7 +197,7 @@ export default function Page() {
     }
   }, []);
 
-  // Issue loggers now work exclusively in the transcription workbench —
+  // Issue loggers now work exclusively in the transcription workbench ·
   // send them straight there once their role is known.
   useEffect(() => {
     if (!loginVisible && reviewerRole === "issue_logger") window.location.replace("/transcribe");
@@ -276,7 +276,7 @@ export default function Page() {
     ? calls.find((call) => rowKey(call) === currentQueueId) || null
     : null;
   const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentQueueId));
-  // Role decides the screen. Transcription is NOT an issue type — it lives in
+  // Role decides the screen. Transcription is NOT an issue type · it lives in
   // the Transcript panel (correct text + mark audio clarity + timestamp).
   //   vibe reviewer  -> vibe score only
   //   issue logger   -> pronunciation (Review) + transcription (Transcript panel)
@@ -376,7 +376,7 @@ export default function Page() {
       const tracks = [rms(data[0]), rms(data[1])];
 
       // crosstalk suppression: where both channels are "active" simultaneously,
-      // the much quieter one is usually bleed from the other — mute it there
+      // the much quieter one is usually bleed from the other · mute it there
       const TH = 0.05, DOM = 0.45;
       const active: boolean[][] = [new Array(n), new Array(n)];
       for (let i = 0; i < n; i++) {
@@ -613,7 +613,7 @@ export default function Page() {
         body: JSON.stringify({ email })
       });
       if (result.otp_required === false) {
-        // OTP delivery not configured yet — direct allowlist login
+        // OTP delivery not configured yet · direct allowlist login
         setReviewerEmail(result.email);
         setReviewerDisplay(result.display_name || result.email);
         setReviewerRole(result.role || "reviewer");
@@ -754,7 +754,7 @@ export default function Page() {
       timestamp: turnTimestamp(editingTurn),
       turn_number: turnNumber,
       transcripted: original,
-      audio_said: corrected || "(audio unclear — not transcribed)",
+      audio_said: corrected || "(audio unclear · not transcribed)",
       transcription_error_type: unclear && !corrected ? "Audio unclear" : editErrorType,
       audio_unclear: editUnclear
     };
@@ -770,7 +770,7 @@ export default function Page() {
       timestamp: turnTimestamp(index),
       turn_number: turnNumber,
       transcripted: currentCall.turns?.[index]?.text || "",
-      audio_said: "(not said — turn wrongly captured)",
+      audio_said: "(not said · turn wrongly captured)",
       transcription_error_type: DELETED_TURN_ERROR_TYPE,
       deleted_turn: "true",
       audio_unclear: "No"
@@ -1238,7 +1238,7 @@ export default function Page() {
                         </label>
                         {name === "response_error_type" && issueType === "response_appropriateness" && RESPONSE_ERROR_SUBTYPES[respErrorType] && (
                           <label className={missingIssueFields.includes("response_error_subtype") ? "field-missing" : ""}>
-                            {respErrorType} — which kind?
+                            {respErrorType} · which kind?
                             <select name="response_error_subtype" defaultValue="" key={respErrorType}>
                               <option value="">Select</option>
                               {RESPONSE_ERROR_SUBTYPES[respErrorType].map((o) => <option key={o} value={o}>{o}</option>)}
@@ -1380,7 +1380,7 @@ export default function Page() {
                 {flagCall === true && (
                   <label style={{ marginTop: 8 }}>
                     What's the doubt? (optional)
-                    <textarea value={flagReason} onChange={(e) => setFlagReason(e.target.value)} rows={2} placeholder="e.g. can't decide between 2 and 3 — user audio unclear" />
+                    <textarea value={flagReason} onChange={(e) => setFlagReason(e.target.value)} rows={2} placeholder="e.g. can't decide between 2 and 3 · user audio unclear" />
                   </label>
                 )}
               </section>
@@ -1450,7 +1450,7 @@ export default function Page() {
                             >⏸ use audio position</button>
                           </span>
                         </div>
-                        <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder={insertUnclear === "Yes" ? "Optional — leave blank if you can't make it out" : "What was said in the audio but missing from the transcript"} style={{ width: "100%" }} />
+                        <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder={insertUnclear === "Yes" ? "Optional · leave blank if you can't make it out" : "What was said in the audio but missing from the transcript"} style={{ width: "100%" }} />
                         <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
                           <div style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
                             Was the audio clear?
@@ -1493,7 +1493,7 @@ export default function Page() {
                       } else {
                         parts.push(
                           <div key={`ins-${pos}-${slot}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
-                            <strong>＋ missing (added by you){insert.timestamp ? ` @ ${insert.timestamp}` : ""}{insert.audio_unclear === "Yes" ? " · audio unclear" : ""}:</strong> {insert.audio_said.replace(/^user:\s*/, "").trim() || "(audio unclear — not transcribed)"}
+                            <strong>＋ missing (added by you){insert.timestamp ? ` @ ${insert.timestamp}` : ""}{insert.audio_unclear === "Yes" ? " · audio unclear" : ""}:</strong> {insert.audio_said.replace(/^user:\s*/, "").trim() || "(audio unclear · not transcribed)"}
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => openInsertEditor(pos, slot, insert)}>Edit</button>
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => removeInsert(insert)}>Remove</button>
                           </div>
@@ -1519,12 +1519,12 @@ export default function Page() {
                       nodes.push(
                         <div className={`turn ${turn.role}`} key={`e-${index}`} style={{ border: "1px solid #1f7a5c", background: "#f2faf7" }}>
                           <div className="turn-role">
-                            <span>{index + 1}. {turn.role} — correcting</span>
+                            <span>{index + 1}. {turn.role} · correcting</span>
                             <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
                           </div>
                           {/* single wrapper so the .turn grid treats the editor as one content cell */}
                           <div style={{ gridColumn: "1 / -1" }}>
-                            <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} placeholder={editUnclear === "Yes" ? "Optional — leave blank if you can't make it out" : "Corrected transcript for this turn"} />
+                            <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} placeholder={editUnclear === "Yes" ? "Optional · leave blank if you can't make it out" : "Corrected transcript for this turn"} />
                             <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
                               <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
                                 <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1576,7 +1576,7 @@ export default function Page() {
                                   <button
                                     type="button"
                                     className="turn-delete-btn"
-                                    title="Delete this turn — wrongly captured, nothing was said"
+                                    title="Delete this turn · wrongly captured, nothing was said"
                                     onClick={(e) => { e.stopPropagation(); deleteTurn(index); }}
                                     style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 14, padding: 0 }}
                                   >🗑</button>
@@ -1588,7 +1588,7 @@ export default function Page() {
                             <div>
                               <div style={{ textDecoration: "line-through", color: "#c53030" }}>{turn.text}</div>
                               <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
-                                <span style={{ fontSize: 12, fontStyle: "italic", color: "#c53030" }}>Deleted — wrongly captured</span>
+                                <span style={{ fontSize: 12, fontStyle: "italic", color: "#c53030" }}>Deleted · wrongly captured</span>
                                 <button type="button" className="ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); removeIssue(edit); }}>Undo delete</button>
                               </div>
                             </div>

@@ -6,7 +6,7 @@ import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, card } from "../../../lib/ui";
 
-// N2 — issue drill-down, evidence-backed. Every count on the portal home
+// N2 · issue drill-down, evidence-backed. Every count on the portal home
 // opens here as playable rows: call + timestamp + finding + who caught it.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
@@ -92,7 +92,7 @@ function Inner() {
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderBottom: i < data.rows.length - 1 ? "1px solid #eef2f6" : "none", fontSize: 13 }}>
                   <button onClick={() => play(r)} title="play this moment"
                     style={{ width: 30, height: 30, borderRadius: 999, background: playing === `${r.call_id}@${r.ts}` ? GREEN : INK, color: "#fff", border: "none", cursor: "pointer", flex: "none", fontSize: 11 }}>▶</button>
-                  <span style={{ fontFamily: "var(--font-mono, ui-monospace)", fontSize: 12, color: MUT, flex: "none" }}>{String(r.call_id).slice(0, 8)} @{r.ts || "—"}</span>
+                  <span style={{ fontFamily: "var(--font-mono, ui-monospace)", fontSize: 12, color: MUT, flex: "none" }}>{String(r.call_id).slice(0, 8)} @{r.ts || "-"}</span>
                   <span style={{ flex: "none", fontSize: 11, padding: "2px 9px", borderRadius: 6, background: r.source === "human" ? "#e7f4ee" : "#f4effd", color: r.source === "human" ? GREEN : PURPLE, border: "1px solid " + (r.source === "human" ? "#cfe9dd" : "#e2d8f6") }}>{r.source}</span>
                   <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.text}</span>
                   <span style={{ flex: "none", fontSize: 11, color: MUT, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.agent}</span>

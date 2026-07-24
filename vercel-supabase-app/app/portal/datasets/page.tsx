@@ -5,7 +5,7 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "../shell";
 import { PAGE, INK, MUT, GREEN, RED, card } from "../../../lib/ui";
 
-// Datasets (wireframe 8a) — what the reviews already generated (golden
+// Datasets (wireframe 8a) · what the reviews already generated (golden
 // transcripts hero + issue-labeled calls), plus request-more cards with
 // transparent human-cost estimates. All generated-counts are real.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
@@ -65,12 +65,12 @@ export default function Datasets() {
     <PortalShell right={
       <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Datasets</span>
-        <span style={{ fontSize: 12, color: MUT }}>every human review doubles as training data — yours to fine-tune on</span>
+        <span style={{ fontSize: 12, color: MUT }}>every human review doubles as training data · yours to fine-tune on</span>
       </div>
     }>
       <div className={instrument.className} style={{ maxWidth: PAGE, margin: "0 auto", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
 
-        {/* hero — golden transcripts */}
+        {/* hero · golden transcripts */}
         <div style={{ ...card, border: `1.5px solid ${GREEN}`, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 280 }}>
@@ -78,7 +78,7 @@ export default function Datasets() {
                 <span className={grotesk.className} style={{ fontSize: 17, fontWeight: 600 }}>Golden transcripts · Hindi/Hinglish</span>
                 <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>generated · growing</span>
               </div>
-              <div style={{ fontSize: 12.5, color: MUT, marginTop: 2 }}>Word-level, expert-resolved transcriptions of real production calls — the dataset your ASR fine-tunes on.</div>
+              <div style={{ fontSize: 12.5, color: MUT, marginTop: 2 }}>Word-level, expert-resolved transcriptions of real production calls · the dataset your ASR fine-tunes on.</div>
             </div>
             <a href="/api/datasets/golden?sample=1" style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Download sample</a>
             <a href="/api/datasets/golden" style={{ fontWeight: 600, fontSize: 13.5, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "9px 16px", textDecoration: "none" }}>Export JSONL</a>
@@ -107,7 +107,7 @@ export default function Datasets() {
               <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>generated</span>
             </div>
             <div style={{ fontSize: 12.5, color: MUT, marginTop: 2 }}>
-              {Number(s.occurrences ?? 1863).toLocaleString()} timestamped issue annotations across {s.calls_with_issue ?? 340} calls — train your own LLM judge on human-caught failures.
+              {Number(s.occurrences ?? 1863).toLocaleString()} timestamped issue annotations across {s.calls_with_issue ?? 340} calls · train your own LLM judge on human-caught failures.
             </div>
           </div>
           <a href="/api/datasets/issues" style={{ fontWeight: 500, fontSize: 13, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Export JSONL</a>
@@ -117,24 +117,24 @@ export default function Datasets() {
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
             <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Request more data</span>
-            <span style={{ fontSize: 12.5, color: MUT }}>pick a use case — estimate is humans × hours × rate, no hidden margin</span>
+            <span style={{ fontSize: 12.5, color: MUT }}>pick a use case · estimate is humans × hours × rate, no hidden margin</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 12 }}>
             <RequestCard
-              title="Proper nouns — Indian cities & states"
+              title="Proper nouns · Indian cities & states"
               body='1,000 utterances of place names in Hindi/Hinglish context, golden-transcribed. Fixes the "Visi" → "busy" class of misses.'
               meta={[["3", "transcribers ·"], ["~46 hrs", "human time ·"], ["5 days", ""]]}
               price="₹42,000" priceNote="est. · ₹42/utterance" cta="Request →"
             />
             <RequestCard
               title="Brand-name pronunciations"
-              body="Your catalog's brand + SKU names, each verified across 5 speakers — heard vs golden, with audio clips."
+              body="Your catalog's brand + SKU names, each verified across 5 speakers · heard vs golden, with audio clips."
               meta={[["2", "reviewers + expert ·"], ["~28 hrs", "·"], ["4 days", ""]]}
               price="₹26,500" priceNote="est. · 500 names" cta="Request →"
             />
             <RequestCard
               title="Custom dataset" dashed
-              body="Describe what you need — code-switching turns, dialect coverage, DTMF handling. We scope it against the panel's capacity."
+              body="Describe what you need · code-switching turns, dialect coverage, DTMF handling. We scope it against the panel's capacity."
               cta="Get estimate"
             />
           </div>

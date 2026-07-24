@@ -1,6 +1,6 @@
 import React from "react";
 
-// realloop design system — single source of truth for the whole app.
+// realloop design system · single source of truth for the whole app.
 // Colors, one canonical content width, the shared card surface, and a few
 // primitives. Pages import from here instead of re-declaring the palette.
 
