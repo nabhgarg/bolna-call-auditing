@@ -28,7 +28,7 @@ type Resolved = {
 };
 
 const EXAMPLES = [
-  "Our agent confirms COD orders in Hindi. The transcripts say customers agreed, but we keep finding amounts and product names it misheard, and sometimes it reads back a wrong total.",
+  "Our agent calls customers in Hindi to confirm cash-on-delivery orders. We only find out something went wrong when the parcel comes back refused: the customer says they never agreed, or they asked to change the quantity and nobody recorded it. It also quotes delivery windows that do not match our policy.",
   "We do EMI reminders. If it tells someone the wrong outstanding amount we have a compliance problem.",
 ];
 const DEFAULT_CALLS = 1240;
