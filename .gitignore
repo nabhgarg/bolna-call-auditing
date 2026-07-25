@@ -25,3 +25,6 @@ npm-debug.log*
 .codex/
 .vercel
 .gstack/
+
+# Demo video projects (large renders/audio) stay local
+videos/
