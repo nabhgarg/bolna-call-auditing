@@ -74,6 +74,7 @@ function buckets(env: Float32Array, n = 700) {
   return out;
 }
 
+const STATES = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Delhi","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Chandigarh","Jammu & Kashmir","Ladakh","Puducherry","Andaman & Nicobar","Other"];
 const JOBS_REVIEWER = [
   { t: "AI Call Reviewer", d: "Rate whole calls 1-4 and log where the agent broke · the highest-volume work.", pay: "₹28 / review" },
   { t: "AI Call Transcriptor", d: "Listen to a call and fix what the AI's speech-to-text got wrong · code-mixed Hindi/English.", pay: "₹120 / call" },
@@ -87,6 +88,8 @@ export default function Join() {
   const [edu, setEdu] = useState("Graduate");
   const [hours, setHours] = useState("5-15");
   const [phone, setPhone] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [stateName, setStateName] = useState("");
   const [qs, setQs] = useState<Q[]>([]);
   const [idx, setIdx] = useState(-1);
   const [results, setResults] = useState<Record<number, Verdict>>({});
@@ -341,7 +344,7 @@ export default function Join() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
 
-  const canApply = langs.length > 0 && phone.replace(/\D/g, "").length >= 10;
+  const canApply = fullName.trim().length >= 2 && !!stateName && langs.length > 0 && phone.replace(/\D/g, "").length >= 10;
   const agreementLabel = done ? Math.round((ptsSum / done) * 100) + "%" : "-";
   const pct = total ? Math.round((ptsSum / total) * 100) : 0;
   const transN = qs.filter((x) => x.type === "trans").length;
@@ -450,12 +453,23 @@ export default function Join() {
               <div style={{ ...card, borderRadius: 14, padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
                 <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 16 }}>Apply now</span>
                 <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Full name</div>
+                  <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d6dee6", borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
+                </div>
+                <div>
                   <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Languages you speak</div>
                   <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                     {["Hindi", "Hinglish", "English", "Tamil", "Telugu", "Marathi", "Bengali"].map((n) => { const on = langs.includes(n); return <span key={n} onClick={() => setLangs((s) => on ? s.filter((x) => x !== n) : [...s, n])} style={{ border: `1px solid ${on ? GREEN : "#d6dee6"}`, background: on ? GREEN : "#fff", color: on ? "#fff" : INK, borderRadius: 6, padding: "4px 10px", fontSize: 11.5, cursor: "pointer" }}>{n}</span>; })}
                   </div>
                 </div>
                 <div><div style={{ fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Education</div><div style={{ display: "flex", background: "#eef2f6", borderRadius: 9, padding: 3, gap: 3 }}>{["12th", "Graduate", "Postgrad"].map((n) => <div key={n} onClick={() => setEdu(n)} style={{ flex: 1, textAlign: "center", fontSize: 12, padding: "6px 0", borderRadius: 7, cursor: "pointer", fontWeight: 600, background: n === edu ? "#fff" : "transparent", color: n === edu ? INK : MUT, boxShadow: n === edu ? "0 1px 2px rgba(16,24,31,.08)" : "none" }}>{n}</div>)}</div></div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 5 }}>State</div>
+                  <select value={stateName} onChange={(e) => setStateName(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${stateName ? "#d6dee6" : "#e2b3b3"}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, fontFamily: "inherit", background: "#fff", color: stateName ? INK : "#93a1ae" }}>
+                    <option value="">Select your state</option>
+                    {STATES.map((s) => <option key={s} value={s} style={{ color: INK }}>{s}</option>)}
+                  </select>
+                </div>
                 <div><div style={{ fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Hours per week</div><div style={{ display: "flex", background: "#eef2f6", borderRadius: 9, padding: 3, gap: 3 }}>{["<5", "5-15", "15+"].map((n) => <div key={n} onClick={() => setHours(n)} style={{ flex: 1, textAlign: "center", fontSize: 12, padding: "6px 0", borderRadius: 7, cursor: "pointer", fontWeight: 600, background: n === hours ? "#fff" : "transparent", color: n === hours ? INK : MUT, boxShadow: n === hours ? "0 1px 2px rgba(16,24,31,.08)" : "none" }}>{n}</div>)}</div></div>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Phone (WhatsApp)</div>
@@ -463,8 +477,8 @@ export default function Join() {
                   <div style={{ fontSize: 10, color: "#93a1ae", marginTop: 3 }}>Only for your login code and onboarding call. Never shown anywhere.</div>
                 </div>
                 <div style={{ flex: 1, minHeight: 12 }} />
-                <div onClick={() => { if (!canApply) return; setScreen("work"); fetch("/api/apply", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ role, languages: langs, education: edu, hours, phone }) }).then((r) => r.json()).then((d) => { if (d.ok) setApplicantId(d.id); }).catch(() => {}); }} style={{ height: 46, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: canApply ? 1 : 0.45 }}>Apply → your assignment is ready</div>
-                <div style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>{canApply ? "No wait · 5 real questions, about 2 minutes." : "Pick at least one language and enter a valid phone number."}</div>
+                <div onClick={() => { if (!canApply) return; setScreen("work"); fetch("/api/apply", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ role, full_name: fullName, state: stateName, languages: langs, education: edu, hours, phone }) }).then((r) => r.json()).then((d) => { if (d.ok) setApplicantId(d.id); }).catch(() => {}); }} style={{ height: 46, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: canApply ? 1 : 0.45 }}>Apply → your assignment is ready</div>
+                <div style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>{canApply ? "No wait · 5 real questions, about 2 minutes." : "Add your name, state, a language and a valid phone number."}</div>
               </div>
             </div>
             <div className="jn-stats" style={{ display: "flex", gap: 12, padding: "0 32px 26px", flexWrap: "wrap" }}>
@@ -675,8 +689,8 @@ export default function Join() {
               {pct >= PASS ? (
                 <div style={{ background: "#f2faf6", border: `1.5px solid ${GREEN}`, borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 6, width: "100%", boxSizing: "border-box" }}>
                   <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 17, color: GREEN }}>Tier 2 unlocked · ₹300/hr</span>
-                  <span style={{ fontSize: 13, color: "#4d5a66", lineHeight: 1.45 }}>One step left: a 30-minute onboarding call. Then real, paid work starts. Hold ≥75% across 2 real batches → Tier 1 at ₹500/hr.</span>
-                  <a href="https://wa.me/919999999999?text=Hi%20realloop%2C%20I%20passed%20the%20assignment" target="_blank" rel="noopener noreferrer" style={{ height: 42, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginTop: 5, textDecoration: "none" }}>Book onboarding on WhatsApp →</a>
+                  <span style={{ fontSize: 13, color: "#4d5a66", lineHeight: 1.45 }}>That&apos;s it for now — <b style={{ color: INK }}>our team will message you on WhatsApp</b> on the number you applied with, with your next steps. Keep an eye on it. Hold ≥75% across 2 real batches and you move to Tier 1 at ₹500/hr.</span>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4, background: "#fff", border: "1px solid #bfe2d2", borderRadius: 9, padding: "10px 12px", fontSize: 13, fontWeight: 600, color: GREEN }}>💬 Watch for a WhatsApp message from realloop</div>
                 </div>
               ) : (
                 <div style={{ background: "#fffdf7", border: "1.5px solid #d99a2b", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 6, width: "100%", boxSizing: "border-box" }}>
@@ -684,7 +698,7 @@ export default function Join() {
                   <span style={{ fontSize: 13, color: "#4d5a66", lineHeight: 1.45 }}>Retake in 7 days with new questions. Re-read the expert feedback on the ones you missed · that's exactly what the retake tests.</span>
                 </div>
               )}
-              <span onClick={() => { stopAudio(); setScreen("apply"); setIdx(-1); setResults({}); setFeedback(null); setPhone(""); }} style={{ fontSize: 12, color: MUT, cursor: "pointer", textDecoration: "underline" }}>restart</span>
+              <span onClick={() => { stopAudio(); setScreen("apply"); setIdx(-1); setResults({}); setFeedback(null); setPhone(""); setFullName(""); setStateName(""); }} style={{ fontSize: 12, color: MUT, cursor: "pointer", textDecoration: "underline" }}>restart</span>
             </div>
           </div>
         )}

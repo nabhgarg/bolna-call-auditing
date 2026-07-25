@@ -13,6 +13,8 @@ export async function POST(request: Request) {
   const supabase = supabaseAdmin();
   const { data, error } = await supabase.from("applicants").insert({
     role: String(body.role || "Reviewer").slice(0, 40),
+    full_name: String(body.full_name || "").slice(0, 120),
+    state: String(body.state || "").slice(0, 60),
     languages: Array.isArray(body.languages) ? body.languages.slice(0, 10).map(String) : [],
     education: String(body.education || "").slice(0, 40),
     hours_per_week: String(body.hours || "").slice(0, 20),

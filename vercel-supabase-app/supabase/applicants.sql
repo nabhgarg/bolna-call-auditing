@@ -5,6 +5,8 @@ create table if not exists public.applicants (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   role text not null default 'Reviewer',          -- Reviewer | Expert
+  full_name text,
+  state text,                                      -- Indian state / UT
   languages text[] not null default '{}',
   education text,
   hours_per_week text,
@@ -16,6 +18,10 @@ create table if not exists public.applicants (
   assignment_results jsonb,                        -- per-question: [{i, type, verdict, answer}]
   completed_at timestamptz
 );
+
+-- If the table already exists from an earlier run, add the new columns:
+alter table public.applicants add column if not exists full_name text;
+alter table public.applicants add column if not exists state text;
 
 alter table public.applicants enable row level security;
 
