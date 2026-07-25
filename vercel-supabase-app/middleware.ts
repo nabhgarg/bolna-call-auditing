@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 
 // Host-based routing for the realloop.in product subdomains.
 //
+//   realloop.in / www.       -> the marketing landing (public/apex.html)
 //   review.realloop.in       -> the reviewer app (served at "/"), incl. /transcribe
 //   portal.realloop.in       -> the enterprise dashboard (/portal)
 //   marketplace.realloop.in  -> the "work with us" apply flow (/marketplace/join)
@@ -17,6 +18,11 @@ export function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").toLowerCase();
   const url = req.nextUrl.clone();
 
+  // Apex (and www): serve the ported marketing landing.
+  if (host === "realloop.in" || host === "www.realloop.in") {
+    url.pathname = "/apex.html";
+    return NextResponse.rewrite(url);
+  }
   if (host.startsWith("portal.")) {
     url.pathname = "/portal";
     return NextResponse.rewrite(url);
