@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Space_Grotesk, Instrument_Sans } from "next/font/google";
+import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN } from "../../lib/ui";
 
 // Portal shell · Raindrop-style left nav. Four stable destinations:
@@ -11,13 +11,15 @@ import { INK, MUT, GREEN } from "../../lib/ui";
 // Issues drill-down stays reachable from Overview/Agents, not a nav item.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
+const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
 
 
 const NAV = [
-  { href: "/portal/evaluation", label: "Evaluation design", icon: "⇶" },
+  { href: "/portal/evaluation", label: "Evaluation design", icon: "⌘" },
   { href: "/portal/agents", label: "Agent insights", icon: "◐" },
   { href: "/portal/reliability", label: "Reliability", icon: "◎" },
-  { href: "/portal/datasets", label: "Datasets", icon: "▤" }
+  { href: "/portal/datasets", label: "Datasets", icon: "▤" },
+  { href: "/portal/new-use-case", label: "New use case", icon: "＋" }
 ];
 
 export default function PortalShell({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
@@ -59,7 +61,7 @@ export default function PortalShell({ children, right }: { children: React.React
                   {p === active && <span style={{ color: GREEN }}>✓</span>}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p}</span>
                 </button>
               ))}
-              <a href="/portal/define" style={{ display: "block", padding: "7px 9px", fontSize: 12, color: GREEN, textDecoration: "none", borderTop: "1px solid #eef2f6", marginTop: 2 }}>+ Add use case</a>
+              <a href="/portal/new-use-case" style={{ display: "block", padding: "7px 9px", fontSize: 12, color: GREEN, textDecoration: "none", borderTop: "1px solid #eef2f6", marginTop: 2 }}>+ Add use case</a>
             </div>
           )}
         </div>
@@ -73,11 +75,13 @@ export default function PortalShell({ children, right }: { children: React.React
           );
         })}
         <span style={{ flex: 1 }} />
-        <a href="/portal/define" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 8, padding: "10px 10px", margin: "0 2px 8px", textDecoration: "none", background: GREEN, color: "#fff", fontWeight: 600, fontSize: 13 }}>
-          + Add use case
+        <a href="/marketplace/join" style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", color: MUT, fontSize: 13 }}>
+          <span style={{ fontSize: 13, width: 16, textAlign: "center", color: MUT }}>⋱</span>
+          Marketplace
         </a>
-        <div style={{ fontSize: 10.5, color: MUT, padding: "0 10px 4px" }}>
-          <a href="/marketplace/join" style={{ color: MUT }}>Work with us</a>
+        <div style={{ borderTop: "1px solid #eef2f6", margin: "8px 4px 0", paddingTop: 10, display: "flex", alignItems: "center", gap: 9 }}>
+          <span style={{ width: 22, height: 22, borderRadius: 999, background: INK, color: "#fff", fontSize: 10, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>N</span>
+          <span className={mono.className} style={{ fontSize: 11.5, color: "#4d5a66" }}>bolna-ops</span>
         </div>
       </div>
       {/* content */}

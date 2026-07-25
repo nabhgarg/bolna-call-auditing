@@ -1,0 +1,32 @@
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { CHECKS, estimate } from "../../../lib/use-case-catalog";
+
+export const dynamic = "force-dynamic";
+
+// Persist a use case. Nothing is live until this is called with status "pilot"
+// (the Start the 2-week pilot button); the estimate is recomputed here rather
+// than trusted from the client. Graceful no-op if the table is not created yet
+// (supabase/use_cases.sql).
+export async function POST(request: Request) {
+  let body: { description?: string; facts?: Record<string, unknown>; ids?: string[]; status?: string };
+  try { body = await request.json(); } catch { return NextResponse.json({ ok: false, error: "bad request" }, { status: 400 }); }
+  const description = String(body.description || "").slice(0, 4000);
+  const ids = (Array.isArray(body.ids) ? body.ids : []).filter((id) => CHECKS.some((c) => c.id === id));
+  const facts = (body.facts || {}) as { callsPerWeek?: number };
+  const callsPerWeek = Math.max(50, Math.min(200000, Math.round(Number(facts.callsPerWeek) || 1240)));
+  const status = body.status === "pilot" ? "pilot" : "draft";
+  const est = estimate(ids, callsPerWeek);
+
+  const supabase = supabaseAdmin();
+  const { data, error } = await supabase.from("use_cases").insert({
+    description,
+    facts: { ...facts, callsPerWeek },
+    checks: ids,
+    estimate_inr: est.weeklyInr,
+    status,
+  }).select("id").single();
+
+  if (error) return NextResponse.json({ ok: false, error: error.message, estimate: est });
+  return NextResponse.json({ ok: true, id: data.id, status, estimate: est });
+}
