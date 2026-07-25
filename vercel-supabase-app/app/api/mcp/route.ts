@@ -42,7 +42,11 @@ function programForKey(key: string | null): { program: string; demo: boolean } |
 function bearer(request: Request): string | null {
   const h = request.headers.get("authorization") || "";
   const m = h.match(/^Bearer\s+(.+)$/i);
-  return m ? m[1].trim() : null;
+  if (m) return m[1].trim();
+  // URL-only clients (claude.ai custom connectors, some IDE plugins) cannot send
+  // a header, so accept ?key= as a fallback. Weaker: URLs end up in logs and
+  // history, so hand these keys out per-connector and rotate them.
+  try { return new URL(request.url).searchParams.get("key"); } catch { return null; }
 }
 
 /* ----------------------------------------------------------------- tools */
@@ -320,6 +324,9 @@ export async function GET() {
     transport: "streamable-http (POST JSON-RPC 2.0)",
     protocolVersion: PROTOCOL_VERSION,
     tools: TOOLS.map((t) => ({ name: t.name, description: t.description })),
-    connect: 'claude mcp add --transport http realloop <this-url> --header "Authorization: Bearer rl_live_..."',
+    connect: {
+      claude_code: 'claude mcp add --transport http realloop <this-url> --header "Authorization: Bearer rl_live_..."',
+      url_only_clients: "<this-url>?key=rl_live_...  (claude.ai custom connectors, and anything that cannot send a header)",
+    },
   });
 }
