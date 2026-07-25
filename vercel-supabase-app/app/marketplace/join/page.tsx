@@ -306,14 +306,21 @@ export default function Join() {
   function advanceSeg() {
     const nu = transSegs.findIndex((_, si) => qState[si] === undefined);
     if (nu >= 0) { setSegCur(nu); return; }   // next unjudged clip
-    // every clip judged -> grade the whole call
+    // every clip judged -> grade the call and go straight on. No call-level
+    // feedback screen: each clip already told them what they got right or wrong.
     let caughtAll = true, falseFlags = 0;
     transSegs.forEach((s2, si) => {
       const flagged = qState[si] !== "correct";
       if (!s2.isCorrect && !flagged) caughtAll = false;
       if (s2.isCorrect && flagged) falseFlags += 1;
     });
-    record(idx, (caughtAll && falseFlags === 0) ? "match" : "miss");
+    const verdict: Verdict = (caughtAll && falseFlags === 0) ? "match" : "miss";
+    stopAudio();
+    const after = { ...results, [idx]: verdict };
+    setResults(after);
+    clearTransState(); setSegCur(0); setPTag(""); setPWord(""); setIType(""); setIExpl(""); setCoachQ(""); setCoachA("");
+    const n = [...Array(total).keys()].find((i) => after[i] === undefined);
+    if (n === undefined) setScreen("result"); else setIdx(n);
   }
   function resolveSeg(kind: SegKind) {
     if (!q || q.type !== "trans") return;
