@@ -33,7 +33,7 @@ The central insight, and the thing the page should leave a reader with: the
 common belief is that nobody delivers quality and scale together. Agencies
 scale headcount but cannot hold quality. LLM judges scale infinitely but their
 output cannot be trusted. RealLoop's claim is that delivering both is a
-**workflow design problem, not a hiring problem** — break judgment into
+**workflow design problem, not a hiring problem** · break judgment into
 objective sub-tasks an ordinary reviewer can do accurately, then screen and
 train against those exact sub-tasks. That is what makes quality affordable, and
 affordable quality is what makes the market servable.
@@ -89,7 +89,7 @@ Everything else on the page is in service of these.
 
 The enterprise CTA wording is a decision, not a placeholder. It is a verb, it
 matches the destination's own first question, and it avoids "hire us", which
-would frame RealLoop as an agency — the exact thing the positioning rejects.
+would frame RealLoop as an agency · the exact thing the positioning rejects.
 If a second, softer entry point is wanted for people not ready to type into a
 box, "See what we found" is available; it can go to the same destination.
 
@@ -100,9 +100,9 @@ box, "See what we found" is available; it can go to the same destination.
 Use only what is here. Everything below is real unless flagged.
 
 **Traction.** Three pilots, all expected to convert to recurring contracts in
-Aug/Sep 2026. Bolna (YC F25, voice AI orchestration) — four-week pilot closed.
+Aug/Sep 2026. Bolna (YC F25, voice AI orchestration) · four-week pilot closed.
 A Series A consumer fintech, voice and human collections calls. Merlin by Foyer
-(Series A browser co-pilot) — the first text use case. **No revenue yet**; the
+(Series A browser co-pilot) · the first text use case. **No revenue yet**; the
 contracts are expected, not signed. Do not imply otherwise. Do not put a
 customer logo wall on the page.
 
@@ -119,7 +119,7 @@ production calls today.
 Bengaluru, from Meesho. The origin story is usable and it is the real reason
 this company exists: at Meesho one founder built an LLM system to club variant
 SKUs, an LLM judge on top could not hit the accuracy bar, and the catalog was
-too long-tail to write a rulebook for — so she broke the judgment into
+too long-tail to write a rulebook for · so she broke the judgment into
 objective checks an ops reviewer could make. That is the whole thesis in one
 anecdote. The other founder built Meesho's quality-ranking layer and writes all
 of RealLoop's code. Both have run 10+ person ops teams.
@@ -129,7 +129,7 @@ closed those loops at Meesho was largely tier-2 India, the same "next billion"
 Meesho set out to serve. The founders' view is that the next billion's next
 chapter is doing this work for AI deployments everywhere.
 
-**Reliability numbers — read this carefully.** The product measures how much
+**Reliability numbers · read this carefully.** The product measures how much
 its own panel can be trusted: how often reviewers agree with each other, and
 how often they match a hidden expert on the same calls. That measurement, and
 the fact that it is published to clients, is a genuine differentiator and
@@ -149,7 +149,7 @@ do not invent.
 
 **Where it lives.** `vercel-supabase-app/public/apex.html`, served for
 realloop.in and www via middleware rewrite. It must be a **single
-self-contained HTML file** — inline CSS and JS, no local asset files, no build
+self-contained HTML file** · inline CSS and JS, no local asset files, no build
 step. Web fonts via CDN are fine; that is how the current page works.
 
 **Responsive, genuinely.** A large share of reviewer traffic is on a phone,
@@ -160,7 +160,7 @@ excellent on mobile. Keep the page light.
 Instrument Sans for body, IBM Plex Mono for data. Ink `#10181f`, muted
 `#6b7885`, lines `#e2e8ee`, background `#f5f7f9`, green `#0e8a5f`. Inside the
 product, **green means a human did it and purple `#7c5cbf` means a machine
-judged it** — that distinction is load-bearing and if the page uses the two
+judged it** · that distinction is load-bearing and if the page uses the two
 colours it must respect it. The landing does not have to look identical to the
 product, but a client who clicks through should not feel they changed company.
 
@@ -172,7 +172,7 @@ This is a hard house rule across every surface.
 **Tone.** Plain, concrete, unhurried. The product's own voice is the reference:
 "Write it the way you would explain it to someone joining your team on Monday.
 No metrics, no rubric · that is our job." No enterprise filler, no "leverage",
-no "revolutionise", no hero image of a robot. Specific beats grand — the
+no "revolutionise", no hero image of a robot. Specific beats grand · the
 strongest thing this company can say is a real example of a transcript saying
 one thing and the customer having said another.
 
