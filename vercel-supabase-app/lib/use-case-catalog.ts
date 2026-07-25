@@ -89,14 +89,17 @@ export function lineTotal(c: CheckDef, callsPerWeek: number): number {
   return reviewed * c.priceInr;
 }
 
-export function volumeLine(c: CheckDef, callsPerWeek: number): string {
+export type Cadence = "recurring" | "one_time";
+
+export function volumeLine(c: CheckDef, callsPerWeek: number, cadence: Cadence = "recurring"): string {
   const reviewed = Math.round(callsPerWeek * c.samplePct);
+  const wk = cadence === "recurring" ? " / wk" : "";
   if (c.routing === "judge_human_verified") {
     const verified = Math.round(reviewed * (c.flagPct ?? 0.1));
-    return `${verified.toLocaleString()} verified / wk`;
+    return `${verified.toLocaleString()} verified${wk}`;
   }
-  if (c.samplePct >= 1) return `${reviewed.toLocaleString()} calls / wk, all calls`;
-  return `${reviewed.toLocaleString()} calls / wk at a ${Math.round(c.samplePct * 100)}% sample`;
+  if (c.samplePct >= 1) return `${reviewed.toLocaleString()} calls${wk}, all calls`;
+  return `${reviewed.toLocaleString()} calls${wk} at a ${Math.round(c.samplePct * 100)}% sample`;
 }
 
 export function priceLabel(c: CheckDef): string {

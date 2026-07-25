@@ -15,8 +15,9 @@ const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", 
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
 type Routing = "human" | "judge_human_verified" | "judge";
+type Cadence = "recurring" | "one_time";
 type Check = {
-  id: string; name: string; routing: Routing; because: string;
+  id: string; name: string; routing: Routing; because: string; quote?: string | null;
   priceLabel: string; volumeLabel: string; weeklyInr: number; selected?: boolean;
 };
 type Resolved = {
@@ -39,9 +40,41 @@ const routingPills = (r: Routing) =>
   : [{ t: "machine judge", bg: "#f3eefc", fg: PURPLE }, { t: "human verified", bg: "#e7f4ee", fg: GREEN }];
 const accent = (r: Routing) => (r === "human" ? GREEN : PURPLE);
 
+// underline the exact phrases the resolver keyed on, in the lane colour ·
+// green = humans check this, purple = a machine judge is involved
+function HighlightedDesc({ text, checks }: { text: string; checks: Check[] }) {
+  const spans: { start: number; end: number; human: boolean }[] = [];
+  for (const c of checks) {
+    const q = (c.quote || "").trim();
+    if (q.length < 6) continue;
+    const i = text.toLowerCase().indexOf(q.toLowerCase());
+    if (i < 0) continue;
+    const end = i + q.length;
+    if (spans.some((s) => i < s.end && end > s.start)) continue;   // no overlaps
+    spans.push({ start: i, end, human: c.routing === "human" });
+  }
+  spans.sort((a, b) => a.start - b.start);
+  if (!spans.length) return <>{text}</>;
+  const out: React.ReactNode[] = [];
+  let pos = 0;
+  spans.forEach((sp, k) => {
+    if (sp.start > pos) out.push(<span key={"t" + k}>{text.slice(pos, sp.start)}</span>);
+    const col = sp.human ? GREEN : PURPLE;
+    out.push(
+      <span key={"h" + k} style={{ borderBottom: `2px solid ${col}`, background: sp.human ? "rgba(14,138,95,.07)" : "rgba(124,92,191,.07)", borderRadius: 2, padding: "0 1px" }}>
+        {text.slice(sp.start, sp.end)}
+      </span>
+    );
+    pos = sp.end;
+  });
+  if (pos < text.length) out.push(<span key="tail">{text.slice(pos)}</span>);
+  return <>{out}</>;
+}
+
 export default function NewUseCase() {
   const [phase, setPhase] = useState<"blank" | "resolving" | "answered">("blank");
   const [desc, setDesc] = useState("");
+  const [cadence, setCadence] = useState<Cadence>("recurring");
   const [docs, setDocs] = useState<{ name: string; pages?: number }[]>([]);
   const [recordings, setRecordings] = useState(false);
   const [res, setRes] = useState<Resolved | null>(null);
@@ -73,7 +106,7 @@ export default function NewUseCase() {
     try {
       const d: Resolved = await fetch("/api/use-cases/resolve", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ description: desc.trim(), callsPerWeek: recordings ? DEFAULT_CALLS : DEFAULT_CALLS, docs }),
+        body: JSON.stringify({ description: desc.trim(), callsPerWeek: DEFAULT_CALLS, docs, cadence }),
       }).then((r) => r.json());
       if (!d?.checks) { setPhase("blank"); return; }
       setRes(d); setSel(d.checks.map((c) => c.id)); setEst(d.estimate); setPhase("answered");
@@ -107,7 +140,7 @@ export default function NewUseCase() {
     try {
       const d: Resolved = await fetch("/api/use-cases/resolve", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ description: `${desc.trim()}\n\nChange requested: ${t}`, callsPerWeek, docs }),
+        body: JSON.stringify({ description: `${desc.trim()}\n\nChange requested: ${t}`, callsPerWeek, docs, cadence }),
       }).then((r) => r.json());
       if (d?.checks?.length) {
         setPending({ from: est?.weeklyInr ?? 0, to: d.estimate.weeklyInr, checks: d.checks, ids: d.checks.map((c) => c.id) });
@@ -128,7 +161,7 @@ export default function NewUseCase() {
     try {
       await fetch("/api/use-cases", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ description: desc.trim(), facts: res?.facts, ids: sel, status: "pilot" }),
+        body: JSON.stringify({ description: desc.trim(), facts: { ...res?.facts, cadence }, ids: sel, status: "pilot" }),
       });
     } catch { /* the pilot is confirmed on screen either way */ }
   }
@@ -165,6 +198,15 @@ export default function NewUseCase() {
                 <textarea ref={taRef} value={desc} onChange={(e) => setDesc(e.target.value)} disabled={phase === "resolving"}
                   placeholder="What do your agents do, and what goes wrong when a call fails? Three or four sentences is plenty."
                   style={{ width: "100%", boxSizing: "border-box", minHeight: 74, border: "none", outline: "none", resize: "vertical", fontSize: 14, lineHeight: 1.6, fontFamily: "inherit", color: INK, background: "transparent" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", borderTop: "1px solid #f0f3f6", paddingTop: 10 }}>
+                  <span style={{ fontSize: 12, color: MUT }}>I need humans</span>
+                  <div style={{ display: "inline-flex", background: "#eef2f6", borderRadius: 8, padding: 2, gap: 2 }}>
+                    {([["recurring", "on a recurring basis"], ["one_time", "for a one-time problem"]] as [Cadence, string][]).map(([v, l]) => (
+                      <button key={v} onClick={() => setCadence(v)} disabled={phase === "resolving"}
+                        style={{ fontSize: 12, fontWeight: cadence === v ? 600 : 400, padding: "5px 11px", borderRadius: 6, border: "none", cursor: "pointer", background: cadence === v ? "#fff" : "transparent", color: cadence === v ? INK : MUT, boxShadow: cadence === v ? "0 1px 2px rgba(16,24,31,.08)" : "none", fontFamily: "inherit" }}>{l}</button>
+                    ))}
+                  </div>
+                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <button onClick={() => setRecordings(true)} disabled={phase === "resolving"}
                     style={{ fontSize: 12, padding: "6px 11px", borderRadius: 8, border: `1px solid ${recordings ? GREEN : "#d6dee6"}`, background: recordings ? "#e7f4ee" : "#fff", color: recordings ? GREEN : "#4d5a66", cursor: "pointer" }}>
@@ -209,7 +251,14 @@ export default function NewUseCase() {
                 <div style={{ display: "flex", gap: 11 }}>
                   <span style={{ width: 24, height: 24, borderRadius: 999, background: INK, color: "#fff", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>{initial}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, lineHeight: 1.65 }}>{desc.trim()}</div>
+                    <div style={{ fontSize: 13.5, lineHeight: 1.75 }}><HighlightedDesc text={desc.trim()} checks={res.checks.filter((c) => sel.includes(c.id))} /></div>
+                    {res.checks.some((c) => c.quote) && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 7, fontSize: 10.5, color: "#93a1ae" }}>
+                        <span>what we picked up</span>
+                        <span><span style={{ color: GREEN }}>●</span> humans check this</span>
+                        <span><span style={{ color: PURPLE }}>●</span> machine judge</span>
+                      </div>
+                    )}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
                       <span className={mono.className} style={{ fontSize: 11, color: MUT }}>
                         {res.facts.callsPerWeek.toLocaleString()} calls / wk · {res.facts.languages.join(", ")}{res.facts.docs[0] ? ` · ${res.facts.docs[0].name}` : ""}
@@ -299,9 +348,9 @@ export default function NewUseCase() {
             {/* RIGHT RAIL */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 16 }}>
               <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
-                <span style={{ fontSize: 12.5, color: MUT }}>Your estimate at {callsPerWeek.toLocaleString()} calls a week</span>
+                <span style={{ fontSize: 12.5, color: MUT }}>{cadence === "recurring" ? `Your estimate at ${callsPerWeek.toLocaleString()} calls a week` : `Your estimate for this ${callsPerWeek.toLocaleString()}-call batch`}</span>
                 <div className={grotesk.className} style={{ fontSize: 29, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>
-                  ₹{(est?.weeklyInr ?? 0).toLocaleString()} <span style={{ fontSize: 15, color: MUT, fontWeight: 500 }}>/ wk</span>
+                  ₹{(est?.weeklyInr ?? 0).toLocaleString()} <span style={{ fontSize: 15, color: MUT, fontWeight: 500 }}>{cadence === "recurring" ? "/ wk" : "once"}</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5, borderTop: "1px solid #eef2f6", paddingTop: 9 }}>
                   {(est?.lines || []).map((l) => {
@@ -321,12 +370,17 @@ export default function NewUseCase() {
 
               <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 11, minHeight: 420 }}>
                 <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>What happens when you start</span>
-                {[
+                {(cadence === "recurring" ? [
                   ["today", "We build a calibration set from your own recordings and screen 18 Hindi and Hinglish reviewers on it."],
                   ["day 3", "Only reviewers who match our experts get your work. You see the panel reliability number."],
                   ["day 4", "First findings land in Agent insights, each with a timestamp you can play."],
                   ["weekly", "Expert-rated calls stay seeded in every batch, unmarked, so reliability keeps being checked."],
-                ].map(([d, t]) => (
+                ] : [
+                  ["today", "We build a calibration set from your own recordings and screen the reviewers this batch needs on it."],
+                  ["day 3", "Only reviewers who match our experts get your work. You see the panel reliability number."],
+                  ["day 5", "The full batch is reviewed. Findings land in Agent insights, each with a timestamp you can play."],
+                  ["after", "You keep the report and the golden data. Run another batch whenever you want."],
+                ]).map(([d, t]) => (
                   <div key={d} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                     <span className={mono.className} style={{ fontSize: 10.5, color: GREEN, width: 44, flex: "none", paddingTop: 2 }}>{d}</span>
                     <span style={{ fontSize: 12, color: "#4d5a66", lineHeight: 1.55 }}>{t}</span>
@@ -335,7 +389,7 @@ export default function NewUseCase() {
                 <span style={{ flex: 1 }} />
                 <button onClick={start} disabled={started || sel.length === 0}
                   style={{ height: 48, borderRadius: 9, background: started ? "#e7f4ee" : GREEN, color: started ? GREEN : "#fff", fontWeight: 600, fontSize: 14.5, border: "none", cursor: started || sel.length === 0 ? "default" : "pointer", marginTop: 3, opacity: sel.length === 0 ? 0.45 : 1 }}>
-                  {started ? "✓ Pilot starting · screening begins today" : "Start the 2-week pilot"}
+                  {started ? (cadence === "recurring" ? "✓ Pilot starting · screening begins today" : "✓ Batch starting · screening begins today") : (cadence === "recurring" ? "Start the 2-week pilot" : "Run this batch")}
                 </button>
                 <span style={{ fontSize: 11, color: MUT, textAlign: "center" }}>
                   {started ? "We will email you when the panel clears screening." : "Nothing is configured until you click this."}
