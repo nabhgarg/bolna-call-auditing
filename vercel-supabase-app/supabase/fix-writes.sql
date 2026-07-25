@@ -49,3 +49,31 @@ from pg_policies
 where schemaname = 'public'
   and tablename in ('applicants', 'use_cases')
 order by tablename, policyname;
+
+-- ---------------------------------------------------------------- STEP 4
+-- Housekeeping · delete the probe rows written while diagnosing this. Safe to
+-- run more than once; it only matches the synthetic phone range and the two
+-- probe descriptions, so real applications and real use cases are untouched.
+
+delete from public.applicants
+where phone like '+91900000%' or full_name in ('probe', 'probe delete me', 'Deploy Probe');
+
+delete from public.use_cases
+where description in ('probe delete me',
+                      'Our appliance support agent mishears the model number customers read out.');
+
+-- ---------------------------------------------------------------- WHY THIS
+-- WAS CONFUSING · worth knowing before adding the next table.
+--
+-- Creating the insert policies above was necessary but not sufficient. The app
+-- was also calling .select("id").single() after each insert, which makes
+-- PostgREST send `Prefer: return=representation` · and returning the inserted
+-- row needs a SELECT policy. Both tables deliberately have none, so PostgREST
+-- refused the whole statement and reported it as
+--     42501  new row violates row-level security policy
+-- which reads like the write was denied when in fact the read-back was.
+--
+-- The app now mints the uuid itself (crypto.randomUUID()) and sends it in the
+-- insert, so it never needs the row back. If you add another write path to a
+-- table with no select policy, do the same · do not add a select policy just to
+-- get an id back, that would expose phone numbers and client descriptions.
