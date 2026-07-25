@@ -10,7 +10,8 @@
 //      routing (human vs machine judge), redundancy, hidden ground truth,
 //      throughput and panel size.
 //
-// Every capability below is one we actually run today, with its REAL measured
+// Rates are the single ₹34-table shared with lib/use-case-catalog.ts (the New
+// use case screen). Every capability below is one we actually run today, with its REAL measured
 // numbers (human/judge agreement from lib/portal-reliability.json, rates from
 // the live marketplace). The LLM maps a task onto these; anything it proposes
 // outside the library is returned as `novel: true` so we never imply we already
@@ -47,7 +48,7 @@ export const CAPABILITIES: Capability[] = [
     label: "Transcription accuracy",
     unitOfWork: "One call, every user turn, played segment by segment",
     decision: "Is this segment what the customer actually said? If not, write what they said.",
-    unit: "call", rateInr: 120, lane: "human_only",
+    unit: "call", rateInr: 34, lane: "human_only",
     laneReason: "The judge reads the transcript, so it cannot hear the transcript being wrong. It scores 0 here.",
     humanScore: 94, judgeScore: 0, perHour: 4,
     screening: "Transcribe a real code-mixed call end to end: Devanagari for Hindi, Roman for English, numbers as spoken. Must catch the planted error without false-flagging clean turns.",
@@ -59,7 +60,7 @@ export const CAPABILITIES: Capability[] = [
     label: "Number & input capture",
     unitOfWork: "The moment the customer gives a value, plus what the bot recorded",
     decision: "Did the agent capture what the customer actually said?",
-    unit: "review", rateInr: 28, lane: "human_only",
+    unit: "review", rateInr: 21, lane: "human_only",
     laneReason: "The failure is audible, not textual: the transcript often looks fine while the value is missing. Judge agreement measured at 37%.",
     humanScore: 84, judgeScore: 37, perHour: 12,
     screening: "Spot a call where the customer answers but the agent never registers it, and log it as input capture rather than a wrong response.",
@@ -71,7 +72,7 @@ export const CAPABILITIES: Capability[] = [
     label: "Pronunciation",
     unitOfWork: "The moment a name, place or brand is spoken by the agent",
     decision: "Did the agent say it the way a native speaker would?",
-    unit: "review", rateInr: 40, lane: "human_only",
+    unit: "review", rateInr: 18, lane: "human_only",
     laneReason: "Purely acoustic. The judge has no audio and produces no findings at all.",
     humanScore: 92, judgeScore: 0, perHour: 14,
     screening: "Hear a mispronounced customer name or city in a real call and tag it correctly (proper noun vs city vs general).",
@@ -83,7 +84,7 @@ export const CAPABILITIES: Capability[] = [
     label: "Factual accuracy vs knowledge base",
     unitOfWork: "Each claim the agent makes, next to the source of truth",
     decision: "Is this claim supported by the knowledge base?",
-    unit: "review", rateInr: 40, lane: "judge_assist",
+    unit: "review", rateInr: 35, lane: "judge_assist",
     laneReason: "The judge can check a claim against a document at scale, but it agrees with the panel only 46% of the time, so humans verify what it flags.",
     humanScore: 85, judgeScore: 46, perHour: 10,
     screening: "Given a knowledge base excerpt, separate a claim that is merely unsupported from one that is actually wrong.",
@@ -131,7 +132,7 @@ export const CAPABILITIES: Capability[] = [
     label: "Tone & naturalness",
     unitOfWork: "The agent's delivery across the call",
     decision: "Does it sound human, or robotic and off-pace?",
-    unit: "review", rateInr: 28, lane: "human_only",
+    unit: "review", rateInr: 16, lane: "human_only",
     laneReason: "Pacing, warmth and awkward pauses are audible only. The judge sees text and misses all of it.",
     humanScore: 85, judgeScore: null, perHour: 15,
     screening: "Separate a genuinely robotic delivery from a merely short one.",
