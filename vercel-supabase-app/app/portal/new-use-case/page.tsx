@@ -32,7 +32,6 @@ const EXAMPLES = [
   "We do EMI reminders. If it tells someone the wrong outstanding amount we have a compliance problem.",
 ];
 const DEFAULT_CALLS = 1240;
-const POLICY_DOC = { name: "support-policies-v4.pdf", pages: 18 };
 
 const routingPills = (r: Routing) =>
   r === "human" ? [{ t: "100% human", bg: "#e7f4ee", fg: GREEN }]
@@ -75,8 +74,7 @@ export default function NewUseCase() {
   const [phase, setPhase] = useState<"blank" | "resolving" | "answered">("blank");
   const [desc, setDesc] = useState("");
   const [cadence, setCadence] = useState<Cadence>("recurring");
-  const [docs, setDocs] = useState<{ name: string; pages?: number }[]>([]);
-  const [recordings, setRecordings] = useState(false);
+  const docs: { name: string; pages?: number }[] = [];
   const [res, setRes] = useState<Resolved | null>(null);
   const [sel, setSel] = useState<string[]>([]);
   const [est, setEst] = useState<{ weeklyInr: number; lines: { checkId: string; inr: number }[] } | null>(null);
@@ -198,7 +196,7 @@ export default function NewUseCase() {
                 <textarea ref={taRef} value={desc} onChange={(e) => setDesc(e.target.value)} disabled={phase === "resolving"}
                   placeholder="What do your agents do, and what goes wrong when a call fails? Three or four sentences is plenty."
                   style={{ width: "100%", boxSizing: "border-box", minHeight: 74, border: "none", outline: "none", resize: "vertical", fontSize: 14, lineHeight: 1.6, fontFamily: "inherit", color: INK, background: "transparent" }} />
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", borderTop: "1px solid #f0f3f6", paddingTop: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", borderTop: "1px solid #f0f3f6", paddingTop: 10 }}>
                   <span style={{ fontSize: 12, color: MUT }}>I need humans</span>
                   <div style={{ display: "inline-flex", background: "#eef2f6", borderRadius: 8, padding: 2, gap: 2 }}>
                     {([["recurring", "on a recurring basis"], ["one_time", "for a one-time problem"]] as [Cadence, string][]).map(([v, l]) => (
@@ -206,16 +204,6 @@ export default function NewUseCase() {
                         style={{ fontSize: 12, fontWeight: cadence === v ? 600 : 400, padding: "5px 11px", borderRadius: 6, border: "none", cursor: "pointer", background: cadence === v ? "#fff" : "transparent", color: cadence === v ? INK : MUT, boxShadow: cadence === v ? "0 1px 2px rgba(16,24,31,.08)" : "none", fontFamily: "inherit" }}>{l}</button>
                     ))}
                   </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => setRecordings(true)} disabled={phase === "resolving"}
-                    style={{ fontSize: 12, padding: "6px 11px", borderRadius: 8, border: `1px solid ${recordings ? GREEN : "#d6dee6"}`, background: recordings ? "#e7f4ee" : "#fff", color: recordings ? GREEN : "#4d5a66", cursor: "pointer" }}>
-                    {recordings ? `✓ ${DEFAULT_CALLS.toLocaleString()} recordings` : "＋ Add call recordings"}
-                  </button>
-                  <button onClick={() => setDocs([POLICY_DOC])} disabled={phase === "resolving"}
-                    style={{ fontSize: 12, padding: "6px 11px", borderRadius: 8, border: `1px solid ${docs.length ? GREEN : "#d6dee6"}`, background: docs.length ? "#e7f4ee" : "#fff", color: docs.length ? GREEN : "#4d5a66", cursor: "pointer" }}>
-                    {docs.length ? `✓ ${docs[0].name}` : "＋ Add a policy doc"}
-                  </button>
                   <span style={{ flex: 1 }} />
                   <button onClick={analyse} disabled={!canAnalyse || phase === "resolving"}
                     style={{ fontSize: 13.5, fontWeight: 600, padding: "9px 20px", borderRadius: 8, border: "none", background: GREEN, color: "#fff", cursor: canAnalyse ? "pointer" : "not-allowed", opacity: canAnalyse ? 1 : 0.45 }}>
