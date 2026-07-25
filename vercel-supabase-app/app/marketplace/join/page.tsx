@@ -54,6 +54,24 @@ function lint(text: string): string[] {
   for (const word of text.toLowerCase().split(/[^a-z0-9']+/)) if (SHORTHAND[word]) w.push(`"${word}" → "${SHORTHAND[word]}"`);
   return [...new Set(w)];
 }
+// what actually differs between what the ASR wrote and what was really said ·
+// used to explain each clip in words, not just mark it right or wrong
+function normW(w: string) { return w.toLowerCase().replace(/[^\w\u0900-\u097F]/g, ""); }
+function whyOf(asr: string, golden: string): string {
+  const a = String(asr || "").trim().split(/\s+/).filter(Boolean);
+  const g = String(golden || "").trim().split(/\s+/).filter(Boolean);
+  let p = 0;
+  while (p < a.length && p < g.length && normW(a[p]) === normW(g[p])) p++;
+  let sfx = 0;
+  while (sfx < a.length - p && sfx < g.length - p && normW(a[a.length - 1 - sfx]) === normW(g[g.length - 1 - sfx])) sfx++;
+  const aMid = a.slice(p, a.length - sfx).join(" ");
+  const gMid = g.slice(p, g.length - sfx).join(" ");
+  if (!aMid && gMid) return `the transcript dropped “${gMid}”`;
+  if (aMid && !gMid) return `the transcript added “${aMid}”, which was never said`;
+  if (aMid && gMid) return `“${aMid}” should be “${gMid}”`;
+  return "the transcript does not match the audio";
+}
+
 function goldOf(tokens: Tok[], roman: string) {
   return tokens.length ? tokens.map((t) => (t.converted ? t.out : t.src)).join(" ") : roman.trim();
 }
@@ -280,14 +298,21 @@ export default function Join() {
   // ✓ Correct / {noise} / 🗑 resolve instantly and jump to the next open segment;
   // ✏ Edit opens the transliteration editor prefilled with the ASR text.
   function commitSeg(kind: SegKind) {
-    const nextState = { ...qState, [segCur]: kind };
+    // judge the clip, then STOP · the reviewer sees why they were right or wrong
+    // before moving on. Advancing is a deliberate tap (advanceSeg).
     setSeg(segCur, kind);
     clearTransState();
-    const nu = transSegs.findIndex((_, si) => nextState[si] === undefined);
-    if (nu >= 0) { setSegCur(nu); return; }   // next clip; reviewer taps play
-    // last clip judged -> grade the whole call and submit
+  }
+  function advanceSeg() {
+    const nu = transSegs.findIndex((_, si) => qState[si] === undefined);
+    if (nu >= 0) { setSegCur(nu); return; }   // next unjudged clip
+    // every clip judged -> grade the whole call
     let caughtAll = true, falseFlags = 0;
-    transSegs.forEach((s, si) => { const flagged = nextState[si] !== "correct"; if (!s.isCorrect && !flagged) caughtAll = false; if (s.isCorrect && flagged) falseFlags += 1; });
+    transSegs.forEach((s2, si) => {
+      const flagged = qState[si] !== "correct";
+      if (!s2.isCorrect && !flagged) caughtAll = false;
+      if (s2.isCorrect && flagged) falseFlags += 1;
+    });
     record(idx, (caughtAll && falseFlags === 0) ? "match" : "miss");
   }
   function resolveSeg(kind: SegKind) {
@@ -523,6 +548,7 @@ export default function Join() {
 
               {feedback === null && q && q.type === "trans" && transSegs[segCur] && (() => {
                 const seg = transSegs[segCur];
+                const curKind = qState[segCur];
                 const isPlaying = playingIdx === idx;
                 const resolved = Object.keys(qState).length;
                 const vbtn = (bg: string, label: string, kind: SegKind, active: boolean) => (
@@ -589,6 +615,36 @@ export default function Join() {
                         <button onClick={saveSegEdit} disabled={!goldOf(tTokens, tText)} style={{ height: 50, borderRadius: 12, border: "none", background: goldOf(tTokens, tText) ? T_GREEN : "#c8d6d0", color: "#fff", fontSize: 15.5, fontWeight: 600, cursor: goldOf(tTokens, tText) ? "pointer" : "not-allowed" }}>Save &amp; next clip</button>
                       </div>
                     )}
+
+                    {/* per-clip verdict · shown the moment this clip is judged */}
+                    {curKind !== undefined && (() => {
+                      const flagged = curKind !== "correct";
+                      const right = seg.isCorrect ? !flagged : flagged;
+                      const last = transSegs.every((_, si) => qState[si] !== undefined);
+                      const why = seg.isCorrect
+                        ? "The transcript matched the audio here. Not flagging a clean clip is half the skill · false flags waste expert time."
+                        : `${whyOf(seg.asr, seg.golden)}.`;
+                      return (
+                        <div ref={(el) => { if (el) el.scrollIntoView({ block: "center", behavior: "smooth" }); }}
+                          style={{ borderRadius: 14, padding: 15, display: "flex", flexDirection: "column", gap: 10,
+                          background: right ? "#f2faf6" : "#fffafa", border: `1.5px solid ${right ? T_GREEN : T_RED}` }}>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: right ? T_GREEN : T_RED }}>
+                            {seg.isCorrect
+                              ? (right ? "✓ Right · this clip was correct" : "✗ False flag · this clip was correct")
+                              : (right ? "✓ Caught it · the transcript was wrong" : "✗ Missed it · the transcript was wrong")}
+                          </span>
+                          <span style={{ fontSize: 14, lineHeight: 1.6, color: "#3f4a44" }}>{why}</span>
+                          {!seg.isCorrect && (
+                            <div style={{ background: "#fff", border: "1px solid #e2e8ee", borderRadius: 10, padding: "10px 12px", fontSize: 14.5, lineHeight: 1.7 }}>
+                              <span style={{ color: MUT }}>heard:</span> <b style={{ color: T_GREEN }}>{seg.golden}</b>
+                            </div>
+                          )}
+                          <button onClick={advanceSeg} style={{ height: 48, borderRadius: 12, border: "none", background: T_GREEN, color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+                            {last ? "See how you did →" : "Next clip →"}
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })()}
