@@ -59,7 +59,7 @@ export default function PortalShell({ children, right }: { children: React.React
                   {p === active && <span style={{ color: GREEN }}>✓</span>}<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p}</span>
                 </button>
               ))}
-              <a href="/portal/add" style={{ display: "block", padding: "7px 9px", fontSize: 12, color: GREEN, textDecoration: "none", borderTop: "1px solid #eef2f6", marginTop: 2 }}>+ Add use case</a>
+              <a href="/portal/define" style={{ display: "block", padding: "7px 9px", fontSize: 12, color: GREEN, textDecoration: "none", borderTop: "1px solid #eef2f6", marginTop: 2 }}>+ Add use case</a>
             </div>
           )}
         </div>
@@ -73,7 +73,7 @@ export default function PortalShell({ children, right }: { children: React.React
           );
         })}
         <span style={{ flex: 1 }} />
-        <a href="/portal/add" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 8, padding: "10px 10px", margin: "0 2px 8px", textDecoration: "none", background: GREEN, color: "#fff", fontWeight: 600, fontSize: 13 }}>
+        <a href="/portal/define" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 8, padding: "10px 10px", margin: "0 2px 8px", textDecoration: "none", background: GREEN, color: "#fff", fontWeight: 600, fontSize: 13 }}>
           + Add use case
         </a>
         <div style={{ fontSize: 10.5, color: MUT, padding: "0 10px 4px" }}>
