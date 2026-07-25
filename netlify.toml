@@ -9,6 +9,10 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # These are the public Supabase anon key + URL — they are intentionally inlined
+  # into the client bundle (NEXT_PUBLIC_*). Tell Netlify's secrets scanner not to
+  # flag them as leaked, otherwise the build fails on a false positive.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,SUPABASE_PUBLISHABLE_KEY"
 
 # Netlify's managed Next.js runtime: handles the App Router, API routes (as
 # functions) and middleware (as an edge function).
