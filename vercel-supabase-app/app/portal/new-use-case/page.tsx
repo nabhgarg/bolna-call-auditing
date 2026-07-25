@@ -28,7 +28,7 @@ type Resolved = {
 };
 
 const EXAMPLES = [
-  "Our bot takes food orders in Hinglish. It keeps getting quantities wrong when people say do teen.",
+  "Our agent confirms COD orders in Hindi. The transcripts say customers agreed, but we keep finding amounts and product names it misheard, and sometimes it reads back a wrong total.",
   "We do EMI reminders. If it tells someone the wrong outstanding amount we have a compliance problem.",
 ];
 const DEFAULT_CALLS = 1240;

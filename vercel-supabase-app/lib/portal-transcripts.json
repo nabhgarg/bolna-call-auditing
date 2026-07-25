@@ -1,0 +1,78 @@
+{
+  "note": "Per-agent golden-transcript output · built from real timing_transcription reviews (987 reviews joined to calls). The hero pairs are verbatim ASR-vs-panel corrections; call_id + ts are playable. No org or reviewer names.",
+  "generated_from": "reviews.review_mode=timing_transcription · 2026-07-26",
+  "hero": "Order Confirmation · E-commerce",
+  "agents": [
+    {
+      "agent": "Order Confirmation · E-commerce",
+      "calls": 101,
+      "segments": 1428,
+      "corrected": 115,
+      "pairs": [
+        {
+          "call_id": "ba1fdff6-0954-47dd-a473-3a2b3f5e0dbb",
+          "ts": "02:09",
+          "asr": "हां जी",
+          "golden": "नहीं नहीं अभी तोह नहीं चाहिए",
+          "tag": "a yes that was a no"
+        },
+        {
+          "call_id": "99dfb5dc-7087-4afe-bbfe-c0dd5784d762",
+          "ts": "00:57",
+          "asr": "five six का है उसका",
+          "golden": "price क्या है उसका",
+          "tag": "asked the price · heard numbers"
+        },
+        {
+          "call_id": "33e489e3-ac44-4f89-bd12-5324d8ba9030",
+          "ts": "06:06",
+          "asr": "sir मैं पहले",
+          "golden": "sir मैं पहले से ही four hundred",
+          "tag": "the amount vanished"
+        },
+        {
+          "call_id": "120b83ab-01f5-4322-9618-16c076d317ca",
+          "ts": "01:18",
+          "asr": "no no i got shit",
+          "golden": "no no i got shirt",
+          "tag": "one letter changed the word"
+        }
+      ]
+    },
+    {
+      "agent": "Cart Recovery · E-commerce A",
+      "calls": 87,
+      "segments": 1455,
+      "corrected": 159,
+      "pairs": []
+    },
+    {
+      "agent": "Cart Recovery · E-commerce B",
+      "calls": 89,
+      "segments": 1269,
+      "corrected": 150,
+      "pairs": []
+    },
+    {
+      "agent": "Seller Activation · B2B Marketplace",
+      "calls": 101,
+      "segments": 1060,
+      "corrected": 107,
+      "pairs": []
+    },
+    {
+      "agent": "Referral Outreach · Hindi",
+      "calls": 14,
+      "segments": 609,
+      "corrected": 91,
+      "pairs": []
+    },
+    {
+      "agent": "Hiring & Onboarding",
+      "calls": 10,
+      "segments": 659,
+      "corrected": 68,
+      "pairs": []
+    }
+  ]
+}

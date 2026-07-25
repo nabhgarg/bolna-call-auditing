@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
+import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
 
 // Agent insights · Overall + By-agent MERGED into one master-detail screen
 // (wireframe 19a / 20a + philosophy 21a). Left: agents ranked by how much
@@ -28,10 +29,17 @@ const L2_ISSUE_ROUTE: Record<string, string> = { transcription: "asr", response:
 // most exceeds the fleet baseline (transcription is high everywhere, so it only
 // wins the headline where it is genuinely this agent's defining problem).
 function verdictFor(a: Agent, fleetRate: Record<string, number>) {
+  // agents whose calls the panel has re-transcribed word-by-word lead with
+  // transcription · that IS their story, and the golden pairs prove it below
+  const gt = (TRANSCRIPTS.agents as any[]).find((x) => x.agent === a.agent && x.pairs?.length);
+  if (gt) {
+    const r = (a.l2 || []).find((x) => x.key === "transcription") || null;
+    return { label: "ASR mishears input", key: "transcription", row: r };
+  }
   let best: { key: string; lift: number; calls: number; row: L2 } | null = null;
   for (const r of a.l2 || []) {
     const affected = r.human_calls + r.llm_calls;
-    if (affected < 2 || a.calls < 1) continue;
+    if (affected < 2 || a.calls < 1 || r.occ < 1) continue;
     const rate = affected / a.calls;
     const base = fleetRate[r.key] || 0.0001;
     const lift = rate / base;
@@ -123,6 +131,7 @@ function Inner() {
   const leadCount = leadRow?.subtypes?.[0]?.[1] ?? leadRow?.occ ?? 0;
   const leadSub = leadRow?.subtypes?.[0]?.[0] || "";
   const isRootCause = v.key === "transcription";
+  const goldenT = (TRANSCRIPTS.agents as any[]).find((x) => x.agent === a.agent && x.pairs?.length);
   // how much of the list traces to the lead issue
   const leadCalls = leadRow ? leadRow.human_calls + leadRow.llm_calls : 0;
 
@@ -184,7 +193,10 @@ function Inner() {
                   <span style={{ borderRadius: 999, fontSize: 12, padding: "3px 9px", background: INK, color: "#fff", fontWeight: 600, flex: "none", marginTop: 1 }}>1</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, lineHeight: 1.5 }}>
-                      <b style={{ textTransform: "capitalize" }}>{v.label}</b>{leadSub ? <> · leading cause <b style={{ color: RED }}>{leadSub.toLowerCase()}</b> ({leadCount} findings)</> : leadRow ? <> · {leadRow.occ} findings across {leadCalls} calls</> : null}.
+                      <b style={{ textTransform: "capitalize" }}>{v.label}</b>
+                      {isRootCause && goldenT ? <> · <b style={{ color: RED }}>{goldenT.corrected} segments</b> the ASR got wrong across {goldenT.calls} re-transcribed calls</>
+                        : leadSub ? <> · leading cause <b style={{ color: RED }}>{leadSub.toLowerCase()}</b> ({leadCount} findings)</>
+                        : leadRow ? <> · {leadRow.occ} findings across {leadCalls} calls</> : null}.
                       {isRootCause ? <span style={{ color: MUT }}> Root cause · fixing this clears most of the list below.</span> : null}
                     </div>
                     {leadEvidence && (
@@ -209,6 +221,33 @@ function Inner() {
               <div style={{ fontSize: 13.5, color: MUT }}>Nothing needs urgent attention. This agent is clean across the issue categories. Keep sampling to hold the score.</div>
             )}
           </div>
+
+          {/* the transcript vs the customer · golden output for this agent */}
+          {(() => {
+            const t = (TRANSCRIPTS.agents as any[]).find((x) => x.agent === a.agent);
+            if (!t || !t.pairs?.length) return null;
+            return (
+              <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>The transcript vs the customer</span>
+                  <span style={{ fontSize: 12, color: MUT }}>{t.calls} calls re-transcribed word-by-word by the panel · {t.corrected} of {t.segments.toLocaleString()} segments corrected</span>
+                  <span style={{ flex: 1 }} />
+                  <a href="/portal/datasets" style={{ fontSize: 12, color: GREEN, textDecoration: "none" }}>full golden set →</a>
+                </div>
+                {t.pairs.map((p2: any, i: number) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 8, padding: "8px 11px", fontSize: 13, flexWrap: "wrap" }}>
+                    <button onClick={() => play(p2.call_id, p2.ts)} style={{ width: 24, height: 24, borderRadius: 12, background: GREEN, color: "#fff", border: "none", fontSize: 9, cursor: "pointer", flex: "none" }}>▶</button>
+                    <span style={{ textDecoration: "line-through", color: RED }}>{p2.asr}</span>
+                    <span style={{ color: MUT }}>→</span>
+                    <b style={{ color: GREEN }}>{p2.golden}</b>
+                    <span style={{ flex: 1 }} />
+                    <span style={{ borderRadius: 999, fontSize: 10.5, background: "#eef2f6", color: "#4d5a66", padding: "3px 9px", flex: "none" }}>{p2.tag}</span>
+                  </div>
+                ))}
+                <div style={{ fontSize: 11.5, color: MUT }}>Every row is the ASR&apos;s line against what the customer actually said · press play and hear it. This is what a machine judge scoring the transcript can never catch.</div>
+              </div>
+            );
+          })()}
 
           {/* metric chips */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
 import { PAGE, INK, MUT, GREEN, RED, card } from "../../../lib/ui";
+import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
 
 // Datasets (wireframe 8a) · what the reviews already generated (golden
 // transcripts hero + issue-labeled calls), plus request-more cards with
@@ -89,13 +90,33 @@ export default function Datasets() {
             <Tile n="6.4 hrs" l="of audio, segment-aligned" />
             <Tile n="100%" l="spikes expert-resolved" green />
           </div>
-          <div style={{ background: "#f5f7f9", borderRadius: 8, padding: "9px 12px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span className={mono.className} style={{ fontSize: 10.5, color: MUT }}>sample @01:25</span>
-            <span>ASR: <span style={{ textDecoration: "line-through", color: RED }}>vargoor तो है ma&apos;am</span></span>
-            <span>→</span>
-            <span>golden: <b style={{ color: GREEN }}>Barcode तो है ma&apos;am</b></span>
-            <span style={{ flex: 1 }} />
-            <span style={{ fontSize: 11, color: MUT }}>+ speaker, timestamps, audio-unclear flags</span>
+
+          {/* per-agent library · the hero agent expanded with its real diffs */}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {(TRANSCRIPTS.agents as any[]).map((t, i) => {
+              const hero = t.agent === TRANSCRIPTS.hero;
+              return (
+                <div key={t.agent} style={{ borderTop: i === 0 ? "none" : "1px solid #eef2f6", padding: "9px 0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 600, width: 250, flex: "none" }}>{t.agent}</span>
+                    <span style={{ fontSize: 12, color: MUT }}>{t.calls} calls · {t.segments.toLocaleString()} segments · <b style={{ color: INK }}>{t.corrected} corrected</b></span>
+                    <span style={{ flex: 1 }} />
+                    <a href={`/portal/agents?agent=${encodeURIComponent(t.agent)}`} style={{ fontSize: 12, color: GREEN, textDecoration: "none" }}>agent insights →</a>
+                  </div>
+                  {hero && (t.pairs as any[]).slice(0, 3).map((p, j) => (
+                    <div key={j} style={{ display: "flex", alignItems: "center", gap: 9, background: "#f5f7f9", borderRadius: 8, padding: "7px 11px", fontSize: 12.5, marginTop: 7, flexWrap: "wrap" }}>
+                      <span className={mono.className} style={{ fontSize: 10.5, color: MUT, flex: "none" }}>@{p.ts}</span>
+                      <span style={{ textDecoration: "line-through", color: RED }}>{p.asr}</span>
+                      <span style={{ color: MUT }}>→</span>
+                      <b style={{ color: GREEN }}>{p.golden}</b>
+                      <span style={{ flex: 1 }} />
+                      <span style={{ fontSize: 10.5, color: MUT }}>{p.tag}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+            <div style={{ fontSize: 11, color: MUT, paddingTop: 4 }}>every row carries speaker, timestamps and audio-unclear flags · exports include all agents</div>
           </div>
         </div>
 
