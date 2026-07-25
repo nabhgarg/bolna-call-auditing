@@ -278,6 +278,11 @@
      "e": 153.0
     },
     {
+     "text": "floor तो something ऐसे नहीं है",
+     "s": 184.37,
+     "e": 188.6
+    },
+    {
      "text": "हां city टिकरी है",
      "s": 229.37,
      "e": 234.39
@@ -291,11 +296,6 @@
      "text": "seven six five zero one five nine",
      "s": 302.17,
      "e": 307.21
-    },
-    {
-     "text": "ok ma'am",
-     "s": 341.37,
-     "e": 346.19
     },
     {
      "text": "sir मैं पहले",
@@ -329,6 +329,14 @@
      "isCorrect": true
     },
     {
+     "ts": "03:04",
+     "s": 184.37,
+     "e": 188.6,
+     "asr": "floor तो something ऐसे नहीं है",
+     "golden": "floor तो something ऐसे नहीं है",
+     "isCorrect": true
+    },
+    {
      "ts": "03:49",
      "s": 229.37,
      "e": 234.39,
@@ -353,14 +361,6 @@
      "isCorrect": true
     },
     {
-     "ts": "05:41",
-     "s": 341.37,
-     "e": 346.19,
-     "asr": "ok ma'am",
-     "golden": "okay ma'am",
-     "isCorrect": false
-    },
-    {
      "ts": "06:06",
      "s": 366.37,
      "e": 370.6,
@@ -369,7 +369,7 @@
      "isCorrect": false
     }
    ],
-   "explain": "Four of these eight clips were wrong, and each was wrong in a different way: a misheard word (soap became shop), a dropped amount (four hundred vanished), words the customer never said (pin code), and shorthand written instead of the full word (ok instead of okay). The other four were right, including a long sentence and a string of numbers. Reading every word against the audio is the whole job."
+   "explain": "Three of these eight clips were wrong, and each was wrong in a different way: a misheard word (soap became shop), a dropped amount (four hundred vanished from the sentence), and words the customer never said (pin code). The other five were right, including a long sentence and a run of digits. Reading every word against the audio is the whole job."
   },
   {
    "call_id": "250f1855-8fd4-4f91-b4f7-1ea54a2885ad",
