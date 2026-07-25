@@ -1,0 +1,16 @@
+# Netlify build config. The Next.js app lives in the vercel-supabase-app/
+# subdirectory, so `base` points Netlify there. Host-based middleware serves the
+# right section per subdomain (review.-> reviewer app, portal.-> /portal,
+# marketplace.-> /marketplace/join, apex/www -> the marketing landing), so the
+# SAME build can run on each of the realloop.in Netlify sites.
+[build]
+  base = "vercel-supabase-app"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Netlify's managed Next.js runtime: handles the App Router, API routes (as
+# functions) and middleware (as an edge function).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
