@@ -172,7 +172,7 @@ export default function Join() {
     const url = item.recording_url || CANON + item.call_id;
     const src = `/api/audio?url=${encodeURIComponent(url)}`;
     if (a.getAttribute("data-src") !== src) { a.pause(); a.src = src; a.setAttribute("data-src", src); }
-    // waveform removed for the simple mobile flow — the hidden <audio> element
+    // waveform removed for the simple mobile flow · the hidden <audio> element
     // is the whole player; bounded segment playback via play()/stopAtRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, feedback, qs.length]);
@@ -576,9 +576,9 @@ export default function Join() {
                     </button>
                     <div style={{ background: "#f5f7f9", borderRadius: 10, padding: "13px 15px" }}>
                       <div style={{ fontSize: 10.5, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 5 }}>The AI heard the user say</div>
-                      <div style={{ fontSize: 18, lineHeight: 1.5, color: INK }}>{seg.asr || "—"}</div>
+                      <div style={{ fontSize: 18, lineHeight: 1.5, color: INK }}>{seg.asr || "·"}</div>
                     </div>
-                    <div style={{ fontSize: 12.5, color: MUT, textAlign: "center" }}>Listen — does the text match what the user said?</div>
+                    <div style={{ fontSize: 12.5, color: MUT, textAlign: "center" }}>Listen · does the text match what the user said?</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                       {vbtn(T_GREEN, "✓ Correct", "correct", false)}
                       {vbtn(T_ORANGE, "✗ Wrong · fix it", "wrong", tKind === "wrong")}
@@ -587,7 +587,7 @@ export default function Join() {
                     {tKind === "wrong" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid #eef2f6", paddingTop: 12 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 600, color: INK }}>Type what you actually heard</div>
-                        <div style={{ fontSize: 11.5, color: MUT }}>Type in Roman — Hindi words convert to Devanagari, English stays as-is. Tap a word to fix it.</div>
+                        <div style={{ fontSize: 11.5, color: MUT }}>Type in Roman · Hindi words convert to Devanagari, English stays as-is. Tap a word to fix it.</div>
                         <textarea value={tText} rows={2} autoFocus onChange={(e) => onRoman(e.target.value)} placeholder="e.g. haan didi main kaam kar rahi hoon" style={{ width: "100%", boxSizing: "border-box", fontSize: 16, padding: "10px 12px", border: "1px solid #cfd8e0", borderRadius: 10, fontFamily: "inherit" }} />
                         {tTokens.length > 0 && (
                           <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 10, padding: "10px 12px", fontSize: 17, lineHeight: 1.9 }}>
@@ -752,7 +752,7 @@ export default function Join() {
               {pct >= PASS ? (
                 <div style={{ background: "#f2faf6", border: `1.5px solid ${GREEN}`, borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 6, width: "100%", boxSizing: "border-box" }}>
                   <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 17, color: GREEN }}>Tier 2 unlocked · ₹300/hr</span>
-                  <span style={{ fontSize: 13, color: "#4d5a66", lineHeight: 1.45 }}>That&apos;s it for now — <b style={{ color: INK }}>our team will message you on WhatsApp</b> on the number you applied with, with your next steps. Keep an eye on it. Hold ≥75% across 2 real batches and you move to Tier 1 at ₹500/hr.</span>
+                  <span style={{ fontSize: 13, color: "#4d5a66", lineHeight: 1.45 }}>That&apos;s it for now · <b style={{ color: INK }}>our team will message you on WhatsApp</b> on the number you applied with, with your next steps. Keep an eye on it. Hold ≥75% across 2 real batches and you move to Tier 1 at ₹500/hr.</span>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4, background: "#fff", border: "1px solid #bfe2d2", borderRadius: 9, padding: "10px 12px", fontSize: 13, fontWeight: 600, color: GREEN }}>💬 Watch for a WhatsApp message from realloop</div>
                 </div>
               ) : (
