@@ -151,42 +151,8 @@ export default function Join() {
     const url = item.recording_url || CANON + item.call_id;
     const src = `/api/audio?url=${encodeURIComponent(url)}`;
     if (a.getAttribute("data-src") !== src) { a.pause(); a.src = src; a.setAttribute("data-src", src); }
-    // decode audio for the waveform (same pipeline as the workbench: fetch ->
-    // decodeAudioData -> per-channel RMS envelope -> 700 buckets)
-    if (waveSrcRef.current !== src) {
-      waveSrcRef.current = src;
-      setWave(null); setPlayhead(0); setAnalyzing(true);
-      (async () => {
-        try {
-          const buf = await fetch(src).then((r) => r.arrayBuffer());
-          if (waveSrcRef.current !== src) return;
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const audio = await ctx.decodeAudioData(buf);
-          ctx.close().catch(() => {});
-          if (waveSrcRef.current !== src) return;
-          const e0 = envelope(audio.getChannelData(0), audio.sampleRate);
-          const e1 = audio.numberOfChannels >= 2 ? envelope(audio.getChannelData(1), audio.sampleRate) : e0;
-          // user channel = the one whose energy best overlaps the telemetry
-          // anchors (same rule as the workbench: anchors ARE user speech)
-          let userIdx = 1;
-          const anchors = item.anchors || [];
-          if (audio.numberOfChannels >= 2 && anchors.length) {
-            const inAnchors = (env: { env: Float32Array; hop: number }) => {
-              let s = 0;
-              for (const a of anchors) {
-                const i0 = Math.max(0, Math.floor(a.s / env.hop)), i1 = Math.min(env.env.length, Math.ceil(a.e / env.hop));
-                for (let i = i0; i < i1; i++) s += env.env[i];
-              }
-              return s;
-            };
-            userIdx = inAnchors(e1) >= inAnchors(e0) ? 1 : 0;
-          }
-          const uEnv = userIdx === 1 ? e1 : e0, aEnv = userIdx === 1 ? e0 : e1;
-          setWave({ agent: buckets(aEnv.env), user: buckets(uEnv.env), duration: audio.duration });
-        } catch { /* keep the plain player */ }
-        if (waveSrcRef.current === src) setAnalyzing(false);
-      })();
-    }
+    // waveform removed for the simple mobile flow — the hidden <audio> element
+    // is the whole player; bounded segment playback via play()/stopAtRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, feedback, qs.length]);
 
@@ -310,20 +276,26 @@ export default function Join() {
   }, [screen, feedback, idx, segCur, qs.length]);
   // ✓ Correct / {noise} / 🗑 resolve instantly and jump to the next open segment;
   // ✏ Edit opens the transliteration editor prefilled with the ASR text.
-  function resolveSeg(kind: SegKind) {
-    if (!q || q.type !== "trans") return;
-    if (kind === "wrong") { setTKind("wrong"); onRoman(transSegs[segCur]?.asr || ""); return; }
+  function commitSeg(kind: SegKind) {
     const nextState = { ...qState, [segCur]: kind };
     setSeg(segCur, kind);
+    clearTransState();
     const nu = transSegs.findIndex((_, si) => nextState[si] === undefined);
-    if (nu >= 0) gotoSeg(nu); else clearTransState();
+    if (nu >= 0) { setSegCur(nu); return; }   // next clip; reviewer taps play
+    // last clip judged -> grade the whole call and submit
+    let caughtAll = true, falseFlags = 0;
+    transSegs.forEach((s, si) => { const flagged = nextState[si] !== "correct"; if (!s.isCorrect && !flagged) caughtAll = false; if (s.isCorrect && flagged) falseFlags += 1; });
+    record(idx, (caughtAll && falseFlags === 0) ? "match" : "miss");
+  }
+  function resolveSeg(kind: SegKind) {
+    if (!q || q.type !== "trans") return;
+    // Wrong opens the correction editor (ASR prefilled) instead of resolving instantly.
+    if (kind === "wrong") { setTKind("wrong"); onRoman(transSegs[segCur]?.asr || ""); return; }
+    commitSeg(kind);
   }
   function saveSegEdit() {
-    if (!q || q.type !== "trans" || (!goldOf(tTokens, tText) && !segUnclearState[segCur])) return;
-    const nextState = { ...qState, [segCur]: "wrong" as SegKind };
-    setSeg(segCur, "wrong");
-    const nu = transSegs.findIndex((_, si) => nextState[si] === undefined);
-    if (nu >= 0) gotoSeg(nu); else clearTransState();
+    if (!q || q.type !== "trans" || !goldOf(tTokens, tText)) return;
+    commitSeg("wrong");
   }
   function submitTransCall() {
     if (!q || q.type !== "trans" || !transAllResolved) return;
@@ -524,28 +496,7 @@ export default function Join() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
               {activeQ && (
-                <div style={{ ...card, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                    <span className={mono.className} style={{ fontSize: 11.5, color: MUT, flex: "none" }}>full call · {activeQ.call_id.slice(0, 8)}</span>
-                    <audio ref={audioRef} controls preload="none" onEnded={() => setPlayingIdx(null)} onTimeUpdate={(e) => { const a = e.target as HTMLAudioElement; setPlayhead(a.currentTime); if (stopAtRef.current !== null && a.currentTime >= stopAtRef.current) { a.pause(); stopAtRef.current = null; setPlayingIdx(null); } }} style={{ flex: 1, minWidth: 260, height: 34 }} />
-                    <div style={{ display: "inline-flex", gap: 2, border: "1px solid #cfd9d4", borderRadius: 7, overflow: "hidden", flex: "none" }} title="Playback speed">
-                      {[0.5, 0.75, 1].map((r) => (
-                        <button key={r} onClick={() => changeRate(r)} style={{ fontSize: 12, padding: "5px 9px", border: "none", cursor: "pointer", background: rate === r ? "#1f7a5c" : "#fff", color: rate === r ? "#fff" : "#5b6b64" }}>{r}×</button>
-                      ))}
-                    </div>
-                    {activeQ.type === "trans" && <button onClick={() => setRulesOpen(!rulesOpen)} style={{ fontSize: 12, padding: "5px 9px", border: "1px solid #cfd9d4", borderRadius: 7, background: "#fff", color: "#5b6b64", cursor: "pointer", flex: "none" }}>{rulesOpen ? "rules ▴" : "rules ▾"}</button>}
-                    <span className="jn-hint" style={{ fontSize: 11, color: MUT, flex: "none" }}>listen to any part · the ▶ buttons jump to the moment</span>
-                  </div>
-                  {wave
-                    ? <canvas ref={canvasRef} onClick={seekWave} style={{ width: "100%", height: 60, display: "block", cursor: "pointer", borderRadius: 6, background: "#fbfcfc" }} title="click anywhere to jump · amber box = the segment in question" />
-                    : <div style={{ height: 60, borderRadius: 6, background: "#fbfcfc", border: "1px dashed #e2e8ee", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, color: "#93a1ae" }}>{analyzing ? "analyzing audio · drawing waveform…" : "waveform loads with the call"}</div>}
-                  {wave && <div style={{ fontSize: 10.5, color: "#93a1ae" }}><span style={{ color: "#1f7a5c" }}>▮</span> agent · <span style={{ color: "#5b8def" }}>▮</span> user · <span style={{ color: "#b7791f" }}>▯</span> this segment · <span style={{ color: "#d64545" }}>▯</span> other user turns · click a spike to jump{activeQ.type === "trans" ? " · Space replay · ←/→" : " · click the waveform to seek"}</div>}
-                  {rulesOpen && activeQ.type === "trans" && (
-                    <ul style={{ margin: "6px 0 0", paddingLeft: 18, fontSize: 11.5, color: "#5b5330", lineHeight: 1.7, background: "#fffbea", border: "1px solid #f0e2b0", borderRadius: 8, padding: "8px 8px 8px 26px" }}>
-                      {RULES.map(([k, v]) => <li key={k}><strong>{k}:</strong> {v}</li>)}
-                    </ul>
-                  )}
-                </div>
+                <audio ref={audioRef} preload="none" onEnded={() => setPlayingIdx(null)} onTimeUpdate={(e) => { const a = e.target as HTMLAudioElement; setPlayhead(a.currentTime); if (stopAtRef.current !== null && a.currentTime >= stopAtRef.current) { a.pause(); stopAtRef.current = null; setPlayingIdx(null); } }} style={{ display: "none" }} />
               )}
 
               {idx === -1 && feedback === null && (
@@ -557,179 +508,122 @@ export default function Join() {
               )}
 
               {feedback === null && q && q.type === "trans" && transSegs[segCur] && (() => {
-                const seg = transSegs[segCur]; const curKind = qState[segCur];
-                const kindColor: Record<string, string> = { correct: T_GREEN, wrong: T_ORANGE, noise: T_SLATE, deleted: T_RED };
+                const seg = transSegs[segCur];
+                const isPlaying = playingIdx === idx;
+                const resolved = Object.keys(qState).length;
+                const vbtn = (bg: string, label: string, kind: SegKind, active: boolean) => (
+                  <button onClick={() => resolveSeg(kind)} style={{ height: 56, borderRadius: 12, border: `1.5px solid ${bg}`, background: active ? bg : "#fff", color: active ? "#fff" : bg, fontSize: 16, fontWeight: 600, cursor: "pointer" }}>{label}</button>
+                );
                 return (
-                <div className="jn-q" style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 12, alignItems: "start" }}>
-                <div style={{ border: `2px solid ${T_AMBER}`, background: "#fff", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 0 }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                    <strong style={{ fontSize: 13, color: "#5b6b64" }}>question {idx + 1} of {total} · transcribe the user side</strong>
-                    <span style={{ flex: 1 }} />
-                    <span className={mono.className} style={{ fontSize: 12, color: T_GREEN }}>{Object.keys(qState).length}/{transSegs.length} segments</span>
-                  </div>
-                  {/* segment progress · click to revisit any turn */}
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", margin: "9px 0 4px" }}>
-                    {transSegs.map((_, si) => { const k = qState[si]; const active = si === segCur;
-                      return <button key={si} onClick={() => gotoSeg(si)} title={`segment ${si + 1}`} style={{ width: 22, height: 22, borderRadius: 6, fontSize: 10, cursor: "pointer", border: active ? `2px solid ${T_AMBER}` : "1px solid #dfe5ea", background: k ? kindColor[k] : "#f2f5f7", color: k ? "#fff" : "#93a1ae", fontWeight: 600 }}>{si + 1}</button>; })}
-                  </div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
-                    <button onClick={() => play(idx, undefined, seg.s, seg.e)} style={{ fontSize: 13, padding: "4px 10px", borderRadius: 7, border: "1px solid #cfd8e0", background: "#fff", cursor: "pointer" }}>{playingIdx === idx ? "❚❚" : "🔁"} play @{seg.ts}</button>
-                    <button onClick={() => segCur > 0 && gotoSeg(segCur - 1)} disabled={segCur === 0} style={{ fontSize: 13, padding: "4px 9px", borderRadius: 7, border: "1px solid #dfe5ea", background: "#fff", color: segCur === 0 ? "#c8d0d6" : "#4a5568", cursor: segCur === 0 ? "default" : "pointer" }}>← prev</button>
-                    <button onClick={() => segCur < transSegs.length - 1 && gotoSeg(segCur + 1)} disabled={segCur >= transSegs.length - 1} style={{ fontSize: 13, padding: "4px 9px", borderRadius: 7, border: "1px solid #dfe5ea", background: "#fff", color: segCur >= transSegs.length - 1 ? "#c8d0d6" : "#4a5568", cursor: segCur >= transSegs.length - 1 ? "default" : "pointer" }}>next →</button>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: "#8a988f", marginTop: 10 }}>ASR heard (user) · segment {segCur + 1}:</div>
-                  <p style={{ fontSize: 16, margin: "4px 0 10px", color: "#1f2d28", lineHeight: 1.6 }}>{seg.asr}</p>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <button onClick={() => resolveSeg("correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_GREEN}`, background: curKind === "correct" ? T_GREEN : "#fff", color: curKind === "correct" ? "#fff" : T_GREEN, cursor: "pointer" }}>✓ Correct</button>
-                    <button onClick={() => resolveSeg("wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_ORANGE}`, background: (tKind === "wrong" || curKind === "wrong") ? T_ORANGE : "#fff", color: (tKind === "wrong" || curKind === "wrong") ? "#fff" : T_ORANGE, cursor: "pointer" }}>✏ Edit · ASR is wrong</button>
-                    <button onClick={() => resolveSeg("noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_SLATE}`, background: curKind === "noise" ? T_SLATE : "#fff", color: curKind === "noise" ? "#fff" : T_SLATE, cursor: "pointer" }}>{"{noise}"}</button>
-                    <button onClick={() => resolveSeg("deleted")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: `1px solid ${T_RED}`, background: curKind === "deleted" ? T_RED : "#fff", color: curKind === "deleted" ? "#fff" : T_RED, cursor: "pointer" }} title="This isn't a user turn; the detector was wrong.">🗑 Not a user turn</button>
-                    <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto", cursor: "pointer" }}>
-                      <input type="checkbox" checked={!!segUnclearState[segCur]} onChange={() => toggleUnclear(segCur)} /> audio unclear
-                    </label>
-                  </div>
-                  {tKind === "wrong" && (
-                    <div style={{ marginTop: 10 }}>
-                      <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#5b6b64", marginBottom: 6 }}>
-                        wrong in:
-                        <label style={{ cursor: "pointer" }}><input type="radio" checked={tLang === "same"} onChange={() => setTLang("same")} /> same language</label>
-                        <label style={{ cursor: "pointer" }}><input type="radio" checked={tLang === "different"} onChange={() => setTLang("different")} /> different language</label>
-                      </div>
-                      <textarea value={tText} rows={2} autoFocus style={{ width: "100%", boxSizing: "border-box", fontSize: 14.5, padding: "8px 10px", border: "1px solid #cfd8e0", borderRadius: 8, fontFamily: "inherit" }} placeholder="Type in Roman · hindi words convert automatically (e.g. haan didi main kaam kar rahi hoon)" onChange={(e) => onRoman(e.target.value)} />
-                      {tTokens.length > 0 && (
-                        <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 15.5, lineHeight: 1.9 }}>
-                          <div style={{ display: "flex", flexWrap: "wrap", columnGap: 4, rowGap: 2 }}>
-                            {tTokens.map((t, ti) => (
-                              <span key={ti} onClick={async () => {
-                                if (altPick?.ti === ti) { setAltPick(null); return; }
-                                setAltPick({ ti, alts: [], loading: true });
-                                const core = t.src.replace(/^[^\wऀ-ॿ{]+|[^\wऀ-ॿ}]+$/g, "");
-                                try {
-                                  const d = await fetch("/api/transliterate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ word: core }) }).then((r) => r.json());
-                                  setAltPick((p) => (p && p.ti === ti ? { ...p, alts: d.alts || [], loading: false } : p));
-                                } catch {
-                                  setAltPick((p) => (p && p.ti === ti ? { ...p, loading: false } : p));
-                                }
-                              }} title="click to fix this word"
-                                style={{ cursor: "pointer", padding: "1px 3px", borderRadius: 4, marginRight: 3, background: altPick?.ti === ti ? "#f9dcae" : t.converted ? "#fdecc8" : "transparent" }}>
-                                {t.converted ? t.out : t.src}
-                              </span>
-                            ))}
-                          </div>
-                          <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari · click any word to fix it</div>
-                          {altPick && tTokens[altPick.ti] && (() => {
-                            const tk0 = tTokens[altPick.ti];
-                            const apply = (out: string | null) => { // null = keep Roman
-                              const tk = [...tTokens];
-                              tk[altPick.ti] = out === null ? { ...tk[altPick.ti], converted: false } : { ...tk[altPick.ti], out, converted: true };
-                              setTTokens(tk);
-                              setAltPick(null);
-                            };
-                            return (
-                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderTop: "1px dashed #cfe3da", marginTop: 6, paddingTop: 7 }}>
-                                <span style={{ fontSize: 12, color: "#5b6b64" }}>“{tk0.src}” =</span>
-                                {altPick.loading && <span style={{ fontSize: 12, color: "#8a988f" }}>…</span>}
-                                {altPick.alts.map((a) => (
-                                  <button key={a} onClick={() => apply(a)}
-                                    style={{ fontSize: 15, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: tk0.converted && tk0.out === a ? "2px solid #1f7a5c" : "1px solid #cfe3da", background: "#fff" }}>
-                                    {a}
-                                  </button>
-                                ))}
-                                <button onClick={() => apply(null)}
-                                  style={{ fontSize: 13, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: !tk0.converted ? "2px solid #1f7a5c" : "1px solid #cfd4d1", background: "#fff", color: "#4a5568" }}>
-                                  {tk0.src}
-                                </button>
-                                <button onClick={() => setAltPick(null)} style={{ fontSize: 12, border: "none", background: "transparent", color: "#8a988f", cursor: "pointer" }}>✕</button>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
-                      {lint(goldOf(tTokens, tText)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "#b7791f", marginTop: 3 }}>⚠ {w}</div>)}
-                      <button onClick={saveSegEdit} disabled={!goldOf(tTokens, tText) && !segUnclearState[segCur]}
-                        style={{ marginTop: 8, fontSize: 13, padding: "7px 16px", borderRadius: 7, border: "none", background: (goldOf(tTokens, tText) || segUnclearState[segCur]) ? "#1f7a5c" : "#c8d6d0", color: "#fff", cursor: (goldOf(tTokens, tText) || segUnclearState[segCur]) ? "pointer" : "not-allowed" }}>
-                        Save & next
-                      </button>
+                  <div style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 15, maxWidth: 460, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Clip {segCur + 1} of {transSegs.length}</span>
+                      <span style={{ flex: 1 }} />
+                      <span className={mono.className} style={{ fontSize: 11.5, color: GREEN }}>{resolved}/{transSegs.length} done</span>
                     </div>
-                  )}
-                  <div style={{ borderTop: "1px solid #eef2f6", marginTop: 12, paddingTop: 10 }}>
-                    {transAllResolved
-                      ? <button onClick={submitTransCall} style={{ width: "100%", padding: "10px 0", fontSize: 14, borderRadius: 9, border: "none", cursor: "pointer", background: T_GREEN, color: "#fff", fontWeight: 600 }}>Submit call · all {transSegs.length} segments resolved</button>
-                      : <div style={{ fontSize: 11.5, color: "#93a1ae", textAlign: "center" }}>Resolve every segment to submit the call · {Object.keys(qState).length} of {transSegs.length} done</div>}
+                    <div style={{ display: "flex", gap: 4 }}>
+                      {transSegs.map((_, si) => { const k = qState[si]; return <span key={si} style={{ flex: 1, height: 5, borderRadius: 3, background: si === segCur ? T_AMBER : k ? T_GREEN : "#e2e8ee" }} />; })}
+                    </div>
+                    <button onClick={() => play(idx, undefined, seg.s, seg.e)} style={{ height: 70, borderRadius: 14, border: "none", background: INK, color: "#fff", fontSize: 17, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                      <span style={{ fontSize: 20 }}>{isPlaying ? "❚❚" : "▶"}</span>{isPlaying ? "Playing…" : "Play the clip"}
+                    </button>
+                    <div style={{ background: "#f5f7f9", borderRadius: 10, padding: "13px 15px" }}>
+                      <div style={{ fontSize: 10.5, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 5 }}>The AI heard the user say</div>
+                      <div style={{ fontSize: 18, lineHeight: 1.5, color: INK }}>{seg.asr || "—"}</div>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: MUT, textAlign: "center" }}>Listen — does the text match what the user said?</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                      {vbtn(T_GREEN, "✓ Correct", "correct", false)}
+                      {vbtn(T_ORANGE, "✗ Wrong · fix it", "wrong", tKind === "wrong")}
+                      {vbtn(T_SLATE, "{noise} · unclear / not speech", "noise", false)}
+                    </div>
+                    {tKind === "wrong" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid #eef2f6", paddingTop: 12 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: INK }}>Type what you actually heard</div>
+                        <div style={{ fontSize: 11.5, color: MUT }}>Type in Roman — Hindi words convert to Devanagari, English stays as-is. Tap a word to fix it.</div>
+                        <textarea value={tText} rows={2} autoFocus onChange={(e) => onRoman(e.target.value)} placeholder="e.g. haan didi main kaam kar rahi hoon" style={{ width: "100%", boxSizing: "border-box", fontSize: 16, padding: "10px 12px", border: "1px solid #cfd8e0", borderRadius: 10, fontFamily: "inherit" }} />
+                        {tTokens.length > 0 && (
+                          <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 10, padding: "10px 12px", fontSize: 17, lineHeight: 1.9 }}>
+                            <div style={{ display: "flex", flexWrap: "wrap", columnGap: 4, rowGap: 2 }}>
+                              {tTokens.map((t, ti) => (
+                                <span key={ti} onClick={async () => {
+                                  if (altPick?.ti === ti) { setAltPick(null); return; }
+                                  setAltPick({ ti, alts: [], loading: true });
+                                  const core = t.src.replace(/^[^\wऀ-ॿ{]+|[^\wऀ-ॿ}]+$/g, "");
+                                  try { const d = await fetch("/api/transliterate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ word: core }) }).then((r) => r.json()); setAltPick((p) => (p && p.ti === ti ? { ...p, alts: d.alts || [], loading: false } : p)); }
+                                  catch { setAltPick((p) => (p && p.ti === ti ? { ...p, loading: false } : p)); }
+                                }} title="tap to fix this word" style={{ cursor: "pointer", padding: "1px 4px", borderRadius: 4, marginRight: 2, background: altPick?.ti === ti ? "#f9dcae" : t.converted ? "#fdecc8" : "transparent" }}>{t.converted ? t.out : t.src}</span>
+                              ))}
+                            </div>
+                            <div style={{ fontSize: 11, color: "#8a988f", marginTop: 3 }}>highlighted = converted to Devanagari · tap any word to fix it</div>
+                            {altPick && tTokens[altPick.ti] && (() => {
+                              const tk0 = tTokens[altPick.ti];
+                              const apply = (out: string | null) => { const tk = [...tTokens]; tk[altPick.ti] = out === null ? { ...tk[altPick.ti], converted: false } : { ...tk[altPick.ti], out, converted: true }; setTTokens(tk); setAltPick(null); };
+                              return (
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderTop: "1px dashed #cfe3da", marginTop: 6, paddingTop: 7 }}>
+                                  <span style={{ fontSize: 12, color: "#5b6b64" }}>“{tk0.src}” =</span>
+                                  {altPick.loading && <span style={{ fontSize: 12, color: "#8a988f" }}>…</span>}
+                                  {altPick.alts.map((a) => (<button key={a} onClick={() => apply(a)} style={{ fontSize: 16, padding: "3px 12px", borderRadius: 6, cursor: "pointer", border: tk0.converted && tk0.out === a ? "2px solid #1f7a5c" : "1px solid #cfe3da", background: "#fff" }}>{a}</button>))}
+                                  <button onClick={() => apply(null)} style={{ fontSize: 13, padding: "3px 12px", borderRadius: 6, cursor: "pointer", border: !tk0.converted ? "2px solid #1f7a5c" : "1px solid #cfd4d1", background: "#fff", color: "#4a5568" }}>{tk0.src}</button>
+                                  <button onClick={() => setAltPick(null)} style={{ fontSize: 12, border: "none", background: "transparent", color: "#8a988f", cursor: "pointer" }}>✕</button>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
+                        {lint(goldOf(tTokens, tText)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "#b7791f" }}>⚠ {w}</div>)}
+                        <button onClick={saveSegEdit} disabled={!goldOf(tTokens, tText)} style={{ height: 50, borderRadius: 12, border: "none", background: goldOf(tTokens, tText) ? T_GREEN : "#c8d6d0", color: "#fff", fontSize: 15.5, fontWeight: 600, cursor: goldOf(tTokens, tText) ? "pointer" : "not-allowed" }}>Save &amp; next clip</button>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <TranscriptPanel item={q} highlight={seg.asr} activeUserIdx={activeUserIdx} />
-                </div>
                 );
               })()}
 
-              {feedback === null && q && q.type === "pron" && (
-                <div className="jn-q" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 12, alignItems: "start" }}>
-                  <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10, minHeight: 180 }}>
-                    <span style={{ fontSize: 11, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>Pronunciation · question {idx + 1} of {total}</span>
-                    <div style={{ fontSize: 13.5, lineHeight: 1.55 }}>Play the moment and listen for a name, city or brand the <b>agent</b> mispronounced. Log it the way you would in the tool.</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#f5f7f9", borderRadius: 9, padding: "9px 11px" }}>
-                      <div onClick={() => play(idx, q.ts)} style={{ width: 34, height: 34, borderRadius: 999, background: INK, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", flex: "none" }}>{playingIdx === idx ? "❚❚" : "▶"}</div>
-                      <span className={mono.className} style={{ fontSize: 12 }}>{q.call_id.slice(0, 8)} @{q.ts}</span>
-                      <span style={{ fontSize: 11.5, color: MUT }}>· plays from ~2s before</span>
+              {feedback === null && q && q.type === "pron" && (() => {
+                const isPlaying = playingIdx === idx;
+                return (
+                  <div style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 15, maxWidth: 460, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Pronunciation</span>
+                      <span style={{ flex: 1 }} />
+                      <span className={mono.className} style={{ fontSize: 11.5, color: MUT }}>question {idx + 1} of {total}</span>
                     </div>
-                    <TranscriptPanel item={q} highlight={q.type === "pron" ? q.word_heard : undefined} activeUserIdx={activeUserIdx} />
+                    <div style={{ fontSize: 13.5, color: MUT, lineHeight: 1.5 }}>Play the moment and listen for a name, city or brand the <b style={{ color: INK }}>agent</b> mispronounced.</div>
+                    <button onClick={() => play(idx, q.ts)} style={{ height: 70, borderRadius: 14, border: "none", background: INK, color: "#fff", fontSize: 17, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                      <span style={{ fontSize: 20 }}>{isPlaying ? "❚❚" : "▶"}</span>{isPlaying ? "Playing…" : "Play the moment"}
+                    </button>
+                    <div style={{ fontSize: 12.5, color: MUT, textAlign: "center" }}>What kind of word did the agent mispronounce?</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                      {q.options.map((o) => (
+                        <button key={o} onClick={() => { setPTag(o); record(idx, o === q.content_tag ? "match" : "miss"); }} style={{ height: 56, borderRadius: 12, border: "1.5px solid #d6dee6", background: "#fff", color: INK, fontSize: 16, fontWeight: 600, cursor: "pointer" }}>{o}</button>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                    <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 14 }}>Log the pronunciation issue</span>
-                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Issue type
-                      <div style={{ padding: "8px 10px", border: "1px solid #d6dee6", borderRadius: 7, fontSize: 13, background: "#f5f7f9", color: INK }}>Pronunciation</div>
-                    </label>
-                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Timestamp
-                      <div className={mono.className} style={{ padding: "8px 10px", border: "1px solid #d6dee6", borderRadius: 7, fontSize: 13, background: "#f5f7f9", color: INK }}>{q.ts}</div>
-                    </label>
-                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Content tag
-                      <select value={pTag} onChange={(e) => setPTag(e.target.value)} style={{ padding: "8px 10px", border: `1px solid ${pTag ? "#d6dee6" : "#e2b3b3"}`, borderRadius: 7, fontSize: 13, fontFamily: "inherit", background: "#fff" }}>
-                        <option value="">Select content tag</option>
-                        {q.options.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                    </label>
-                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Word mispronounced
-                      <input value={pWord} onChange={(e) => setPWord(e.target.value)} placeholder="type the exact word you heard" style={{ padding: "8px 10px", border: "1px solid #d6dee6", borderRadius: 7, fontSize: 13, outline: "none", fontFamily: "inherit" }} />
-                    </label>
-                    <button onClick={submitPron} disabled={!pTag || !pWord.trim()} style={{ marginTop: 2, fontSize: 13.5, padding: "9px 0", borderRadius: 8, border: "none", background: (!pTag || !pWord.trim()) ? "#c8d6d0" : GREEN, color: "#fff", fontWeight: 600, cursor: (!pTag || !pWord.trim()) ? "not-allowed" : "pointer" }}>Add issue</button>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
-              {feedback === null && q && q.type === "issue" && (
-                <div className="jn-q" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 12, alignItems: "start" }}>
-                  <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                    <span style={{ fontSize: 11, color: MUT, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>Issue logging · question {idx + 1} of {total}</span>
-                    <div style={{ fontSize: 13.5, lineHeight: 1.55 }}>{q.setup}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#f5f7f9", borderRadius: 9, padding: "9px 11px" }}>
-                      <div onClick={() => play(idx, q.ts)} style={{ width: 34, height: 34, borderRadius: 999, background: INK, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", flex: "none" }}>{playingIdx === idx ? "❚❚" : "▶"}</div>
-                      <span className={mono.className} style={{ fontSize: 12 }}>{q.call_id.slice(0, 8)} @{q.ts}</span>
-                      <span style={{ fontSize: 11.5, color: MUT }}>· plays from ~2s before</span>
+              {feedback === null && q && q.type === "issue" && (() => {
+                const isPlaying = playingIdx === idx;
+                return (
+                  <div style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 15, maxWidth: 460, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Spot the issue</span>
+                      <span style={{ flex: 1 }} />
+                      <span className={mono.className} style={{ fontSize: 11.5, color: MUT }}>question {idx + 1} of {total}</span>
                     </div>
-                    <TranscriptPanel item={q} activeUserIdx={activeUserIdx} />
+                    <div style={{ fontSize: 13.5, color: MUT, lineHeight: 1.5 }}>{q.setup}</div>
+                    <button onClick={() => play(idx, q.ts)} style={{ height: 70, borderRadius: 14, border: "none", background: INK, color: "#fff", fontSize: 17, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                      <span style={{ fontSize: 20 }}>{isPlaying ? "❚❚" : "▶"}</span>{isPlaying ? "Playing…" : "Play the moment"}
+                    </button>
+                    <div style={{ fontSize: 12.5, color: MUT, textAlign: "center" }}>What kind of issue is this?</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                      {q.options.map((o) => (
+                        <button key={o} onClick={() => { setIType(o); record(idx, o === q.correct ? "match" : "miss"); }} style={{ minHeight: 54, borderRadius: 12, border: "1.5px solid #d6dee6", background: "#fff", color: INK, fontSize: 15, fontWeight: 600, cursor: "pointer", padding: "8px 12px", lineHeight: 1.3 }}>{o}</button>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ ...card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                    <span className={grotesk.className} style={{ fontWeight: 600, fontSize: 14 }}>Log the issue</span>
-                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Issue type
-                      <div style={{ padding: "8px 10px", border: "1px solid #d6dee6", borderRadius: 7, fontSize: 13, background: "#f5f7f9", color: INK }}>Response appropriateness</div>
-                    </label>
-                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Timestamp
-                      <div className={mono.className} style={{ padding: "8px 10px", border: "1px solid #d6dee6", borderRadius: 7, fontSize: 13, background: "#f5f7f9", color: INK }}>{q.ts}</div>
-                    </label>
-                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Type of error
-                      <select value={iType} onChange={(e) => setIType(e.target.value)} style={{ padding: "8px 10px", border: `1px solid ${iType ? "#d6dee6" : "#e2b3b3"}`, borderRadius: 7, fontSize: 13, fontFamily: "inherit", background: "#fff" }}>
-                        <option value="">Select type of error</option>
-                        {q.options.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                    </label>
-                    <label style={{ fontSize: 12, color: "#4d5a66", display: "flex", flexDirection: "column", gap: 4 }}>Explain the error
-                      <textarea value={iExpl} rows={2} onChange={(e) => setIExpl(e.target.value)} placeholder="one line: what went wrong?" style={{ padding: "8px 10px", border: "1px solid #d6dee6", borderRadius: 7, fontSize: 13, outline: "none", fontFamily: "inherit", resize: "vertical" }} />
-                    </label>
-                    <button onClick={submitIssue} disabled={!iType || !iExpl.trim()} style={{ marginTop: 2, fontSize: 13.5, padding: "9px 0", borderRadius: 8, border: "none", background: (!iType || !iExpl.trim()) ? "#c8d6d0" : GREEN, color: "#fff", fontWeight: 600, cursor: (!iType || !iExpl.trim()) ? "not-allowed" : "pointer" }}>Add issue</button>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {feedback !== null && fq && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 11, maxWidth: 660 }}>

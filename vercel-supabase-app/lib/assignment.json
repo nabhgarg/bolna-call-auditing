@@ -1,366 +1,199 @@
 {
  "trans": [
   {
-   "call_id": "250f1855-8fd4-4f91-b4f7-1ea54a2885ad",
-   "recording_url": "https://api.bolna.ai/recordings/call/250f1855-8fd4-4f91-b4f7-1ea54a2885ad",
+   "call_id": "bc2a8eda-122f-4a81-84d2-5459af6dbd1f",
+   "recording_url": "https://api.bolna.ai/recordings/call/bc2a8eda-122f-4a81-84d2-5459af6dbd1f",
    "turns": [
     {
      "who": "agent",
      "text": "Hello there?"
     },
     {
-     "who": "user",
-     "text": "hello"
-    },
-    {
      "who": "agent",
-     "text": "This is Pooja calling from Alibaba dot com, would you like to speak in English या आप हिन्दी में बात करना चाहते है?"
+     "text": "Hey, can you hear me?"
     },
     {
      "who": "user",
-     "text": "जी"
+     "text": "yeah"
     },
     {
      "who": "agent",
-     "text": "समझ गयी. बहुत सारे overseas buyers Alibaba dot com पर Indian suppliers को ढूँढ रहे हैं. क्या आप export business start करने के लिए open हैं?"
+     "text": "This is Pooja calling from Alibaba dot com, would you like to speak in English या आप हिन्दी में बात करना चाहते हैं?"
     },
     {
      "who": "user",
-     "text": "जी"
+     "text": "english"
     },
     {
      "who": "agent",
-     "text": "क्या मैं जान सकती हूँ कि आप किस type के products export करना चाहते हैं?"
+     "text": "Great. Now many overseas buyers are looking for Indian suppliers on Alibaba dot com. Are you open to starting export business?"
     },
     {
      "who": "user",
-     "text": "power tools"
+     "text": "yeah we are being export only"
     },
     {
      "who": "agent",
-     "text": "बहुत बढ़िया. P"
+     "text": "Great. May I know what kind of products you are planning to export?"
     },
     {
      "who": "user",
-     "text": "and self part"
+     "text": "right now we have been exporting commerce to four six countries"
     },
     {
      "who": "agent",
-     "text": "Great. Our expert can help you find buyers and navigate challenges. क्या हम 15 मिनट की call arrange करें?"
+     "text": "Got it. To help you grow, can we arrange a quick 15 minute call with our local trade consultant?"
     },
     {
      "who": "user",
-     "text": "हिंदी हिंदी हिंदी हिंदी हिंदी"
+     "text": "so can you tell me what's the purpose for that"
     },
     {
      "who": "agent",
-     "text": "जी ठीक है. क्या हम 15 मिनट की call arrange करें हमारे Local Trade Consultant के साथ?"
+     "text": "Sure. Our expert will guide you to find buyers and solve export challenges faster. Can we schedule the call?"
     },
     {
      "who": "user",
-     "text": "ठीक"
+     "text": "yeah can you note in one more number you can call that number is it ok for you"
     },
     {
      "who": "agent",
-     "text": "क्या आप अपनी current City या Location share कर सकते हैं ताकि हम आपको right Consultant assign कर सकें?"
+     "text": "Sure. Could you please share that number?"
     },
     {
      "who": "user",
-     "text": "गुजरात"
+     "text": "nine six double zero seven two five four six eight"
     },
     {
      "who": "agent",
-     "text": "क्या आप चाहेंगे कि मैं इसी number पर Export Basics का एक guide WhatsApp कर दूँ?"
+     "text": "Thank you. Could you please share your city or general location so we can assign the right consultant?"
     },
     {
      "who": "user",
-     "text": "what"
+     "text": "तो we are in south india like तमिलनाडु"
     },
     {
      "who": "agent",
-     "text": "क्या आप चाहेंगे कि मैं इसी number पर Export Basics का एक guide WhatsApp कर दूँ?"
+     "text": "Great. Would you like me to send you a quick reference guide on export basics via WhatsApp on this number?"
     },
     {
      "who": "user",
-     "text": "जी भेजिए"
+     "text": "i told no right now nine zero seven two five four eight that is your whatsapp number"
     },
     {
      "who": "agent",
-     "text": "ठीक है! मैं आपको WhatsApp पर guide भेज दूँगी. Wishing you success. Goodbye!"
+     "text": "Got it. I will send the guide to your WhatsApp number 9072548. Thank you! Our local advisor will call you soon. Wishing you success, Goodbye!"
     }
    ],
    "anchors": [
     {
      "text": "hello",
-     "s": 5.56,
-     "e": 6.85
+     "s": 5.53,
+     "e": 6.74
     },
     {
-     "text": "जी",
-     "s": 16.36,
-     "e": 17.4
+     "text": "yeah we are being export only",
+     "s": 28.73,
+     "e": 32.56
     },
     {
-     "text": "जी",
-     "s": 27.76,
-     "e": 29.98
+     "text": "right now we have been exporting commerce to four six countries",
+     "s": 38.33,
+     "e": 43.76
     },
     {
-     "text": "and self part",
-     "s": 39.76,
-     "e": 41.79
+     "text": "so can you tell me what's the purpose for that",
+     "s": 51.73,
+     "e": 54.56
     },
     {
-     "text": "हिंदी हिंदी हिंदी हिंदी हिंदी",
-     "s": 46.56,
-     "e": 49.59
+     "text": "yeah can you note in one more number you can call that number is it ok for you",
+     "s": 63.33,
+     "e": 68.57
     },
     {
-     "text": "ठीक",
-     "s": 55.56,
-     "e": 58.78
+     "text": "nine six double zero seven two five four six eight",
+     "s": 72.53,
+     "e": 77.36
     },
     {
-     "text": "what",
-     "s": 77.16,
-     "e": 79.23
+     "text": "तो we are in south india like तमिलनाडु",
+     "s": 84.53,
+     "e": 90.95
     },
     {
-     "text": "जी भेजिए",
-     "s": 85.96,
-     "e": 88.98
+     "text": "i told no right now nine zero seven two five four eight that is your whatsapp number",
+     "s": 98.93,
+     "e": 104.77
     }
    ],
    "segments": [
     {
      "ts": "00:05",
-     "s": 5.56,
-     "e": 6.85,
+     "s": 5.53,
+     "e": 6.74,
      "asr": "hello",
      "golden": "hello",
      "isCorrect": true
     },
     {
-     "ts": "00:16",
-     "s": 16.36,
-     "e": 17.4,
-     "asr": "जी",
-     "golden": "जी",
+     "ts": "00:28",
+     "s": 28.73,
+     "e": 32.56,
+     "asr": "yeah we are being export only",
+     "golden": "yeah we are being export only",
      "isCorrect": true
     },
     {
-     "ts": "00:27",
-     "s": 27.76,
-     "e": 29.98,
-     "asr": "जी",
-     "golden": "जी",
-     "isCorrect": true
-    },
-    {
-     "ts": "00:39",
-     "s": 39.76,
-     "e": 41.79,
-     "asr": "and self part",
-     "golden": "and spare part",
-     "isCorrect": false
-    },
-    {
-     "ts": "00:46",
-     "s": 46.56,
-     "e": 49.59,
-     "asr": "हिंदी हिंदी हिंदी हिंदी हिंदी",
-     "golden": "हिंदी हिंदी हिंदी हिंदी हिंदी",
-     "isCorrect": true
-    },
-    {
-     "ts": "00:55",
-     "s": 55.56,
-     "e": 58.78,
-     "asr": "ठीक",
-     "golden": "ठीक",
-     "isCorrect": true
-    },
-    {
-     "ts": "01:17",
-     "s": 77.16,
-     "e": 79.23,
-     "asr": "what",
-     "golden": "what",
-     "isCorrect": true
-    },
-    {
-     "ts": "01:25",
-     "s": 85.96,
-     "e": 88.98,
-     "asr": "जी भेजिए",
-     "golden": "जी भेजिए",
-     "isCorrect": true
-    }
-   ],
-   "explain": "One wrong segment in this call: the user asked about a spare part, the ASR wrote \"self part\". One word, but it changes what the customer wants and the agent searched the wrong thing. Every other turn here was clean, so the skill is catching the one that isn't without flagging the rest."
-  },
-  {
-   "call_id": "37b2d355-5bf9-4be8-bb40-14b0c4f89ba5",
-   "recording_url": "https://api.bolna.ai/recordings/call/37b2d355-5bf9-4be8-bb40-14b0c4f89ba5",
-   "turns": [
-    {
-     "who": "agent",
-     "text": "Hello, मैं नेहा बोल रही हूँ जीना सीखो से। क्या यह बात करने के लिए सही समय है? सिर्फ 2 मिनट लगेंगे।"
-    },
-    {
-     "who": "user",
-     "text": "हां बोलिए"
-    },
-    {
-     "who": "agent",
-     "text": "आप जीना सीखो से नेहा बोल रही हूँ। क्या आप Sea Buckthorn Juice with Ashwagandha खरीदने में interested थे? आपका order अभी cart में रखा है।"
-    },
-    {
-     "who": "user",
-     "text": "हां बोल हां"
-    },
-    {
-     "who": "agent",
-     "text": "अगर आप अभी checkout करें तो मैं आपकी मदद कर सकती हूँ। आपका total Six Thousand One Hundred Fifty Rupees है। आप चाहें तो अभी checkout कर सकते हैं?"
-    },
-    {
-     "who": "user",
-     "text": "कितना"
-    },
-    {
-     "who": "agent",
-     "text": "आपका total Six Thousand One Hundred Fifty Rupees है, वैसे इसमें अभी कोई discount नहीं है। क्या मैं आपका checkout link WhatsApp पर भेज दूँ?"
-    },
-    {
-     "who": "user",
-     "text": "हां भेज दीजिए"
-    },
-    {
-     "who": "agent",
-     "text": "बस एक मिनट दीजिए, मैं अभी वापस आती हूँ।"
-    },
-    {
-     "who": "agent",
-     "text": "Great - मैंने checkout link आपके WhatsApp पर भेज दिया है। क्या मैं आपकी और किसी चीज़ में मदद कर सकती हूँ?"
-    },
-    {
-     "who": "user",
-     "text": "नहीं बस यही वाला order करना था"
-    },
-    {
-     "who": "agent",
-     "text": "धन्यवाद! जीना सीखो के साथ खरीदारी का आनंद लें - आपका दिन शुभ हो।"
-    }
-   ],
-   "anchors": [
-    {
-     "text": "अब",
-     "s": 2.97,
-     "e": 6.03
-    },
-    {
-     "text": "हां बोलिए",
-     "s": 8.17,
-     "e": 13.03
-    },
-    {
-     "text": "हां बोलिए",
-     "s": 17.97,
-     "e": 20.41
-    },
-    {
-     "text": "हां बोल हां",
-     "s": 24.57,
-     "e": 27.03
-    },
-    {
-     "text": "कितना",
-     "s": 37.57,
-     "e": 41.6
-    },
-    {
-     "text": "one hundred",
-     "s": 43.37,
-     "e": 43.97
-    },
-    {
-     "text": "हां भेज दीजिए",
-     "s": 51.57,
-     "e": 53.8
-    },
-    {
-     "text": "नहीं बस यही वाला order करना था",
-     "s": 68.77,
-     "e": 73.41
-    }
-   ],
-   "segments": [
-    {
-     "ts": "00:02",
-     "s": 2.97,
-     "e": 6.03,
-     "asr": "अब",
-     "golden": "अब",
-     "isCorrect": true
-    },
-    {
-     "ts": "00:08",
-     "s": 8.17,
-     "e": 13.03,
-     "asr": "हां बोलिए",
-     "golden": "हां बोलिए",
-     "isCorrect": true
-    },
-    {
-     "ts": "00:17",
-     "s": 17.97,
-     "e": 20.41,
-     "asr": "हां बोलिए",
-     "golden": "हां बोलिए",
-     "isCorrect": true
-    },
-    {
-     "ts": "00:24",
-     "s": 24.57,
-     "e": 27.03,
-     "asr": "हां बोल हां",
-     "golden": "हां बोल हां",
-     "isCorrect": true
-    },
-    {
-     "ts": "00:37",
-     "s": 37.57,
-     "e": 41.6,
-     "asr": "कितना",
-     "golden": "कितना one hundred",
-     "isCorrect": false
-    },
-    {
-     "ts": "00:43",
-     "s": 43.37,
-     "e": 43.97,
-     "asr": "one hundred",
-     "golden": "one hundred",
+     "ts": "00:38",
+     "s": 38.33,
+     "e": 43.76,
+     "asr": "right now we have been exporting commerce to four six countries",
+     "golden": "right now we have been exporting commerce to four six countries",
      "isCorrect": true
     },
     {
      "ts": "00:51",
-     "s": 51.57,
-     "e": 53.8,
-     "asr": "हां भेज दीजिए",
-     "golden": "हां भेज दीजिए",
+     "s": 51.73,
+     "e": 54.56,
+     "asr": "so can you tell me what's the purpose for that",
+     "golden": "so can you tell me what's the purpose for that",
      "isCorrect": true
     },
     {
-     "ts": "01:08",
-     "s": 68.77,
-     "e": 73.41,
-     "asr": "नहीं बस यही वाला order करना था",
-     "golden": "नहीं बस यही वाला order करना था",
+     "ts": "01:03",
+     "s": 63.33,
+     "e": 68.57,
+     "asr": "yeah can you note in one more number you can call that number is it ok for you",
+     "golden": "yeah can you note in one more number you can call that number is it ok for you",
+     "isCorrect": true
+    },
+    {
+     "ts": "01:12",
+     "s": 72.53,
+     "e": 77.36,
+     "asr": "nine six double zero seven two five four six eight",
+     "golden": "nine six double zero seven two five four six eight",
+     "isCorrect": true
+    },
+    {
+     "ts": "01:24",
+     "s": 84.53,
+     "e": 90.95,
+     "asr": "तो we are in south india like तमिलनाडु",
+     "golden": "तो we are in south india like district तमिलनाडु",
+     "isCorrect": false
+    },
+    {
+     "ts": "01:38",
+     "s": 98.93,
+     "e": 104.77,
+     "asr": "i told no right now nine zero seven two five four eight that is your whatsapp number",
+     "golden": "i told no right now nine zero seven two five four eight that is your whatsapp number",
      "isCorrect": true
     }
    ],
-   "explain": "The user said \"कितना... one hundred\" and the amount got dropped. The number the user gives IS the order, so a missed word here costs money. The rest of the call was transcribed correctly."
+   "explain": "The user talks in long sentences here. One word got dropped: they said \"...south india like district तमिलनाडु\" and the ASR left out \"district\". In a long turn it is easy to skim past - the skill is reading every word against the audio, catching the one miss, and NOT flagging the other long turns that were transcribed right."
   },
   {
    "call_id": "113885dc-92da-4e70-a76d-df66647a77f6",
@@ -519,7 +352,7 @@
      "isCorrect": true
     }
    ],
-   "explain": "A clean call: the ASR heard every turn right. Half the skill is NOT flagging good segments, so the correct move is to mark them all correct. False-flagging wastes expert time and poisons the golden dataset."
+   "explain": "A clean call with some long user sentences. The ASR heard every turn right. Half the skill is NOT flagging good segments - especially long ones, where it is tempting to assume something must be wrong. Mark them all correct; false-flagging poisons the golden dataset."
   }
  ],
  "pron": [
