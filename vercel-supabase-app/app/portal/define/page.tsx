@@ -1,97 +1,88 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
-import { INK, MUT, GREEN, PURPLE, AMBER, RED, card } from "../../../lib/ui";
+import { INK, MUT, GREEN, PURPLE, card } from "../../../lib/ui";
+import { LANE_LABEL, type EngineDesign, type Lane } from "../../../lib/engine";
 
-// Client Input · "describe your use case in plain language, we turn it into
-// review tasks". Two halves: the natural-language box + key-info form on the
-// left, and the metrics we detected on the right (transcription / number-input
-// capture / factual accuracy), each with what humans will actually check and
-// what it costs. This is the screen a client sees before a program exists.
+// Client Input · the front door of the Engine.
+// The client writes their task in plain language; the Engine (POST /api/engine)
+// breaks it into sub-tasks a screened human can do accurately, says what the
+// screening must prove, and designs the process that turns that work into fast
+// accurate output. Nothing here is a rubric builder: the client never picks a
+// metric, they describe the job.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"] });
 
-type MetricKey = "transcription" | "number_capture" | "factual";
-type Metric = {
-  key: MetricKey; label: string; blurb: string; lane: "human" | "mixed";
-  checks: string[]; rate: string; hint: RegExp;
-};
-
-const METRICS: Metric[] = [
-  {
-    key: "transcription", label: "Transcription accuracy", lane: "human",
-    blurb: "Code-mixed Hindi/English written the way it was spoken.",
-    checks: ["Hindi in Devanagari, English in Roman", "Addresses and place names tagged", "Numbers written as spoken"],
-    rate: "₹120 / call",
-    hint: /hinglish|hindi|devanagari|transcri|language|address|regional|tamil|telugu|marathi|bengali/i,
-  },
-  {
-    key: "number_capture", label: "Number & input capture", lane: "human",
-    blurb: "What the user actually said vs what the bot captured.",
-    checks: ["Amounts, OTPs, order and phone numbers", "Answers the bot never registered", "Digits misheard mid-call"],
-    rate: "₹28 / review",
-    hint: /number|otp|amount|digit|input|capture|phone|order id|pincode|quantity/i,
-  },
-  {
-    key: "factual", label: "Factual accuracy", lane: "mixed",
-    blurb: "Every claim checked against your knowledge base.",
-    checks: ["Prices, offers and policy claims", "Invented product or service details", "Answers outside the knowledge base"],
-    rate: "₹40 / review",
-    hint: /fact|knowledge base|kb|policy|price|catalog|hallucinat|accurate|wrong info|claim/i,
-  },
-];
-
 const EXAMPLE = "Our voice agent calls customers in Hindi and English to confirm orders. It has to capture the order amount and the delivery address correctly, and it should only quote prices from our catalog.";
+const VOLUMES: [string, number][] = [["under 500", 300], ["500-2,000", 1200], ["2,000+", 5000]];
+const laneStyle = (l: Lane) => l === "judge_owned"
+  ? { bg: "#f3eefc", fg: PURPLE }
+  : l === "judge_assist" ? { bg: "#f5f2fb", fg: PURPLE } : { bg: "#e7f4ee", fg: GREEN };
 
 export default function Define() {
   const [desc, setDesc] = useState("");
   const [name, setName] = useState("");
   const [kind, setKind] = useState("Voice agent");
   const [langs, setLangs] = useState<string[]>(["Hindi", "Hinglish"]);
-  const [volume, setVolume] = useState("500-2,000");
-  const [manual, setManual] = useState<MetricKey[]>([]);
+  const [vol, setVol] = useState(1200);
+  const [design, setDesign] = useState<EngineDesign | null>(null);
+  const [busy, setBusy] = useState(false);
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const lastRef = useRef("");
 
-  React.useEffect(() => { setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert"); }, []);
+  useEffect(() => { setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert"); }, []);
 
-  // metrics detected from the plain-language description, plus manual toggles
-  const detected = useMemo(() => {
-    const auto = METRICS.filter((m) => m.hint.test(desc)).map((m) => m.key);
-    return new Set<MetricKey>([...auto, ...manual]);
-  }, [desc, manual]);
-  const toggle = (k: MetricKey) => setManual((s) => (detected.has(k) ? s.filter((x) => x !== k) : [...s, k]));
-
-  const nCalls = Number(String(volume).replace(/[^\d]/g, "").slice(0, 4)) || 500;
-  const sampled = Math.max(60, Math.round(nCalls * 0.35));
-  const ready = desc.trim().length > 25 && detected.size > 0;
+  // run the engine as they type (debounced) · this is the "it already knows" moment
+  useEffect(() => {
+    const task = desc.trim();
+    clearTimeout(debounceRef.current);
+    if (task.length < 20) { setDesign(null); return; }
+    setBusy(true);
+    debounceRef.current = setTimeout(async () => {
+      const stamp = task + "|" + vol;
+      lastRef.current = stamp;
+      try {
+        const d = await fetch("/api/engine", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ task, callsPerWeek: vol }) }).then((r) => r.json());
+        if (lastRef.current === stamp) setDesign(d);
+      } catch { /* keep the last good design */ }
+      if (lastRef.current === stamp) setBusy(false);
+    }, 700);
+    return () => clearTimeout(debounceRef.current);
+  }, [desc, vol]);
 
   if (allowed === false) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The portal is available to experts. Log in on the <a href="/" style={{ color: GREEN }}>main app</a> first.</main>;
+
+  const subs = design?.subtasks || [];
+  const p = design?.process;
+  const ready = subs.length > 0;
 
   return (
     <PortalShell right={
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "11px 22px", flexWrap: "wrap" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>New use case</span>
-        <span style={{ fontSize: 12.5, color: MUT }}>describe it in plain language · we turn it into review tasks</span>
+        <span style={{ fontSize: 12.5, color: MUT }}>describe the job · we design the human pipeline that does it</span>
       </div>
     }>
-      <div className={instrument.className} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, padding: "16px 22px 30px", alignItems: "start", color: INK }}>
+      <div className={instrument.className} style={{ display: "grid", gridTemplateColumns: "1fr 1.15fr", gap: 16, padding: "16px 22px 30px", alignItems: "start", color: INK }}>
 
-        {/* LEFT · natural language + key info */}
+        {/* LEFT · the task */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
               <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>What should the AI get right?</span>
               <div style={{ fontSize: 12, color: MUT, marginTop: 2 }}>Write it the way you would explain it to a new teammate. No rubric, no schema.</div>
             </div>
-            <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={7}
-              placeholder={EXAMPLE}
+            <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={7} placeholder={EXAMPLE}
               style={{ width: "100%", boxSizing: "border-box", fontSize: 14, lineHeight: 1.6, padding: "12px 14px", border: "1px solid #d6dee6", borderRadius: 10, fontFamily: "inherit", outline: "none", resize: "vertical" }} />
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button onClick={() => setDesc(EXAMPLE)} style={{ fontSize: 12, padding: "6px 11px", borderRadius: 7, border: "1px solid #d6dee6", background: "#fff", color: "#4d5a66", cursor: "pointer" }}>Use an example</button>
-              <span style={{ fontSize: 11.5, color: MUT }}>{desc.trim().length > 25 ? "Metrics detected on the right." : "Keep typing · we pick the metrics up as you go."}</span>
+              <span style={{ fontSize: 11.5, color: busy ? GREEN : MUT }}>
+                {busy ? "Designing the pipeline…" : ready ? `${subs.length} sub-tasks · ready to run` : "Describe the job · the pipeline appears as you type."}
+              </span>
             </div>
           </div>
 
@@ -122,64 +113,98 @@ export default function Define() {
             <div>
               <div style={{ fontSize: 12, color: "#4d5a66", marginBottom: 5 }}>Calls per week</div>
               <div style={{ display: "flex", background: "#eef2f6", borderRadius: 9, padding: 3, gap: 3 }}>
-                {["under 500", "500-2,000", "2,000+"].map((v) => (
-                  <div key={v} onClick={() => setVolume(v)} style={{ flex: 1, textAlign: "center", fontSize: 12, padding: "7px 0", borderRadius: 7, cursor: "pointer", fontWeight: 600, background: v === volume ? "#fff" : "transparent", color: v === volume ? INK : MUT, boxShadow: v === volume ? "0 1px 2px rgba(16,24,31,.08)" : "none" }}>{v}</div>
+                {VOLUMES.map(([label, v]) => (
+                  <div key={label} onClick={() => setVol(v)} style={{ flex: 1, textAlign: "center", fontSize: 12, padding: "7px 0", borderRadius: 7, cursor: "pointer", fontWeight: 600, background: v === vol ? "#fff" : "transparent", color: v === vol ? INK : MUT, boxShadow: v === vol ? "0 1px 2px rgba(16,24,31,.08)" : "none" }}>{label}</div>
                 ))}
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT · what we will measure */}
+        {/* RIGHT · the pipeline the engine designed */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 11 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-              <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>What we will measure</span>
-              <span style={{ fontSize: 12, color: MUT }}>picked up from your description · click to add or remove</span>
+              <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>The pipeline we will run</span>
+              <span style={{ fontSize: 12, color: MUT }}>your job, broken into work a screened human does accurately</span>
             </div>
-            {METRICS.map((m) => {
-              const on = detected.has(m.key);
+
+            {!ready && (
+              <div style={{ border: "1px dashed #dbe3ea", borderRadius: 12, padding: "26px 18px", textAlign: "center", color: MUT, fontSize: 12.5 }}>
+                {busy ? "Reading your description…" : "Nothing yet. Describe the job on the left and the sub-tasks appear here."}
+              </div>
+            )}
+
+            {subs.map((s) => {
+              const ls = laneStyle(s.lane);
               return (
-                <div key={m.key} onClick={() => toggle(m.key)}
-                  style={{ border: `1.5px solid ${on ? GREEN : "#e6ebf0"}`, background: on ? "#f7fbf9" : "#fff", borderRadius: 12, padding: "13px 15px", cursor: "pointer", transition: "background .15s" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                    <span style={{ width: 18, height: 18, borderRadius: 5, flex: "none", border: `1.5px solid ${on ? GREEN : "#c8d2db"}`, background: on ? GREEN : "#fff", color: "#fff", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>{on ? "✓" : ""}</span>
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>{m.label}</span>
+                <div key={s.key + s.label} style={{ border: `1px solid ${s.novel ? "#e2d9f5" : "#e6ebf0"}`, background: s.novel ? "#fbf9ff" : "#fff", borderRadius: 12, padding: "13px 15px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{s.label}</span>
+                    {s.novel && <span style={{ borderRadius: 999, fontSize: 10.5, fontWeight: 600, padding: "3px 9px", background: "#f3eefc", color: PURPLE }}>new capability</span>}
                     <span style={{ flex: 1 }} />
-                    <span style={{ borderRadius: 999, fontSize: 10.5, fontWeight: 600, padding: "3px 9px", background: m.lane === "human" ? "#e7f4ee" : "#f3eefc", color: m.lane === "human" ? GREEN : PURPLE }}>{m.lane === "human" ? "100% human" : "judge + human"}</span>
+                    <span style={{ borderRadius: 999, fontSize: 10.5, fontWeight: 600, padding: "3px 9px", background: ls.bg, color: ls.fg }}>{LANE_LABEL[s.lane]}</span>
+                    {!s.novel && <span className={mono.className} style={{ fontSize: 11, color: MUT }}>₹{s.rateInr} / {s.unit}</span>}
                   </div>
-                  <div style={{ fontSize: 12, color: MUT, marginTop: 5, marginLeft: 27 }}>{m.blurb}</div>
-                  {on && (
-                    <div style={{ marginLeft: 27, marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-                      {m.checks.map((c) => <div key={c} style={{ fontSize: 12, color: "#4d5a66" }}><span style={{ color: GREEN }}>·</span> {c}</div>)}
-                      <div className={mono.className} style={{ fontSize: 11, color: MUT, marginTop: 3 }}>{m.rate}</div>
-                    </div>
-                  )}
+                  {s.why && <div style={{ fontSize: 12.5, color: "#4d5a66", marginTop: 6, lineHeight: 1.5 }}>{s.why}</div>}
+                  <div style={{ fontSize: 11.5, color: MUT, marginTop: 6, lineHeight: 1.5 }}>
+                    <b style={{ color: INK }}>Reviewer sees:</b> {s.unitOfWork}. <b style={{ color: INK }}>Decides:</b> {s.decision}
+                  </div>
+                  <div style={{ fontSize: 11, color: MUT, marginTop: 6, lineHeight: 1.5, borderTop: "1px solid #f0f3f6", paddingTop: 6 }}>
+                    {s.laneReason}
+                    {!s.novel && s.humanScore > 0 && (
+                      <> <span className={mono.className} style={{ color: GREEN }}>human {s.humanScore}</span>
+                        {s.judgeScore !== null && <> <span className={mono.className} style={{ color: PURPLE }}>· judge {s.judgeScore}</span></>}</>
+                    )}
+                  </div>
                 </div>
               );
             })}
-            {detected.size === 0 && <div style={{ fontSize: 12, color: MUT }}>Nothing detected yet. Describe what the AI must get right, or pick a metric above.</div>}
           </div>
 
-          <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10, borderLeft: `4px solid ${ready ? GREEN : "#e6ebf0"}` }}>
-            <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>What happens next</span>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {[[String(detected.size), "metrics become review tasks"], [sampled.toLocaleString(), "calls sampled in week one"], ["3+", "reviewers per call"]].map(([n, l]) => (
-                <div key={l} style={{ flex: 1, minWidth: 130, background: "#f5f7f9", borderRadius: 10, padding: "11px 13px" }}>
-                  <div className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{n}</div>
-                  <div style={{ fontSize: 11, color: MUT }}>{l}</div>
+          {ready && p && (
+            <>
+              <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 9 }}>
+                <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Who we route it to</span>
+                <div style={{ fontSize: 12, color: MUT, marginTop: -4 }}>only reviewers who prove they can do the sub-task get the work</div>
+                {(design?.screening || []).map((s) => (
+                  <div key={s.capability} style={{ fontSize: 12, color: "#4d5a66", lineHeight: 1.5, display: "flex", gap: 8 }}>
+                    <span style={{ color: GREEN, flex: "none" }}>✓</span>
+                    <span><b style={{ color: INK }}>{s.capability}:</b> {s.proves}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 11, borderLeft: `4px solid ${GREEN}` }}>
+                <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>The process that keeps it accurate</span>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {[
+                    [p.sampledPerWeek.toLocaleString(), "calls sampled / week"],
+                    [`${p.redundancy}+`, "reviewers per call"],
+                    [p.hiddenGtPerWeek.toLocaleString(), "hidden expert-rated calls seeded"],
+                    [p.panelSize.toLocaleString(), "reviewers on the panel"],
+                  ].map(([n, l]) => (
+                    <div key={l} style={{ flex: 1, minWidth: 132, background: "#f5f7f9", borderRadius: 10, padding: "11px 13px" }}>
+                      <div className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{n}</div>
+                      <div style={{ fontSize: 11, color: MUT, lineHeight: 1.35 }}>{l}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div style={{ fontSize: 12, color: MUT, lineHeight: 1.55 }}>
-              We convert each metric into the reviewer task that measures it, screen the panel on your own calls, and seed hidden expert-rated calls so you can see the panel&apos;s reliability from day one.
-            </div>
-            <a href={ready ? "/portal/agents" : undefined}
-              style={{ height: 44, borderRadius: 9, background: ready ? GREEN : "#c8d6d0", color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", cursor: ready ? "pointer" : "not-allowed", marginTop: 2 }}>
-              {ready ? "Create the program →" : "Describe your use case to continue"}
-            </a>
-            <div style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>Prefer to wire it from code? <a href="/portal/connect" style={{ color: GREEN }}>Connect via MCP</a></div>
-          </div>
+                <div style={{ fontSize: 12, color: MUT, lineHeight: 1.55 }}>
+                  Every unit is done by <b style={{ color: INK }}>{p.redundancy} independent reviewers</b> and we seed expert-rated calls they cannot spot, so you see the panel&apos;s reliability, not our word for it. Target <b style={{ color: INK }}>{p.reliabilityTarget.interPanel}% agreement between reviewers</b> and <b style={{ color: INK }}>{p.reliabilityTarget.vsGroundTruth}% against ground truth</b>.
+                </div>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid #eef2f6", paddingTop: 10, fontSize: 12, color: MUT }}>
+                  <span><b className={mono.className} style={{ color: INK }}>{p.reviewerHoursPerWeek.toLocaleString()}</b> reviewer hours / week</span>
+                  <span><b className={mono.className} style={{ color: INK }}>₹{p.weeklyCostInr.toLocaleString()}</b> / week</span>
+                  <span><b className={mono.className} style={{ color: INK }}>{p.daysToLive} days</b> to first output</span>
+                </div>
+                <a href="/portal/agents" style={{ height: 44, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", marginTop: 2 }}>
+                  Start this pipeline →
+                </a>
+                <div style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>Prefer to wire it from code? <a href="/portal/connect" style={{ color: GREEN }}>Connect via MCP</a></div>
+              </div>
+            </>
+          )}
         </div>
 
       </div>
