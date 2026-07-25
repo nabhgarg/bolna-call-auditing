@@ -90,19 +90,32 @@ export default function NewUseCase() {
 
   useEffect(() => { setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert"); }, []);
 
-  // what the client typed wins; a daily figure becomes weekly. Falls back to
-  // the reference volume only when they leave it blank.
+  // Volume is asked on the plan, not in the composer · the client sees what we
+  // would check first, then tells us how much of it there is. A daily figure
+  // becomes weekly. Blank falls back to whatever the resolver assumed.
   const typedVolume = Math.max(0, Math.round(Number(String(vol).replace(/[^\d]/g, "")) || 0));
-  const askedCallsPerWeek = typedVolume > 0
+  const volumeCallsPerWeek = typedVolume > 0
     ? (cadence === "recurring" && volUnit === "day" ? typedVolume * 7 : typedVolume)
-    : DEFAULT_CALLS;
-  const callsPerWeek = res ? res.facts.callsPerWeek : askedCallsPerWeek;
+    : 0;
+  const callsPerWeek = volumeCallsPerWeek || res?.facts.callsPerWeek || DEFAULT_CALLS;
   const canAnalyse = desc.trim().length >= 40;
+
+  // reprice whenever the client changes the volume on the plan
+  useEffect(() => {
+    if (!res || started) return;
+    reprice(sel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [callsPerWeek]);
 
   async function reprice(ids: string[]) {
     try {
       const d = await fetch("/api/use-cases/estimate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids, callsPerWeek }) }).then((r) => r.json());
       setEst(d.estimate);
+      // keep each card's "840 calls / wk at a 40% sample" line honest when the
+      // client changes the volume
+      if (Array.isArray(d.checks)) {
+        setRes((prev) => prev ? { ...prev, checks: prev.checks.map((c) => d.checks.find((n: Check) => n.id === c.id) || c) } : prev);
+      }
       return d.checks as Check[];
     } catch { return []; }
   }
@@ -113,7 +126,7 @@ export default function NewUseCase() {
     try {
       const d: Resolved = await fetch("/api/use-cases/resolve", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ description: desc.trim(), callsPerWeek: askedCallsPerWeek, docs, cadence }),
+        body: JSON.stringify({ description: desc.trim(), callsPerWeek: DEFAULT_CALLS, docs, cadence }),
       }).then((r) => r.json());
       if (!d?.checks) { setPhase("blank"); return; }
       setRes(d); setSel(d.checks.map((c) => c.id)); setEst(d.estimate); setPhase("answered");
@@ -168,7 +181,7 @@ export default function NewUseCase() {
     try {
       await fetch("/api/use-cases", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ description: desc.trim(), facts: { ...res?.facts, cadence }, ids: sel, status: "pilot" }),
+        body: JSON.stringify({ description: desc.trim(), facts: { ...res?.facts, cadence, callsPerWeek }, ids: sel, status: "pilot" }),
       });
     } catch { /* the pilot is confirmed on screen either way */ }
   }
@@ -213,20 +226,6 @@ export default function NewUseCase() {
                         style={{ fontSize: 12, fontWeight: cadence === v ? 600 : 400, padding: "5px 11px", borderRadius: 6, border: "none", cursor: "pointer", background: cadence === v ? "#fff" : "transparent", color: cadence === v ? INK : MUT, boxShadow: cadence === v ? "0 1px 2px rgba(16,24,31,.08)" : "none", fontFamily: "inherit" }}>{l}</button>
                     ))}
                   </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 12, color: MUT }}>to check</span>
-                  <input value={vol} onChange={(e) => setVol(e.target.value)} disabled={phase === "resolving"} inputMode="numeric"
-                    placeholder={String(DEFAULT_CALLS)}
-                    style={{ width: 74, fontSize: 12.5, fontFamily: "inherit", color: INK, padding: "5px 9px", borderRadius: 7, border: "1px solid #d6dee6", outline: "none", textAlign: "right" }} />
-                  {cadence === "recurring" ? (
-                    <div style={{ display: "inline-flex", background: "#eef2f6", borderRadius: 8, padding: 2, gap: 2 }}>
-                      {([["week", "calls a week"], ["day", "calls a day"]] as ["week" | "day", string][]).map(([v, l]) => (
-                        <button key={v} onClick={() => setVolUnit(v)} disabled={phase === "resolving"}
-                          style={{ fontSize: 12, fontWeight: volUnit === v ? 600 : 400, padding: "5px 11px", borderRadius: 6, border: "none", cursor: "pointer", background: volUnit === v ? "#fff" : "transparent", color: volUnit === v ? INK : MUT, boxShadow: volUnit === v ? "0 1px 2px rgba(16,24,31,.08)" : "none", fontFamily: "inherit" }}>{l}</button>
-                      ))}
-                    </div>
-                  ) : <span style={{ fontSize: 12, color: MUT }}>calls in the batch</span>}
                   <span style={{ flex: 1 }} />
                   <button onClick={analyse} disabled={!canAnalyse || phase === "resolving"}
                     style={{ fontSize: 13.5, fontWeight: 600, padding: "9px 20px", borderRadius: 8, border: "none", background: GREEN, color: "#fff", cursor: canAnalyse ? "pointer" : "not-allowed", opacity: canAnalyse ? 1 : 0.45 }}>
@@ -272,7 +271,7 @@ export default function NewUseCase() {
                     )}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
                       <span className={mono.className} style={{ fontSize: 11, color: MUT }}>
-                        {res.facts.callsPerWeek.toLocaleString()} calls / wk · {res.facts.languages.join(", ")}{res.facts.docs[0] ? ` · ${res.facts.docs[0].name}` : ""}
+                        {callsPerWeek.toLocaleString()} calls{cadence === "recurring" ? " / wk" : ""} · {res.facts.languages.join(", ")}{res.facts.docs[0] ? ` · ${res.facts.docs[0].name}` : ""}
                       </span>
                       <span style={{ flex: 1 }} />
                       <button onClick={() => setPhase("blank")} style={{ fontSize: 12, color: MUT, background: "transparent", border: "1px solid #e2e8ee", borderRadius: 7, padding: "4px 11px", cursor: "pointer" }}>Edit</button>
@@ -359,7 +358,25 @@ export default function NewUseCase() {
             {/* RIGHT RAIL */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 16 }}>
               <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
-                <span style={{ fontSize: 12.5, color: MUT }}>{cadence === "recurring" ? `Your estimate at ${callsPerWeek.toLocaleString()} calls a week` : `Your estimate for this ${callsPerWeek.toLocaleString()}-call batch`}</span>
+                {/* volume lives here · they see the plan first, then tell us
+                    how much of it there is, and every price follows */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12.5, color: MUT }}>{cadence === "recurring" ? "How many calls do you want checked?" : "How big is this batch?"}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <input value={vol} onChange={(e) => setVol(e.target.value)} disabled={started} inputMode="numeric"
+                    placeholder={String(res.facts.callsPerWeek)}
+                    style={{ width: 88, fontSize: 14, fontWeight: 600, fontFamily: "inherit", color: INK, padding: "7px 10px", borderRadius: 8, border: `1px solid ${GREEN}`, outline: "none", textAlign: "right" }} />
+                  {cadence === "recurring" ? (
+                    <div style={{ display: "inline-flex", background: "#eef2f6", borderRadius: 8, padding: 2, gap: 2 }}>
+                      {([["week", "a week"], ["day", "a day"]] as ["week" | "day", string][]).map(([v, l]) => (
+                        <button key={v} onClick={() => setVolUnit(v)} disabled={started}
+                          style={{ fontSize: 12, fontWeight: volUnit === v ? 600 : 400, padding: "6px 12px", borderRadius: 6, border: "none", cursor: started ? "default" : "pointer", background: volUnit === v ? "#fff" : "transparent", color: volUnit === v ? INK : MUT, boxShadow: volUnit === v ? "0 1px 2px rgba(16,24,31,.08)" : "none", fontFamily: "inherit" }}>{l}</button>
+                      ))}
+                    </div>
+                  ) : <span style={{ fontSize: 12.5, color: MUT }}>calls in this batch</span>}
+                </div>
+                <span style={{ fontSize: 12.5, color: MUT, borderTop: "1px solid #eef2f6", paddingTop: 10 }}>{cadence === "recurring" ? `Your estimate at ${callsPerWeek.toLocaleString()} calls a week` : `Your estimate for this ${callsPerWeek.toLocaleString()}-call batch`}</span>
                 <div className={grotesk.className} style={{ fontSize: 29, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>
                   ₹{(est?.weeklyInr ?? 0).toLocaleString()} <span style={{ fontSize: 15, color: MUT, fontWeight: 500 }}>{cadence === "recurring" ? "/ wk" : "once"}</span>
                 </div>
@@ -389,6 +406,38 @@ export default function NewUseCase() {
                 <span style={{ fontSize: 11, color: MUT }}>Billed on calls actually reviewed, not on the plan.</span>
               </div>
 
+              {/* once they commit, the panel stops selling and starts
+                  reporting · this is the only status they need today */}
+              {started ? (
+                <div style={{ ...card, padding: "18px 18px", display: "flex", flexDirection: "column", gap: 12, minHeight: 420, borderLeft: `4px solid ${GREEN}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                    <span style={{ width: 9, height: 9, borderRadius: 99, background: GREEN, flex: "none", animation: "rlLive 1.6s ease-in-out infinite" }} />
+                    <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Your program is starting</span>
+                  </div>
+                  <div style={{ fontSize: 13.5, color: "#4d5a66", lineHeight: 1.6 }}>
+                    Training and reliability screening are under way. <b style={{ color: INK }}>We will get back to you in 36 to 48 hours</b> with your reviewer panel and the reliability number it screened at.
+                  </div>
+                  <div style={{ background: "#f5f7f9", borderRadius: 9, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 9 }}>
+                    {[
+                      ["Use case", res.checks.filter((c) => sel.includes(c.id)).map((c) => c.name).join(", ")],
+                      [cadence === "recurring" ? "Volume" : "Batch", `${callsPerWeek.toLocaleString()} calls${cadence === "recurring" ? " a week" : ""}`],
+                      ["Estimate", `₹${(est?.weeklyInr ?? 0).toLocaleString()}${cadence === "recurring" ? " / wk" : ""}`],
+                    ].map(([k, v]) => (
+                      <div key={k} style={{ display: "flex", gap: 10, fontSize: 12.5, alignItems: "flex-start" }}>
+                        <span style={{ color: MUT, width: 62, flex: "none" }}>{k}</span>
+                        <span style={{ color: INK, flex: 1 }}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: MUT, lineHeight: 1.55 }}>
+                    Sourcing and training reviewers against your volume now, and building a calibration set from your own recordings. Nothing is billed until calls are actually reviewed.
+                  </div>
+                  <span style={{ flex: 1 }} />
+                  <a href="/portal/agents" style={{ height: 44, borderRadius: 9, background: "#fff", border: "1px solid #d6dee6", color: INK, fontWeight: 600, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>Where findings will land →</a>
+                  <span style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>We will email you the moment the panel clears screening.</span>
+                  <style>{"@keyframes rlLive{0%,100%{opacity:1}50%{opacity:.35}}"}</style>
+                </div>
+              ) : (
               <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 11, minHeight: 420 }}>
                 <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>What happens when you start</span>
                 {(cadence === "recurring" ? [
@@ -410,15 +459,14 @@ export default function NewUseCase() {
                   </div>
                 ))}
                 <span style={{ flex: 1 }} />
-                <button onClick={start} disabled={started || sel.length === 0}
-                  style={{ height: 48, borderRadius: 9, background: started ? "#e7f4ee" : GREEN, color: started ? GREEN : "#fff", fontWeight: 600, fontSize: 14.5, border: "none", cursor: started || sel.length === 0 ? "default" : "pointer", marginTop: 3, opacity: sel.length === 0 ? 0.45 : 1 }}>
-                  {started ? (cadence === "recurring" ? "✓ Pilot starting · screening begins today" : "✓ Batch starting · screening begins today") : (cadence === "recurring" ? "Start the 2-week pilot" : "Run this batch")}
+                <button onClick={start} disabled={sel.length === 0}
+                  style={{ height: 48, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14.5, border: "none", cursor: sel.length === 0 ? "default" : "pointer", marginTop: 3, opacity: sel.length === 0 ? 0.45 : 1 }}>
+                  Start the program
                 </button>
-                <span style={{ fontSize: 11, color: MUT, textAlign: "center" }}>
-                  {started ? "We will email you when the panel clears screening." : "Nothing is configured until you click this."}
-                </span>
+                <span style={{ fontSize: 11, color: MUT, textAlign: "center" }}>Nothing is configured until you click this.</span>
                 <span style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>Prefer to wire it from code? <a href="/portal/connect" style={{ color: GREEN }}>Connect via MCP</a></span>
               </div>
+              )}
             </div>
           </div>
         )}
