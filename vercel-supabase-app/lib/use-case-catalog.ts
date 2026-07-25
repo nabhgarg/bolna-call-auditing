@@ -107,12 +107,40 @@ export function priceLabel(c: CheckDef): string {
   return `₹${c.priceInr} per call`;
 }
 
+/** Mean production call length across 1,727 real calls with a duration (80.5s).
+ *  Used only to express the estimate as a per-hour rate · it never changes what
+ *  is billed, which is per call actually reviewed. */
+export const AVG_CALL_SEC = 80.5;
+
+/** Hours of audio a human actually listens to · a call sampled by two checks is
+ *  listened to twice, so passes are summed rather than de-duplicated. */
+export function reviewHours(ids: string[], callsPerWeek: number, avgCallSec = AVG_CALL_SEC): number {
+  const passes = ids
+    .map((id) => CHECKS.find((c) => c.id === id))
+    .filter((c): c is CheckDef => !!c)
+    .reduce((s, c) => {
+      const reviewed = Math.round(callsPerWeek * c.samplePct);
+      // the judge listens to nothing · only the verified slice reaches a human
+      if (c.routing === "judge_human_verified") return s + Math.round(reviewed * (c.flagPct ?? 0.1));
+      if (c.routing === "judge") return s;
+      return s + reviewed;
+    }, 0);
+  return (passes * avgCallSec) / 3600;
+}
+
 export function estimate(ids: string[], callsPerWeek: number) {
   const lines = ids
     .map((id) => CHECKS.find((c) => c.id === id))
     .filter((c): c is CheckDef => !!c)
     .map((c) => ({ checkId: c.id, inr: lineTotal(c, callsPerWeek) }));
-  return { weeklyInr: lines.reduce((s, l) => s + l.inr, 0), lines };
+  const weeklyInr = lines.reduce((s, l) => s + l.inr, 0);
+  const hours = reviewHours(ids, callsPerWeek);
+  return {
+    weeklyInr,
+    lines,
+    hours: Math.round(hours * 10) / 10,
+    perHourInr: hours > 0 ? Math.round(weeklyInr / hours) : 0,
+  };
 }
 
 /** Deterministic mapping · also the fallback when the model is unavailable. */

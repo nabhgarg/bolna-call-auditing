@@ -74,10 +74,13 @@ export default function NewUseCase() {
   const [phase, setPhase] = useState<"blank" | "resolving" | "answered">("blank");
   const [desc, setDesc] = useState("");
   const [cadence, setCadence] = useState<Cadence>("recurring");
+  // volume is asked, not assumed · it drives every price on this screen
+  const [vol, setVol] = useState("");
+  const [volUnit, setVolUnit] = useState<"week" | "day">("week");
   const docs: { name: string; pages?: number }[] = [];
   const [res, setRes] = useState<Resolved | null>(null);
   const [sel, setSel] = useState<string[]>([]);
-  const [est, setEst] = useState<{ weeklyInr: number; lines: { checkId: string; inr: number }[] } | null>(null);
+  const [est, setEst] = useState<{ weeklyInr: number; lines: { checkId: string; inr: number }[]; hours?: number; perHourInr?: number } | null>(null);
   const [changeText, setChangeText] = useState("");
   const [pending, setPending] = useState<{ from: number; to: number; checks: Check[]; ids: string[] } | null>(null);
   const [busyChange, setBusyChange] = useState(false);
@@ -87,7 +90,13 @@ export default function NewUseCase() {
 
   useEffect(() => { setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert"); }, []);
 
-  const callsPerWeek = res?.facts.callsPerWeek ?? DEFAULT_CALLS;
+  // what the client typed wins; a daily figure becomes weekly. Falls back to
+  // the reference volume only when they leave it blank.
+  const typedVolume = Math.max(0, Math.round(Number(String(vol).replace(/[^\d]/g, "")) || 0));
+  const askedCallsPerWeek = typedVolume > 0
+    ? (cadence === "recurring" && volUnit === "day" ? typedVolume * 7 : typedVolume)
+    : DEFAULT_CALLS;
+  const callsPerWeek = res ? res.facts.callsPerWeek : askedCallsPerWeek;
   const canAnalyse = desc.trim().length >= 40;
 
   async function reprice(ids: string[]) {
@@ -104,7 +113,7 @@ export default function NewUseCase() {
     try {
       const d: Resolved = await fetch("/api/use-cases/resolve", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ description: desc.trim(), callsPerWeek: DEFAULT_CALLS, docs, cadence }),
+        body: JSON.stringify({ description: desc.trim(), callsPerWeek: askedCallsPerWeek, docs, cadence }),
       }).then((r) => r.json());
       if (!d?.checks) { setPhase("blank"); return; }
       setRes(d); setSel(d.checks.map((c) => c.id)); setEst(d.estimate); setPhase("answered");
@@ -204,6 +213,20 @@ export default function NewUseCase() {
                         style={{ fontSize: 12, fontWeight: cadence === v ? 600 : 400, padding: "5px 11px", borderRadius: 6, border: "none", cursor: "pointer", background: cadence === v ? "#fff" : "transparent", color: cadence === v ? INK : MUT, boxShadow: cadence === v ? "0 1px 2px rgba(16,24,31,.08)" : "none", fontFamily: "inherit" }}>{l}</button>
                     ))}
                   </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: MUT }}>to check</span>
+                  <input value={vol} onChange={(e) => setVol(e.target.value)} disabled={phase === "resolving"} inputMode="numeric"
+                    placeholder={String(DEFAULT_CALLS)}
+                    style={{ width: 74, fontSize: 12.5, fontFamily: "inherit", color: INK, padding: "5px 9px", borderRadius: 7, border: "1px solid #d6dee6", outline: "none", textAlign: "right" }} />
+                  {cadence === "recurring" ? (
+                    <div style={{ display: "inline-flex", background: "#eef2f6", borderRadius: 8, padding: 2, gap: 2 }}>
+                      {([["week", "calls a week"], ["day", "calls a day"]] as ["week" | "day", string][]).map(([v, l]) => (
+                        <button key={v} onClick={() => setVolUnit(v)} disabled={phase === "resolving"}
+                          style={{ fontSize: 12, fontWeight: volUnit === v ? 600 : 400, padding: "5px 11px", borderRadius: 6, border: "none", cursor: "pointer", background: volUnit === v ? "#fff" : "transparent", color: volUnit === v ? INK : MUT, boxShadow: volUnit === v ? "0 1px 2px rgba(16,24,31,.08)" : "none", fontFamily: "inherit" }}>{l}</button>
+                      ))}
+                    </div>
+                  ) : <span style={{ fontSize: 12, color: MUT }}>calls in the batch</span>}
                   <span style={{ flex: 1 }} />
                   <button onClick={analyse} disabled={!canAnalyse || phase === "resolving"}
                     style={{ fontSize: 13.5, fontWeight: 600, padding: "9px 20px", borderRadius: 8, border: "none", background: GREEN, color: "#fff", cursor: canAnalyse ? "pointer" : "not-allowed", opacity: canAnalyse ? 1 : 0.45 }}>
@@ -340,6 +363,16 @@ export default function NewUseCase() {
                 <div className={grotesk.className} style={{ fontSize: 29, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>
                   ₹{(est?.weeklyInr ?? 0).toLocaleString()} <span style={{ fontSize: 15, color: MUT, fontWeight: 500 }}>{cadence === "recurring" ? "/ wk" : "once"}</span>
                 </div>
+                {/* the same money as an hourly rate · what a buyer compares
+                    against a BPO quote. Billing itself stays per call. */}
+                {!!est?.perHourInr && (
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, background: "#f5f7f9", borderRadius: 8, padding: "8px 11px", flexWrap: "wrap" }}>
+                    <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>₹{est.perHourInr.toLocaleString()}</span>
+                    <span style={{ fontSize: 11.5, color: MUT }}>per hour of audio a human listens to</span>
+                    <span style={{ flex: 1 }} />
+                    <span className={mono.className} style={{ fontSize: 10.5, color: MUT }}>{est.hours} hrs{cadence === "recurring" ? " / wk" : ""}</span>
+                  </div>
+                )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 5, borderTop: "1px solid #eef2f6", paddingTop: 9 }}>
                   {(est?.lines || []).map((l) => {
                     const c = res.checks.find((x) => x.id === l.checkId);
@@ -359,18 +392,20 @@ export default function NewUseCase() {
               <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 11, minHeight: 420 }}>
                 <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>What happens when you start</span>
                 {(cadence === "recurring" ? [
-                  ["today", "We build a calibration set from your own recordings and screen 18 Hindi and Hinglish reviewers on it."],
-                  ["day 3", "Only reviewers who match our experts get your work. You see the panel reliability number."],
+                  ["today", "We source and train reviewers against your volume, and build a calibration set from your own recordings."],
+                  ["48 hours", "You get your reviewer panel back, sized to your weekly volume, with the reliability number it screened at."],
+                  ["day 3", "The process starts. Only reviewers who match our experts are on your work."],
                   ["day 4", "First findings land in Agent insights, each with a timestamp you can play."],
                   ["weekly", "Expert-rated calls stay seeded in every batch, unmarked, so reliability keeps being checked."],
                 ] : [
-                  ["today", "We build a calibration set from your own recordings and screen the reviewers this batch needs on it."],
-                  ["day 3", "Only reviewers who match our experts get your work. You see the panel reliability number."],
+                  ["today", "We source and train reviewers against this batch's volume, and build a calibration set from your own recordings."],
+                  ["48 hours", "You get your reviewer panel back, sized to the batch, with the reliability number it screened at."],
+                  ["day 3", "The process starts. Only reviewers who match our experts are on your work."],
                   ["day 5", "The full batch is reviewed. Findings land in Agent insights, each with a timestamp you can play."],
                   ["after", "You keep the report and the golden data. Run another batch whenever you want."],
                 ]).map(([d, t]) => (
                   <div key={d} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <span className={mono.className} style={{ fontSize: 10.5, color: GREEN, width: 44, flex: "none", paddingTop: 2 }}>{d}</span>
+                    <span className={mono.className} style={{ fontSize: 10.5, color: GREEN, width: 52, flex: "none", paddingTop: 2 }}>{d}</span>
                     <span style={{ fontSize: 12, color: "#4d5a66", lineHeight: 1.55 }}>{t}</span>
                   </div>
                 ))}

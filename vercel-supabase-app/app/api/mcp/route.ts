@@ -207,6 +207,7 @@ async function toolCreate(args: Record<string, unknown>, program: string, demo: 
     `Checks running: ${names.map((c) => c.name).join(", ")}`,
     `Volume: ${callsPerWeek.toLocaleString()} calls a week · ${cadence === "recurring" ? "ongoing" : "single batch"}`,
     `Estimate: ₹${est.weeklyInr.toLocaleString()} ${per} · billed on calls actually reviewed`,
+    `           ₹${est.perHourInr.toLocaleString()} per hour of audio a human listens to · ${est.hours} hrs${cadence === "recurring" ? " / wk" : ""}`,
     "",
     "What happens now:",
     "  today  we build a calibration set from this agent's own recordings and screen reviewers on it",
