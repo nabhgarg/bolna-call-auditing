@@ -751,6 +751,179 @@
    "correct": "User input capture errors",
    "setup": "Play from the marked moment. The user answers, but listen to the agent — it never registers what was said and carries on as if the line went quiet. Log the issue the way you would in the tool.",
    "explain": "The user spoke, but the ASR never captured it, so the agent moved on without the answer — a User input capture error. It's not a wrong response (there was no input to respond to) and not repetition. Picking the right type matters because input-capture errors route to the speech-to-text team, not the prompt team."
+  },
+  {
+   "call_id": "d070aea3-2d26-494f-bd6e-48ed603e6892",
+   "recording_url": "https://api.bolna.ai/recordings/call/d070aea3-2d26-494f-bd6e-48ed603e6892",
+   "ts": "00:32",
+   "turns": [
+    {
+     "who": "agent",
+     "text": "नमस्ते, मैं Neha हूं, शीक Clothing Company से बोल रही हूं - क्या यह बात करने का सही समय है?"
+    },
+    {
+     "who": "user",
+     "text": "हां जी"
+    },
+    {
+     "who": "agent",
+     "text": "ठीक है, तो हाँ… मैं आपको बताना चाहती हूं कि अभी शीक की वेबसाइट पर End of Season Sale चल रही है, जिसमें आप up to forty percent discount पा सकते हैं, और अगर आपका order value दस हजार रुपये से ऊपर होगा तो extra ten percent discount भी मिलेगा।"
+    },
+    {
+     "who": "user",
+     "text": "लेकिन छीन तो india में नहीं है"
+    },
+    {
+     "who": "user",
+     "text": "शीन तो china की company है"
+    },
+    {
+     "who": "agent",
+     "text": "अच्छा, तो basically मैं बता दूं कि मैं शीक Clothing Company से बोल रही हूं, जो इंडिया की कंपनी है और हमारी sale इंडिया में ही valid है। अगर आप चाहें तो मैं आपको इस offer का link WhatsApp पर भेज सकती हूं।"
+    },
+    {
+     "who": "user",
+     "text": "नहीं मैं खुद check कर लूंगी thank you"
+    },
+    {
+     "who": "agent",
+     "text": "ठीक है, अगर आपको बाद में"
+    }
+   ],
+   "anchors": [
+    {
+     "text": "if you record your name and reason for calling i'm",
+     "s": 0.18,
+     "e": 3.86
+    },
+    {
+     "text": "हां जी",
+     "s": 9.38,
+     "e": 10.19
+    },
+    {
+     "text": "लेकिन छीन तो india में नहीं है",
+     "s": 32.18,
+     "e": 34.6
+    },
+    {
+     "text": "नहीं मैं खुद check कर लूंगी thank you",
+     "s": 54.18,
+     "e": 56.2
+    }
+   ],
+   "seg": {
+    "s": 29.0,
+    "e": 52.0
+   },
+   "options": [
+    "Wrong / made-up information",
+    "Repetition",
+    "Irrelevant response / others",
+    "No issue — sounds fine"
+   ],
+   "correct": "Wrong / made-up information",
+   "setup": "Play from the marked moment. The customer points out something factual about the company. Listen to how the agent answers — is what the agent says true, or is it made up?",
+   "explain": "The customer correctly says Shein is a Chinese company. Instead of acknowledging that, the agent insists “we’re an Indian company” — a made-up factual claim, with no basis, said only to keep the pitch going. That’s wrong / invented information, not repetition and not an irrelevant reply. Factual errors are the highest-trust-risk failures: the agent sounds confident while being flatly wrong, and only a human who is listening catches it."
+  },
+  {
+   "call_id": "b0991d50-e7c2-4a2d-8544-690d66d78bb0",
+   "recording_url": "https://api.bolna.ai/recordings/call/b0991d50-e7c2-4a2d-8544-690d66d78bb0",
+   "ts": "00:12",
+   "turns": [
+    {
+     "who": "agent",
+     "text": "Hello there."
+    },
+    {
+     "who": "agent",
+     "text": "Hey, can you hear me?"
+    },
+    {
+     "who": "user",
+     "text": "hello"
+    },
+    {
+     "who": "agent",
+     "text": "नमस्ते जी, मैं पूजा अलीबाबा डॉट कॉम से हूँ। पिछली बार हमने आपके लिए एक consultant meeting arrange की थी। क्या हमारे consultant ने आपसे follow-up किया था?"
+    },
+    {
+     "who": "agent",
+     "text": "Hey, can you hear me?"
+    },
+    {
+     "who": "user",
+     "text": "बताओ"
+    },
+    {
+     "who": "agent",
+     "text": "जी, क्या consultant ने आपसे contact किया और meeting हुई थी? थोड़ा बताइए, कैसे रहा?"
+    },
+    {
+     "who": "user",
+     "text": "एक second"
+    },
+    {
+     "who": "agent",
+     "text": "जी, बिल्कुल, आप आराम से बताइए जब ready हों।"
+    },
+    {
+     "who": "user",
+     "text": "किस चीज़ की consultant पुछ रहे हैं"
+    },
+    {
+     "who": "agent",
+     "text": "हमारा consultant आपके export plans और profit margin के बारे में बात करता था, ताकि सही support दे सके। आप क्या बताना चाहेंगे?"
+    },
+    {
+     "who": "user",
+     "text": "सब कुछ नहीं बताना चाहेंगे धन्यवाद"
+    },
+    {
+     "who": "agent",
+     "text": "समझ सकती हूँ जी, कोई बात नहीं। क्या मैं"
+    }
+   ],
+   "anchors": [
+    {
+     "text": "hello",
+     "s": 10.97,
+     "e": 12.01
+    },
+    {
+     "text": "बताओ",
+     "s": 30.57,
+     "e": 31.62
+    },
+    {
+     "text": "एक second",
+     "s": 37.37,
+     "e": 40.09
+    },
+    {
+     "text": "किस चीज़ की consultant पुछ रहे हैं",
+     "s": 44.17,
+     "e": 45.8
+    },
+    {
+     "text": "सब कुछ नहीं बताना चाहेंगे धन्यवाद",
+     "s": 54.77,
+     "e": 57.4
+    }
+   ],
+   "seg": {
+    "s": 11.0,
+    "e": 47.0
+   },
+   "options": [
+    "Wrong / made-up information",
+    "Repetition",
+    "Irrelevant response / others",
+    "No issue — sounds fine"
+   ],
+   "correct": "Wrong / made-up information",
+   "setup": "Play from the marked moment. This is a first-contact call. Listen to what the agent claims has already happened between them and the customer — and how the customer reacts.",
+   "explain": "On a first call, the agent claims “last time we arranged a consultant meeting for you” — an event that never happened. The customer’s own reply (“what consultant are you even asking about?”) confirms it was invented. Fabricating a prior relationship is made-up information, not an irrelevant reply. These invented details break trust instantly, and they’re exactly the kind of thing telemetry can’t see but a human hears at once."
   }
  ]
 }

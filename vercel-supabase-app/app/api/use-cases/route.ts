@@ -19,14 +19,19 @@ export async function POST(request: Request) {
   const est = estimate(ids, callsPerWeek);
 
   const supabase = supabaseAdmin();
-  const { data, error } = await supabase.from("use_cases").insert({
+  // Mint the id here rather than reading the row back · there is no anon select
+  // policy on use_cases (a client's description is their own business), and
+  // return=representation would need one, failing the write outright.
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from("use_cases").insert({
+    id,
     description,
     facts: { ...facts, callsPerWeek },
     checks: ids,
     estimate_inr: est.weeklyInr,
     status,
-  }).select("id").single();
+  });
 
   if (error) return NextResponse.json({ ok: false, error: error.message, estimate: est });
-  return NextResponse.json({ ok: true, id: data.id, status, estimate: est });
+  return NextResponse.json({ ok: true, id, status, estimate: est });
 }

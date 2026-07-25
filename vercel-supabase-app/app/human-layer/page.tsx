@@ -52,10 +52,10 @@ export default function HumanLayer() {
         </div>
 
         <div style={{ display: "flex", gap: 12 }}>
-          <Big n="14" l="trained, calibrated reviewers" />
-          <Big n="1,733" l="structured reviews delivered" />
+          <Big n="10" l="trained, calibrated reviewers · scaling to 50" />
+          <Big n="~200 hrs" l="of production calls reviewed" />
           <Big n="78%" l="panel agreement ±1 · published, rising" color={GREEN} />
-          <Big n="247" l="expert golden-transcript calls" />
+          <Big n="~200 hrs" l="of transcription data created" />
         </div>
 
         <div style={{ display: "flex", gap: 12 }}>

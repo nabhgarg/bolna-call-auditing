@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN, RED, AMBER, card } from "../../../lib/ui";
 
-// Reviewer onboarding + screening assignment. Apply -> 5 real judgment-heavy
+// Reviewer onboarding + screening assignment. Apply -> 7 real judgment-heavy
 // questions across the two core reviewer tools: transcription review (the exact
 // /transcribe segment-card UI) and pronunciation audit (the exact issue-form
 // UI). Instant expert feedback + live coach. Real brand/city names kept (this
@@ -510,11 +510,11 @@ export default function Join() {
                 </div>
                 <div style={{ flex: 1, minHeight: 12 }} />
                 <div onClick={() => { if (!canApply) return; setScreen("work"); fetch("/api/apply", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ role, full_name: fullName, state: stateName, languages: langs, education: edu, hours, phone }) }).then((r) => r.json()).then((d) => { if (d.ok) setApplicantId(d.id); }).catch(() => {}); }} style={{ height: 46, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: canApply ? 1 : 0.45 }}>Apply → your assignment is ready</div>
-                <div style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>{canApply ? "No wait · 5 real questions, about 2 minutes." : "Add your name, state, a language and a valid phone number."}</div>
+                <div style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>{canApply ? "No wait · 7 real questions, about 3 minutes." : "Add your name, state, a language and a valid phone number."}</div>
               </div>
             </div>
             <div className="jn-stats" style={{ display: "flex", gap: 12, padding: "0 32px 26px", flexWrap: "wrap" }}>
-              {[["14", "reviewers working today"], ["1,733+", "paid reviews delivered"], ["weekly", "payouts, UPI"], ["7", "open roles"]].map(([n, l]) => (
+              {[["10", "reviewers, scaling to 50"], ["~200 hrs", "of paid work delivered"], ["weekly", "payouts, UPI"], ["7", "open roles"]].map(([n, l]) => (
                 <div key={l} style={{ ...card, flex: 1, padding: "14px 16px" }}><div className={grotesk.className} style={{ fontSize: 20, fontWeight: 600 }}>{n}</div><div style={{ fontSize: 11.5, color: MUT }}>{l}</div></div>
               ))}
             </div>
@@ -548,7 +548,7 @@ export default function Join() {
               {idx === -1 && feedback === null && (
                 <div style={{ ...card, borderRadius: 14, padding: 40, display: "flex", flexDirection: "column", gap: 10, alignItems: "center", textAlign: "center" }}>
                   <div className={grotesk.className} style={{ fontWeight: 600, fontSize: 22 }}>Your {total || 6}-question assignment</div>
-                  <div style={{ fontSize: 13.5, color: MUT, maxWidth: 440 }}>{transN} transcription checks and {total - transN} issue logs, with the full call in front of you. Your agreement with the expert decides your tier.</div>
+                  <div style={{ fontSize: 13.5, color: MUT, maxWidth: 440 }}>{transN} transcription checks and {total - transN} listen-and-judge questions, with the full call in front of you. Your agreement with the expert decides your tier.</div>
                   <div onClick={() => total && openQ(0)} style={{ height: 46, minWidth: 220, borderRadius: 10, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: "0 22px", opacity: total ? 1 : 0.5 }}>{total ? "Start question 1 ▶" : "Loading…"}</div>
                 </div>
               )}

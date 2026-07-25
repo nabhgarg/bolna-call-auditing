@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #070b10; }
+      body { font-family: system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; color: #dbe6ef; }
+      .mono { font-family: ui-monospace, "SF Mono", Menlo, Monaco, "Courier New", monospace; }
+
+      /* terminal chrome */
+      #term { position: absolute; left: 150px; top: 92px; width: 1620px; height: 760px;
+        background: #0f1720; border: 1px solid #22303d; border-radius: 14px; overflow: hidden;
+        box-shadow: 0 26px 80px rgba(0,0,0,.55); }
+      #bar { height: 44px; background: #131c26; border-bottom: 1px solid #22303d; display: flex; align-items: center; gap: 9px; padding: 0 18px; }
+      .dot { width: 11px; height: 11px; border-radius: 99px; }
+      #bar .t { margin-left: 12px; font-size: 14px; color: #7b8b9c; }
+      #bar .badge { margin-left: auto; font-size: 12.5px; color: #4ff0b0; background: rgba(79,240,176,.1); border: 1px solid rgba(79,240,176,.25); border-radius: 999px; padding: 4px 12px; }
+      .pane { position: absolute; left: 0; right: 0; top: 44px; bottom: 0; padding: 26px 34px; }
+      .l { font-size: 21px; line-height: 1.72; white-space: pre-wrap; }
+      .dim { color: #7b8b9c; }
+      .g { color: #4ff0b0; }
+      .p { color: #b79cf5; }
+      .w { color: #fff; }
+      .amber { color: #f0c674; }
+
+      /* brand + caption */
+      #brand { position: absolute; top: 34px; left: 150px; display: flex; align-items: center; gap: 11px; z-index: 30; }
+      #brand .sq { width: 22px; height: 22px; border-radius: 6px; background: #0e8a5f; }
+      #brand .wm { font-size: 22px; font-weight: 800; letter-spacing: -.4px; color: #fff; }
+      .cap { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%); z-index: 40;
+        max-width: 1500px; text-align: center; background: rgba(7,11,16,.9); border-bottom: 4px solid #0e8a5f;
+        border-radius: 15px; padding: 17px 30px; }
+      .cap .k { font-size: 35px; font-weight: 700; line-height: 1.25; letter-spacing: -.4px; color: #fff; }
+      .cap b { color: #4ff0b0; }
+      .cap b.pp { color: #b79cf5; }
+
+      /* closing portal shot */
+      #shot { position: absolute; inset: 0; background: #070b10; }
+      #shot img { position: absolute; left: 60px; top: 78px; width: 1800px; border-radius: 14px; border: 1px solid #22303d; box-shadow: 0 26px 80px rgba(0,0,0,.55); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="36.3" data-width="1920" data-height="1080">
+
+      <audio id="vo" class="clip" data-start="0" data-duration="36.14" data-volume="1" src="assets/audio/vo.mp3"></audio>
+
+      <div id="brand" class="clip" data-start="0" data-duration="29.77" data-track-index="4">
+        <span class="sq"></span><span class="wm">realloop</span>
+      </div>
+
+      <!-- terminal, present for the whole session -->
+      <div id="term" class="clip" data-start="0" data-duration="29.77" data-track-index="1">
+        <div id="bar">
+          <span class="dot" style="background:#ff5f57"></span>
+          <span class="dot" style="background:#febc2e"></span>
+          <span class="dot" style="background:#28c840"></span>
+          <span class="t mono">bolna-fde — claude code</span>
+          <span class="badge mono">realloop · mcp</span>
+        </div>
+
+        <!-- A · install + prompt -->
+        <div id="pA" class="pane">
+          <div id="a1" class="l mono"><span class="g">$</span> claude mcp add --transport http realloop \
+  https://bolna-call-auditing.vercel.app/api/mcp \
+  --header <span class="amber">"Authorization: Bearer rl_live_..."</span></div>
+          <div id="a2" class="l mono" style="margin-top:14px"><span class="g">✓</span> Added MCP server <span class="w">realloop</span> <span class="dim">· 5 tools available</span></div>
+          <div id="a3" class="l" style="margin-top:38px; font-size:22px; line-height:1.62">
+            <span class="p mono">&gt;</span> <span class="w">Our appliance support agent keeps mishearing the model number customers
+   read out, and it sometimes quotes a warranty period that is not in our
+   policy doc. Put humans on it.</span>
+          </div>
+        </div>
+
+        <!-- B · tools + resolve (real output) -->
+        <div id="pB" class="pane">
+          <div id="b1" class="l mono"><span class="p">⏺</span> list_agents <span class="dim">→ Field Support · Appliances</span></div>
+          <div id="b2" class="l mono" style="margin-top:6px"><span class="p">⏺</span> resolve_use_case</div>
+          <div id="b3" class="l mono" style="margin-top:20px">
+<span class="w">Transcription accuracy</span>   <span class="g">[100% human]</span>   <span class="w">₹34 per call</span>
+<span class="dim">  Because your agent keeps mishearing the model number customers read out.
+  A machine judge cannot grade this, it scores against the same audio it
+  already misheard.</span>
+<span class="dim">  360 calls / wk at a 40% sample</span></div>
+          <div id="b4" class="l mono" style="margin-top:20px">
+<span class="w">Factual accuracy</span>   <span class="p">[machine judge + human verified]</span>   <span class="w">₹4 + ₹31 verified</span>
+<span class="dim">  Because it quotes a warranty period that is not in your policy doc.
+  90 verified / wk</span></div>
+          <div id="b5" class="l mono" style="margin-top:22px"><span class="w">Estimate: <span class="g">₹18,630 / wk</span></span>  <span class="dim">· nothing has been created yet</span></div>
+        </div>
+
+        <!-- C · create (real output) -->
+        <div id="pC" class="pane">
+          <div id="c1" class="l mono"><span class="p">⏺</span> create_use_case</div>
+          <div id="c2" class="l mono" style="margin-top:20px"><span class="g">✓</span> <span class="w">In the Bolna pipeline for Field Support · Appliances</span>
+<span class="dim">  Transcription accuracy, Factual accuracy · 900 calls a week
+  ₹18,630 / wk · billed on calls actually reviewed</span></div>
+          <div id="c3" class="l mono" style="margin-top:26px">
+<span class="g">today</span>   <span class="dim">calibration set built from this agent's own recordings</span>
+<span class="g">day 3</span>   <span class="dim">only reviewers who match our experts get the work</span>
+<span class="g">day 4</span>   <span class="dim">first findings land in Agent insights, each playable</span></div>
+        </div>
+      </div>
+
+      <!-- D · the portal, same pipeline -->
+      <div id="shot" class="clip" data-start="29.77" data-duration="6.53" data-track-index="1">
+        <img src="assets/views/agents.png" alt="" />
+      </div>
+
+      <!-- captions -->
+      <div id="cap1" class="cap clip" data-start="0.5"  data-duration="5.7" data-track-index="3"><div class="k">Your engineers never open the portal. <b>One command.</b></div></div>
+      <div id="cap2" class="cap clip" data-start="6.7"  data-duration="3.4" data-track-index="3"><div class="k">They just say what is wrong.</div></div>
+      <div id="cap3" class="cap clip" data-start="10.5" data-duration="12.0" data-track-index="3"><div class="k">Transcription stays <b>100% human</b> · the <b class="pp">machine judge</b> would score the audio it already misheard</div></div>
+      <div id="cap4" class="cap clip" data-start="23.0" data-duration="6.4" data-track-index="3"><div class="k">In the pipeline. <b>Screening starts today.</b></div></div>
+      <div id="cap5" class="cap clip" data-start="30.0" data-duration="6.0" data-track-index="3"><div class="k">Same pipeline as the portal. <b>Same panel, same prices, same reliability.</b></div></div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // panes cross-fade: A 0-10.3 · B 10.3-22.82 · C 22.82-29.77
+      const panes = [["#pA", 0, 10.3], ["#pB", 10.3, 12.52], ["#pC", 22.82, 6.95]];
+      panes.forEach(([sel, start, dur]) => {
+        tl.set(sel, { opacity: 0 }, 0);
+        tl.to(sel, { opacity: 1, duration: 0.35, ease: "power1.out" }, start);
+        tl.to(sel, { opacity: 0, duration: 0.3, ease: "power1.in" }, start + dur - 0.3);
+      });
+
+      // line reveals inside each pane
+      const lines = [
+        ["#a1", 0.15], ["#a2", 1.9], ["#a3", 6.6],
+        ["#b1", 10.5], ["#b2", 11.3], ["#b3", 12.6], ["#b4", 17.2], ["#b5", 20.2],
+        ["#c1", 23.0], ["#c2", 24.0], ["#c3", 26.2],
+      ];
+      lines.forEach(([sel, at]) => {
+        tl.fromTo(sel, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, at);
+      });
+
+      // terminal + brand entrance, closing shot
+      tl.fromTo("#term", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0);
+      tl.fromTo("#brand", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.15);
+      tl.fromTo("#shot", { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power1.out" }, 29.77);
+      tl.fromTo("#shot img", { scale: 1.0 }, { scale: 1.04, duration: 6.5, ease: "none" }, 29.77);
+
+      // captions
+      ["#cap1", "#cap2", "#cap3", "#cap4", "#cap5"].forEach((sel) => {
+        const el = document.querySelector(sel);
+        const s = parseFloat(el.getAttribute("data-start"));
+        const d = parseFloat(el.getAttribute("data-duration"));
+        tl.fromTo(sel, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, s);
+        tl.to(sel, { opacity: 0, y: 8, duration: 0.35, ease: "power1.in" }, s + d - 0.35);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

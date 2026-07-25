@@ -181,16 +181,20 @@ async function toolCreate(args: Record<string, unknown>, program: string, demo: 
   let persistNote = "";
   try {
     const supabase = supabaseAdmin();
-    const { data, error } = await supabase.from("use_cases").insert({
+    // Minted here, not read back · use_cases has no anon select policy by
+    // design, and return=representation needs one.
+    const newId = crypto.randomUUID();
+    const { error } = await supabase.from("use_cases").insert({
+      id: newId,
       client_id: program,
       description: String(args.description || "").slice(0, 4000),
       facts: { callsPerWeek, cadence, agent: agent.agent, languages: resolved.facts.languages, via: "mcp" },
       checks: wanted,
       estimate_inr: est.weeklyInr,
       status: "pilot",
-    }).select("id").single();
+    });
     if (error) persistNote = `NOTE: not saved to the pipeline database (${error.message}). Everything above is correct, but an operator has to confirm this one.`;
-    else id = data.id;
+    else id = newId;
   } catch (e) {
     persistNote = `NOTE: not saved to the pipeline database (${(e as Error).message}).`;
   }
