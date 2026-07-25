@@ -156,6 +156,7 @@ async function toolResolve(args: Record<string, unknown>) {
     `For "${agent?.agent || args.agent || "your agent"}" at ${out.facts.callsPerWeek.toLocaleString()} calls a week, RealLoop would run ${out.checks.length} checks:`,
     "", ...lines, "",
     `Estimate: ₹${out.estimate.weeklyInr.toLocaleString()} ${per}`,
+    `          ₹${out.estimate.perHourInr.toLocaleString()} per hour of audio a human listens to · ${out.estimate.hours} hrs${out.facts.cadence === "recurring" ? " / wk" : ""}`,
     out.suggestions.length ? `Not included (you did not mention them): ${out.suggestions.map((s) => `${s.name} ₹${s.priceInr}`).join(", ")}` : "",
     "", "Nothing has been created. Call create_use_case to put this in the pipeline.",
   ].filter(Boolean).join("\n");
