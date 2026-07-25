@@ -382,6 +382,7 @@ export default function NewUseCase() {
                 <span style={{ fontSize: 11, color: MUT, textAlign: "center" }}>
                   {started ? "We will email you when the panel clears screening." : "Nothing is configured until you click this."}
                 </span>
+                <span style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>Prefer to wire it from code? <a href="/portal/connect" style={{ color: GREEN }}>Connect via MCP</a></span>
               </div>
             </div>
           </div>

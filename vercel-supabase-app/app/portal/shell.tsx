@@ -14,12 +14,14 @@ const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", 
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
 
 
+// New use case is home: it is where a client starts and where /portal lands.
 const NAV = [
+  { href: "/portal/new-use-case", label: "New use case", icon: "＋" },
   { href: "/portal/evaluation", label: "Evaluation design", icon: "⌘" },
   { href: "/portal/agents", label: "Agent insights", icon: "◐" },
   { href: "/portal/reliability", label: "Reliability", icon: "◎" },
   { href: "/portal/datasets", label: "Datasets", icon: "▤" },
-  { href: "/portal/new-use-case", label: "New use case", icon: "＋" }
+  { href: "/portal/connect", label: "Connect via MCP", icon: "⌥" }
 ];
 
 export default function PortalShell({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
