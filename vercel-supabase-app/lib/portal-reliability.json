@@ -26,6 +26,14 @@
    "trust": "high"
   },
   {
+   "agent": "Order Confirmation · E-commerce",
+   "raters": 4.6,
+   "inter_panel": 89,
+   "vs_gt": 86,
+   "gt_calls": 22,
+   "trust": "high"
+  },
+  {
    "agent": "Seller Activation · B2B Marketplace",
    "raters": 4,
    "inter_panel": 88,

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
@@ -30,7 +31,9 @@ const gtColor = (v: number | null) => v == null ? MUT : v >= 70 ? GREEN : v >= 5
 const AGENT_COLS = "1.7fr 58px 84px 84px 62px";
 const ISSUE_COLS = "1.5fr 66px 66px";
 
-export default function Reliability() {
+function Inner() {
+  const params = useSearchParams();
+  const want = params.get("agent") || "";
   const [d, setD] = useState<Data | null>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
 
@@ -45,34 +48,60 @@ export default function Reliability() {
   const o = d.overall;
   const fmt = (v: number | null, unit: string) => v == null ? "·" : unit === "F1" ? String(v) : v + "%";
 
+  // focused mode · ?agent=… lands here from Agent insights. The strip shows
+  // THIS agent's reliability against the program average; everything we only
+  // have program-wide is labelled as such rather than silently reused.
+  const focus = want ? d.by_agent.find((a) => a.agent.toLowerCase().includes(want.toLowerCase())) || null : null;
+  const dp = focus && focus.inter_panel != null ? focus.inter_panel - o.inter_panel : 0;
+  const dg = focus && focus.vs_gt != null ? focus.vs_gt - o.vs_gt : 0;
+  const sign = (n: number) => (n > 0 ? `+${n}` : String(n));
+  const dcolor = (n: number) => (n > 0 ? GREEN : n < 0 ? AMBER : MUT);
+
   return (
     <PortalShell right={
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "11px 22px", flexWrap: "wrap" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Reliability</span>
-        <span style={{ fontSize: 12.5, color: MUT }}>how much to trust every number in this portal · refreshed weekly on hidden expert-rated calls</span>
+        {focus
+          ? <><span style={{ fontSize: 12.5, color: MUT }}>· {focus.agent}</span><a href="/portal/reliability" style={{ fontSize: 12.5, color: GREEN, textDecoration: "none" }}>all agents →</a></>
+          : <span style={{ fontSize: 12.5, color: MUT }}>how much to trust every number in this portal · refreshed weekly on hidden expert-rated calls</span>}
         <span style={{ flex: 1 }} />
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
     }>
       <div className={instrument.className} style={{ display: "flex", flexDirection: "column", gap: 14, padding: "16px 22px 30px", color: INK }}>
 
-        {/* overall strip */}
-        <div style={{ ...card, padding: "16px 22px", display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
-          <div style={{ maxWidth: 230 }}>
-            <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Overall panel reliability</div>
-            <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>across every scored call · the same dataset feeds every breakdown below</div>
+        {/* overall strip · becomes THIS agent's strip in focused mode */}
+        <div style={{ ...card, padding: "16px 22px", display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap", borderLeft: focus ? `4px solid ${GREEN}` : undefined }}>
+          <div style={{ maxWidth: 250 }}>
+            <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>{focus ? focus.agent : "Overall panel reliability"}</div>
+            <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>
+              {focus
+                ? <>how much to trust this agent&apos;s numbers · {focus.raters} reviewers per call · {focus.gt_calls} hidden expert-rated calls</>
+                : <>across every scored call · the same dataset feeds every breakdown below</>}
+            </div>
           </div>
           <div style={{ width: 1, alignSelf: "stretch", background: "#e2e8ee" }} />
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <span className={grotesk.className} style={{ fontSize: 34, fontWeight: 600 }}>{o.inter_panel}%</span>
-            <div><div style={{ fontSize: 13, fontWeight: 600 }}>inter-panel</div><div style={{ fontSize: 11, color: MUT }}>reviewers agree, within 1 point</div></div>
+            <span className={grotesk.className} style={{ fontSize: 34, fontWeight: 600 }}>{focus ? focus.inter_panel : o.inter_panel}%</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>inter-panel</div>
+              <div style={{ fontSize: 11, color: MUT }}>reviewers agree, within 1 point</div>
+              {focus && <div style={{ fontSize: 11, color: dcolor(dp), marginTop: 1 }}>{sign(dp)} vs program ({o.inter_panel}%)</div>}
+            </div>
           </div>
           <div style={{ width: 1, alignSelf: "stretch", background: "#e2e8ee" }} />
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <span className={grotesk.className} style={{ fontSize: 34, fontWeight: 600, color: GREEN }}>{o.vs_gt}%</span>
-            <div><div style={{ fontSize: 13, fontWeight: 600 }}>vs ground truth</div><div style={{ fontSize: 11, color: MUT }}>panel matches the hidden expert, within 1 point</div></div>
+            <span className={grotesk.className} style={{ fontSize: 34, fontWeight: 600, color: GREEN }}>{focus ? focus.vs_gt : o.vs_gt}%</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>vs ground truth</div>
+              <div style={{ fontSize: 11, color: MUT }}>panel matches the hidden expert, within 1 point</div>
+              {focus && <div style={{ fontSize: 11, color: dcolor(dg), marginTop: 1 }}>{sign(dg)} vs program ({o.vs_gt}%)</div>}
+            </div>
           </div>
           <span style={{ flex: 1 }} />
+          {focus && (
+            <a href={`/portal/agents?agent=${encodeURIComponent(focus.agent)}`} style={{ fontSize: 12.5, fontWeight: 600, color: INK, background: "#fff", border: "1px solid #d6dee6", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>← back to findings</a>
+          )}
         </div>
 
         {/* agent + issue type, side by side */}
@@ -82,21 +111,23 @@ export default function Reliability() {
           <div style={{ ...card, flex: 1, minWidth: 400, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
               <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Reliability by agent</span>
-              <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>where the overall number comes from · per agent, raters × agreement</div>
+              <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>where the overall number comes from · click any agent to see it on its own</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: AGENT_COLS, fontSize: 11, color: "#93a1ae" }}>
               <span>agent</span><span style={{ textAlign: "right" }}>raters</span><span style={{ textAlign: "right" }}>inter-panel</span><span style={{ textAlign: "right" }}>vs expert</span><span style={{ textAlign: "right" }}>trust</span>
             </div>
             {d.by_agent.map((a) => {
               const p = trustPill(a.trust); const thin = a.trust === "thin";
+              const on = !!focus && a.agent === focus.agent;
               return (
-                <div key={a.agent} style={{ display: "grid", gridTemplateColumns: AGENT_COLS, fontSize: 13, alignItems: "center", borderTop: "1px solid #eef2f6", padding: "10px 0" }}>
-                  <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.agent}</b>
+                <a key={a.agent} href={on ? "/portal/reliability" : `/portal/reliability?agent=${encodeURIComponent(a.agent)}`}
+                  style={{ display: "grid", gridTemplateColumns: AGENT_COLS, fontSize: 13, alignItems: "center", borderTop: "1px solid #eef2f6", padding: "10px 0", textDecoration: "none", color: INK, background: on ? "#eef4f1" : "transparent", boxShadow: on ? `inset 3px 0 0 ${GREEN}` : "none", opacity: focus && !on ? 0.5 : 1 }}>
+                  <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingLeft: on ? 9 : 0 }}>{a.agent}</b>
                   <span className={mono.className} style={{ textAlign: "right" }}>{a.raters}</span>
                   <span className={mono.className} style={{ textAlign: "right", color: thin ? AMBER : INK }}>{thin ? "low n" : a.inter_panel + "%"}</span>
                   <span className={mono.className} style={{ textAlign: "right", color: thin ? AMBER : gtColor(a.vs_gt) }}>{thin ? "low n" : a.vs_gt + "%"}</span>
                   <span style={{ textAlign: "right" }}><span style={{ borderRadius: 999, background: p.bg, color: p.fg, fontSize: 10, fontWeight: 600, padding: "3px 9px" }}>{a.trust}</span></span>
-                </div>
+                </a>
               );
             })}
             <div style={{ background: "#f5f7f9", borderRadius: 9, padding: "11px 13px", marginTop: "auto", fontSize: 11.5, color: "#4d5a66", lineHeight: 1.55 }}>
@@ -108,7 +139,7 @@ export default function Reliability() {
           <div style={{ ...card, flex: 1, minWidth: 400, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
               <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Reliability by issue type</span>
-              <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>the same number split by activity · each uses its own formula</div>
+              <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>the same number split by activity · each uses its own formula{focus ? " · program-wide, not agent-specific" : ""}</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: ISSUE_COLS, fontSize: 11, color: "#93a1ae", padding: "0 14px" }}>
               <span>activity</span><span style={{ textAlign: "right" }}>inter-panel</span><span style={{ textAlign: "right" }}>vs expert</span>
@@ -135,7 +166,7 @@ export default function Reliability() {
         <div style={{ ...card, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
             <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Human panel vs LLM judge</span>
-            <span style={{ fontSize: 11.5, color: MUT }}>where the judge can stand in for a human, and where it can&apos;t · scored on the same expert-reviewed calls</span>
+            <span style={{ fontSize: 11.5, color: MUT }}>where the judge can stand in for a human, and where it can&apos;t · scored on the same expert-reviewed calls{focus ? " · program-wide" : ""}</span>
             <span style={{ flex: 1 }} />
             <span style={{ fontSize: 11.5 }}><span style={{ color: GREEN }}>●</span> human</span>
             <span style={{ fontSize: 11.5 }}><span style={{ color: PURPLE }}>●</span> LLM judge</span>
@@ -166,4 +197,8 @@ export default function Reliability() {
       </div>
     </PortalShell>
   );
+}
+
+export default function Reliability() {
+  return <Suspense fallback={null}><Inner /></Suspense>;
 }

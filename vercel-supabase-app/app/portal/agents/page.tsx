@@ -6,6 +6,7 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
 import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
+import RELIABILITY from "../../../lib/portal-reliability.json";
 
 // Agent insights · Overall + By-agent MERGED into one master-detail screen
 // (wireframe 19a / 20a + philosophy 21a). Left: agents ranked by how much
@@ -132,6 +133,7 @@ function Inner() {
   const leadSub = leadRow?.subtypes?.[0]?.[0] || "";
   const isRootCause = v.key === "transcription";
   const goldenT = (TRANSCRIPTS.agents as any[]).find((x) => x.agent === a.agent && x.pairs?.length);
+  const rel = (RELIABILITY.by_agent as any[]).find((x) => x.agent === a.agent) || null;
   // how much of the list traces to the lead issue
   const leadCalls = leadRow ? leadRow.human_calls + leadRow.llm_calls : 0;
 
@@ -263,6 +265,15 @@ function Inner() {
               <div className={grotesk.className} style={{ fontSize: 23, fontWeight: 600, color: (a.dist?.[0] ?? 0) >= 25 ? RED : INK }}>{a.dist?.[0] ?? 0}%</div>
               <div style={{ fontSize: 11.5, color: MUT }}>rated 1 · major failure</div>
             </div>
+            {/* how much to trust the three numbers above · straight to this
+                agent's own reliability, not the program's */}
+            {rel && (
+              <a href={`/portal/reliability?agent=${encodeURIComponent(a.agent)}`}
+                style={{ ...card, flex: 1, minWidth: 168, padding: "13px 15px", textDecoration: "none", color: INK, borderColor: "#cde8db", background: "#fbfdfc", display: "block" }}>
+                <div className={grotesk.className} style={{ fontSize: 23, fontWeight: 600, color: GREEN }}>{rel.vs_gt}%</div>
+                <div style={{ fontSize: 11.5, color: MUT }}>reliability of these numbers <span style={{ color: GREEN, fontWeight: 600 }}>→</span></div>
+              </a>
+            )}
           </div>
 
           {/* issue rows · human vs LLM + evidence */}
