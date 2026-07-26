@@ -159,8 +159,20 @@ export default function Join() {
     const src = url ? `/api/audio?url=${encodeURIComponent(url)}` : "";
     if (a.getAttribute("data-src") !== src) { a.src = src; a.setAttribute("data-src", src); }
     stopAtRef.current = stopSec != null ? stopSec + 0.15 : null;   // bound to segment end like the tool
-    const go = () => { try { a.playbackRate = rate; if (seekSec != null) a.currentTime = Math.max(0, seekSec - 0.15); else if (seekTs) a.currentTime = Math.max(0, tsSec(seekTs) - 2); } catch {} a.play().then(() => setPlayingIdx(i)).catch(() => setPlayingIdx(null)); };
-    if (a.readyState >= 1) go(); else { a.addEventListener("loadedmetadata", go, { once: true }); a.load(); }
+    const seek = () => { try { a.playbackRate = rate; if (seekSec != null) a.currentTime = Math.max(0, seekSec - 0.15); else if (seekTs) a.currentTime = Math.max(0, tsSec(seekTs) - 2); } catch {} };
+    // play() must be issued INSIDE the tap. The old code waited for
+    // loadedmetadata and called play() from that callback · by then the user
+    // gesture is over and mobile Safari blocks it, silently, via the .catch().
+    // That is why the very first clip never played while every later one did:
+    // once the element has started once, it is unlocked and readyState >= 1
+    // takes the synchronous path.
+    // Muted for the moment between starting and having metadata to seek with,
+    // so the unlock does not leak audio from 0:00.
+    a.muted = true;
+    const started = a.play();
+    const ready = () => { seek(); a.muted = false; setPlayingIdx(i); };
+    if (a.readyState >= 1) ready(); else a.addEventListener("loadedmetadata", ready, { once: true });
+    if (started && typeof started.catch === "function") started.catch(() => { a.muted = false; setPlayingIdx(null); });
   }
   function changeRate(r: number) { setRate(r); if (audioRef.current) audioRef.current.playbackRate = r; }
   function playCurSeg() { const g = transSegs[segCur]; if (g) play(idx, undefined, g.s, g.e); }
