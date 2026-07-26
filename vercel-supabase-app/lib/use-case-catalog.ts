@@ -28,18 +28,15 @@ export type CheckDef = {
 
 export const CHECKS: CheckDef[] = [
   {
-    id: "transcription", name: "Transcription accuracy", routing: "human",
+    // One human pass covers both halves of the same job · a reviewer who writes
+    // what was actually said has, by the same listen, checked what the bot
+    // registered. Splitting them into two priced checks made the plan look
+    // busier without doing more work.
+    id: "transcription", name: "Input capture · ASR and transcription", routing: "human",
     priceInr: 34, samplePct: 0.4, unit: "per_call",
-    work: "A reviewer listens and writes what was actually said · Devanagari against Roman, numbers as spoken, addresses.",
-    laneReason: "A machine judge cannot grade this, it scores against the same audio it already misheard.",
-    match: /mishear|misheard|hear|transcri|accent|fast|mumbl|switch(es|ing)? language|hinglish|devanagari|garbl|unclear|speech/i,
-  },
-  {
-    id: "input_capture", name: "Number and input capture", routing: "human",
-    priceInr: 21, samplePct: 1, unit: "per_call",
-    work: "What the customer said against what the bot registered · every mismatch comes back with a timestamp you can play.",
-    laneReason: "The transcript often looks fine while the value is missing, so only a listener catches it.",
-    match: /order number|address|amount|otp|digit|number|quantity|pin ?code|phone|booking|date|wrong(ly)? (captur|record|regist)|gets? .* wrong/i,
+    work: "A reviewer listens and writes what was actually said · Devanagari against Roman, numbers as spoken, names and addresses · then checks it against what the bot registered.",
+    laneReason: "A machine judge cannot grade this, it scores against the same audio it already misheard, and the transcript often looks fine while the value is missing.",
+    match: /mishear|misheard|hear|transcri|accent|fast|mumbl|switch(es|ing)? language|hinglish|devanagari|garbl|unclear|speech|order number|address|amount|otp|digit|number|quantity|pin ?code|phone|booking|date|wrong(ly)? (captur|record|regist|tagg)|gets? .* wrong/i,
   },
   {
     id: "factual", name: "Factual accuracy", routing: "judge_human_verified",

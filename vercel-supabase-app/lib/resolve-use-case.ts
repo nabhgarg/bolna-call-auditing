@@ -7,7 +7,8 @@ import { CHECKS, DEFAULT_SUGGESTION_IDS, estimate, extractLanguages, lineTotal, 
 const SYS = `You turn a client's plain-language description of their AI agent problem into the checks RealLoop would run.
 
 Rules:
-- Choose ONLY from the catalog ids given. Two to four is typical. Never choose all of them to look thorough.
+- Choose ONLY from the catalog ids given. At most TWO. Most descriptions need exactly one, and many need both.
+- "transcription" covers everything heard-or-captured wrong: misheard speech, and values the bot registered wrongly (numbers, names, addresses, quantity, size, payment method). It is ONE check, do not try to split it.
 - For each chosen check write "because": ONE sentence that starts by quoting the client's own words back ("Because you said the bot mishears people.", "Because order numbers and addresses come out wrong."). Use their vocabulary, not ours. Do not describe the work itself, we append that.
 - For each chosen check also return "quote": the EXACT substring of the client's message (max ~12 words, copied verbatim, no paraphrase) that made you pick it. If no clean substring exists, use null.
 - Never mention metrics, rubrics, schemas, weights or thresholds.
@@ -70,8 +71,12 @@ export async function resolveUseCase(input: ResolveInput) {
   }
   if (!picks.length) picks = matchChecks(description).map((c) => ({ id: c.id, because: `Because of what you described.`, quote: null }));
 
+  // The plan recommends at most these two · everything else is an add-on the
+  // client opts into, so the first screen stays a decision rather than a menu.
+  const RECOMMENDABLE = ["transcription", "factual"];
   const seen = new Set<string>();
   const checks = picks
+    .filter((p) => RECOMMENDABLE.includes(p.id))
     .filter((p) => !seen.has(p.id) && seen.add(p.id))
     .map((p) => {
       const c = CHECKS.find((x) => x.id === p.id)!;
@@ -82,7 +87,7 @@ export async function resolveUseCase(input: ResolveInput) {
 
   const chosen = new Set(checks.map((c) => c.id));
   const suggestions = CHECKS
-    .filter((c) => !chosen.has(c.id) && DEFAULT_SUGGESTION_IDS.includes(c.id))
+    .filter((c) => !chosen.has(c.id) && c.id !== "transcription" && c.id !== "factual")
     // judge lanes bill twice (read + verify) · show the combined per-call price
     .map((c) => ({ id: c.id, name: c.name, priceInr: c.priceInr + (c.verifyInr ?? 0) }));
 

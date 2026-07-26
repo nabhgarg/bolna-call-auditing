@@ -104,6 +104,15 @@ export default function NewUseCase() {
   const callsPerWeek = perDay ? baseVolume * 7 : baseVolume;
   const canAnalyse = desc.trim().length >= 40;
 
+  // A rough range, shown only after they commit · wide enough to be honest
+  // about what we do not know yet, narrow enough to be useful. The exact
+  // number comes back with the plan.
+  const roundTo = (n: number, step: number) => Math.max(step, Math.round(n / step) * step);
+  const mid = est?.weeklyInr ?? 0;
+  const step = mid > 60000 ? 5000 : 1000;
+  const roughLow = roundTo(mid * 0.85, step);
+  const roughHigh = roundTo(mid * 1.15, step);
+
   // reprice whenever the client changes the volume on the plan
   useEffect(() => {
     if (!res || started) return;
@@ -322,8 +331,6 @@ export default function NewUseCase() {
                           {routingPills(c.routing).map((p) => (
                             <span key={p.t} style={{ borderRadius: 999, background: p.bg, color: p.fg, fontSize: 10.5, fontWeight: 600, padding: "3px 9px" }}>{p.t}</span>
                           ))}
-                          <span style={{ flex: 1 }} />
-                          <span className={mono.className} style={{ fontSize: 11.5, color: MUT }}>{c.priceLabel}</span>
                         </div>
                         <div style={{ fontSize: 12.5, color: "#4d5a66", lineHeight: 1.55, marginTop: 7 }}>{c.because}</div>
                         <div className={mono.className} style={{ fontSize: 11, color: MUT, marginTop: 7 }}>{c.volumeLabel}</div>
@@ -344,7 +351,7 @@ export default function NewUseCase() {
                   {res.suggestions.map((s) => (
                     <button key={s.id} onClick={() => addSuggestion(s.id)}
                       style={{ display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 999, border: "1px solid #d6dee6", background: "#fff", padding: "6px 12px", fontSize: 12, color: "#4d5a66", cursor: "pointer", fontFamily: "inherit" }}>
-                      ＋ {s.name} <span className={mono.className} style={{ fontSize: 11, color: MUT }}>₹{s.priceInr}</span>
+                      ＋ {s.name}
                     </button>
                   ))}
                 </div>
@@ -396,34 +403,14 @@ export default function NewUseCase() {
                     </div>
                   ) : <span style={{ fontSize: 12.5, color: MUT }}>calls in this batch</span>}
                 </div>
-                <span style={{ fontSize: 12.5, color: MUT, borderTop: "1px solid #eef2f6", paddingTop: 10 }}>{cadence === "recurring" ? `Your estimate at ${callsPerWeek.toLocaleString()} calls a week` : `Your estimate for this ${callsPerWeek.toLocaleString()}-call batch`}</span>
-                <div className={grotesk.className} style={{ fontSize: 29, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>
-                  ₹{(est?.weeklyInr ?? 0).toLocaleString()} <span style={{ fontSize: 15, color: MUT, fontWeight: 500 }}>{cadence === "recurring" ? "/ wk" : "once"}</span>
-                </div>
-                {/* the same money as an hourly rate · what a buyer compares
-                    against a BPO quote. Billing itself stays per call. */}
-                {!!est?.perHourInr && (
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, background: "#f5f7f9", borderRadius: 8, padding: "8px 11px", flexWrap: "wrap" }}>
-                    <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>₹{est.perHourInr.toLocaleString()}</span>
-                    <span style={{ fontSize: 11.5, color: MUT }}>per hour of audio a human listens to</span>
-                    <span style={{ flex: 1 }} />
-                    <span className={mono.className} style={{ fontSize: 10.5, color: MUT }}>{est.hours} hrs{cadence === "recurring" ? " / wk" : ""}</span>
-                  </div>
-                )}
-                <div style={{ display: "flex", flexDirection: "column", gap: 5, borderTop: "1px solid #eef2f6", paddingTop: 9 }}>
-                  {(est?.lines || []).map((l) => {
-                    const c = res.checks.find((x) => x.id === l.checkId);
-                    return (
-                      <div key={l.checkId} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-                        <span style={{ color: "#4d5a66", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c?.name || l.checkId}</span>
-                        <span style={{ flex: 1 }} />
-                        <span className={mono.className} style={{ color: INK }}>₹{l.inr.toLocaleString()}</span>
-                      </div>
-                    );
-                  })}
-                  {(est?.lines || []).length === 0 && <span style={{ fontSize: 12, color: MUT }}>Nothing selected yet.</span>}
-                </div>
-                <span style={{ fontSize: 11, color: MUT }}>Billed on calls actually reviewed, not on the plan.</span>
+                {/* No price on this screen · the client says what to check and
+                    how much of it, and we come back with the plan and the cost
+                    within 48 hours. A rough range appears once they start. */}
+                <span style={{ fontSize: 12, color: MUT, borderTop: "1px solid #eef2f6", paddingTop: 10, lineHeight: 1.55 }}>
+                  {cadence === "recurring"
+                    ? `We will scope this at ${callsPerWeek.toLocaleString()} calls a week and come back with the plan and the cost.`
+                    : `We will scope this ${callsPerWeek.toLocaleString()}-call batch and come back with the plan and the cost.`}
+                </span>
               </div>
 
               {/* once they commit, the panel stops selling and starts
@@ -435,22 +422,32 @@ export default function NewUseCase() {
                     <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Your program is starting</span>
                   </div>
                   <div style={{ fontSize: 13.5, color: "#4d5a66", lineHeight: 1.6 }}>
-                    Training and reliability screening are under way. <b style={{ color: INK }}>We will get back to you in 36 to 48 hours</b> with your reviewer panel and the reliability number it screened at.
+                    <b style={{ color: INK }}>We will get back to you within 48 hours</b> with the plan and the cost · your reviewer panel, the checks it will run, and the reliability number it screened at.
+                  </div>
+                  {/* a range, not a quote · the exact number arrives with the plan */}
+                  <div style={{ background: "#f5f7f9", borderRadius: 9, padding: "13px 14px" }}>
+                    <div style={{ fontSize: 11.5, color: MUT, marginBottom: 3 }}>Rough cost estimate</div>
+                    <div className={grotesk.className} style={{ fontSize: 22, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.4px" }}>
+                      ₹{roughLow.toLocaleString()} to ₹{roughHigh.toLocaleString()}
+                      <span style={{ fontSize: 13, color: MUT, fontWeight: 500 }}> {cadence === "recurring" ? "/ wk" : "for the batch"}</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: MUT, marginTop: 5, lineHeight: 1.5 }}>
+                      At {callsPerWeek.toLocaleString()} calls{cadence === "recurring" ? " a week" : ""}. We confirm the exact figure with the plan · you are billed on calls actually reviewed, never on the plan.
+                    </div>
                   </div>
                   <div style={{ background: "#f5f7f9", borderRadius: 9, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 9 }}>
                     {[
-                      ["Use case", res.checks.filter((c) => sel.includes(c.id)).map((c) => c.name).join(", ")],
+                      ["Checks", res.checks.filter((c) => sel.includes(c.id)).map((c) => c.name).join(", ")],
                       [cadence === "recurring" ? "Volume" : "Batch", `${callsPerWeek.toLocaleString()} calls${cadence === "recurring" ? " a week" : ""}`],
-                      ["Estimate", `₹${(est?.weeklyInr ?? 0).toLocaleString()}${cadence === "recurring" ? " / wk" : ""}`],
                     ].map(([k, v]) => (
                       <div key={k} style={{ display: "flex", gap: 10, fontSize: 12.5, alignItems: "flex-start" }}>
-                        <span style={{ color: MUT, width: 62, flex: "none" }}>{k}</span>
+                        <span style={{ color: MUT, width: 54, flex: "none" }}>{k}</span>
                         <span style={{ color: INK, flex: 1 }}>{v}</span>
                       </div>
                     ))}
                   </div>
                   <div style={{ fontSize: 12, color: MUT, lineHeight: 1.55 }}>
-                    Sourcing and training reviewers against your volume now, and building a calibration set from your own recordings. Nothing is billed until calls are actually reviewed.
+                    Matching and screening reviewers against your volume now, and building a calibration set from your own recordings.
                   </div>
                   <span style={{ flex: 1 }} />
                   <a href="/portal/agents" style={{ height: 44, borderRadius: 9, background: "#fff", border: "1px solid #d6dee6", color: INK, fontWeight: 600, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>Where findings will land →</a>
