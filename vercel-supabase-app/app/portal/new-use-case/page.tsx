@@ -92,13 +92,16 @@ export default function NewUseCase() {
   useEffect(() => { setAllowed(isExpert()); }, []);
 
   // Volume is asked on the plan, not in the composer · the client sees what we
-  // would check first, then tells us how much of it there is. A daily figure
-  // becomes weekly. Blank falls back to whatever the resolver assumed.
+  // would check first, then tells us how much of it there is.
+  //
+  // The unit has to apply to whatever number is in force, not only to a typed
+  // one. When the field was left empty this used to fall through to the
+  // resolver's figure and skip the conversion entirely, so switching between
+  // "a week" and "a day" changed nothing on screen.
   const typedVolume = Math.max(0, Math.round(Number(String(vol).replace(/[^\d]/g, "")) || 0));
-  const volumeCallsPerWeek = typedVolume > 0
-    ? (cadence === "recurring" && volUnit === "day" ? typedVolume * 7 : typedVolume)
-    : 0;
-  const callsPerWeek = volumeCallsPerWeek || res?.facts.callsPerWeek || DEFAULT_CALLS;
+  const baseVolume = typedVolume > 0 ? typedVolume : (res?.facts.callsPerWeek || DEFAULT_CALLS);
+  const perDay = cadence === "recurring" && volUnit === "day";
+  const callsPerWeek = perDay ? baseVolume * 7 : baseVolume;
   const canAnalyse = desc.trim().length >= 40;
 
   // reprice whenever the client changes the volume on the plan
@@ -130,6 +133,11 @@ export default function NewUseCase() {
         body: JSON.stringify({ description: desc.trim(), callsPerWeek: DEFAULT_CALLS, docs, cadence }),
       }).then((r) => r.json());
       if (!d?.checks) { setPhase("blank"); return; }
+      // seed the field with a real value rather than leaving a placeholder ·
+      // an empty box that still prices something reads as broken, and the
+      // unit toggle has nothing to act on
+      setVol(String(d.facts.callsPerWeek));
+      setVolUnit("week");
       setRes(d); setSel(d.checks.map((c) => c.id)); setEst(d.estimate); setPhase("answered");
     } catch { setPhase("blank"); }
   }
