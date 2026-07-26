@@ -29,7 +29,7 @@ type Resolved = {
 };
 
 const EXAMPLES = [
-  "Our agent calls customers in Hindi to confirm cash-on-delivery orders. We only find out something went wrong when the parcel comes back refused: the customer says they never agreed, or they asked to change the quantity and nobody recorded it. It also quotes delivery windows that do not match our policy.",
+  "Our agent calls customers who left items in their cart and completes the order on the call, in Hindi. COD parcels keep coming back refused: customers tell support they never said yes on the call, or the order that ships has the wrong quantity or size. The agent also promises discounts and delivery dates we never offered.",
   "We do EMI reminders. If it tells someone the wrong outstanding amount we have a compliance problem.",
 ];
 const DEFAULT_CALLS = 1240;
