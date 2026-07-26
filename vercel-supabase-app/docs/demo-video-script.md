@@ -36,10 +36,11 @@ down the two check cards. In the right rail type **3000**, click **"a day"** ·
 the volume line updates. End with the cursor near **Start the program**.
 
 **Say:**
-> A client describes the job in plain language. Our agent completes cart orders
-> on the call · it confirms the name, the address, the quantity, the payment
-> method, the discount. The engine reads that back as two checks, and shows the
-> exact phrase in your own words that made it pick each one.
+> A client describes the job in plain language. Our cart recovery agent mishears
+> the names and addresses customers confirm on the call, tags orders to the
+> wrong payment method, and sometimes quotes the wrong discount. The engine
+> reads that back as two checks, and shows the exact phrase in your own words
+> that made it pick each one.
 
 ## 2b · Back to the website · ~10s
 
