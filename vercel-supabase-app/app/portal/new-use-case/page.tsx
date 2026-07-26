@@ -199,12 +199,19 @@ export default function NewUseCase() {
     <PortalShell right={
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "13px 22px", flexWrap: "wrap" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>New use case</span>
-        {phase === "answered" && <>
-          <span style={{ fontSize: 12.5, color: MUT }}>you describe it · we work out what to measure</span>
-          <span style={{ flex: 1 }} />
+        {phase === "answered" && <span style={{ fontSize: 12.5, color: MUT }}>you describe it · we work out what to measure</span>}
+        <span style={{ flex: 1 }} />
+        {phase === "answered" && (
           <button onClick={() => { setPhase("blank"); setRes(null); setEst(null); setSel([]); setStarted(false); }}
             style={{ fontSize: 12.5, color: "#4d5a66", background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "6px 13px", cursor: "pointer", fontFamily: "inherit" }}>Start over</button>
-        </>}
+        )}
+        {/* an existing client landing here from the website needs a way into
+            their own program · signed-in experts already have the full nav */}
+        {allowed === false && (
+          <a href="https://review.realloop.in/" style={{ fontSize: 12.5, fontWeight: 600, color: GREEN, textDecoration: "none", padding: "6px 4px" }}>
+            Already a client? Log in →
+          </a>
+        )}
       </div>
     }>
       <div className={instrument.className} style={{ color: INK, padding: phase === "answered" ? "16px 22px 30px" : 0 }}>
