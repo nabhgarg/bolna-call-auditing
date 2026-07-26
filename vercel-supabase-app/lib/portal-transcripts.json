@@ -6,8 +6,8 @@
     {
       "agent": "Cart Recovery · Marketplace",
       "calls": 101,
-      "segments": 1428,
-      "corrected": 115,
+      "segments": 1122,
+      "corrected": 251,
       "pairs": [
         {
           "call_id": "ba1fdff6-0954-47dd-a473-3a2b3f5e0dbb",
@@ -40,27 +40,27 @@
       ],
       "themes": [
         {
-          "title": "Similar-sounding words swapped",
-          "count": 54,
-          "pct": 58,
+          "title": "Short utterances never captured",
+          "count": 158,
+          "pct": 63,
+          "detail": "hello, हां जी, बोलिये, thank you · the customer speaks and nothing reaches the transcript, so the agent carries on as if the line went quiet. On one call the customer said hello seventeen times and not one of them registered.",
+          "example": {
+            "call_id": "ba1fdff6-0954-47dd-a473-3a2b3f5e0dbb",
+            "ts": "00:08",
+            "asr": "(nothing captured)",
+            "golden": "hello"
+          }
+        },
+        {
+          "title": "The wrong word heard",
+          "count": 51,
+          "pct": 20,
           "detail": "The bot hears a real word, just the wrong one · product words, names and amounts included. The sentence still reads fine, which is why nothing downstream catches it.",
           "example": {
             "call_id": "99dfb5dc-7087-4afe-bbfe-c0dd5784d762",
             "ts": "00:57",
             "asr": "five six का है उसका",
             "golden": "price क्या है उसका"
-          }
-        },
-        {
-          "title": "Short replies cut off",
-          "count": 23,
-          "pct": 25,
-          "detail": "The transcript keeps the opening word and drops what follows · so a refusal, an amount or a change of mind never reaches you.",
-          "example": {
-            "call_id": "ba1fdff6-0954-47dd-a473-3a2b3f5e0dbb",
-            "ts": "02:09",
-            "asr": "हां जी",
-            "golden": "नहीं नहीं अभी तोह नहीं चाहिए"
           }
         }
       ]
