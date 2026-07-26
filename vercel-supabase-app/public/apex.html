@@ -38,6 +38,17 @@
   .phone img { display: block; width: 100%; height: auto; }
 
   .cap { margin: 12px 0 0; font-size: 13.5px; color: #6b7885; line-height: 1.55; }
+
+  /* team · the name is the link, LinkedIn mark sits beside it */
+  .rl-name { display: inline-flex; align-items: center; gap: 10px; color: #10181f;
+             font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+             font-size: clamp(20px, 2.6vw, 26px); letter-spacing: -0.015em;
+             min-height: 44px; }
+  .rl-name svg { width: 19px; height: 19px; flex: none; fill: #93a1ae; transition: fill .15s ease; }
+  .rl-name:hover { color: #0e8a5f; }
+  .rl-name:hover svg { fill: #0e8a5f; }
+  .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -230,8 +241,8 @@
   <div style="max-width: 1060px; margin: 0 auto; padding: clamp(48px, 7vw, 88px) clamp(20px, 5vw, 56px)">
     <h2 style="margin: 0 0 24px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: clamp(24px, 3.2vw, 34px); letter-spacing: -0.015em">Team</h2>
     <div style="display: flex; flex-wrap: wrap; gap: clamp(28px, 6vw, 72px)">
-      <p style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(20px, 2.6vw, 26px); font-weight: 600; letter-spacing: -0.015em">Manavi Garg</p>
-      <p style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(20px, 2.6vw, 26px); font-weight: 600; letter-spacing: -0.015em">Nabh Garg</p>
+      <a class="rl-name" href="https://www.linkedin.com/in/manavi-garg-867b9215b/" target="_blank" rel="noopener noreferrer">Manavi Garg<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0 0-5zM3 9.75h4V21H3zM9.5 9.75h3.83v1.54h.05c.53-.95 1.83-1.95 3.77-1.95 4.03 0 4.78 2.5 4.78 5.76V21h-4v-5.02c0-1.2-.02-2.74-1.75-2.74-1.76 0-2.03 1.3-2.03 2.65V21h-4z"/></svg><span class="sr">on LinkedIn</span></a>
+      <a class="rl-name" href="https://www.linkedin.com/in/nabhgarg/" target="_blank" rel="noopener noreferrer">Nabh Garg<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0 0-5zM3 9.75h4V21H3zM9.5 9.75h3.83v1.54h.05c.53-.95 1.83-1.95 3.77-1.95 4.03 0 4.78 2.5 4.78 5.76V21h-4v-5.02c0-1.2-.02-2.74-1.75-2.74-1.76 0-2.03 1.3-2.03 2.65V21h-4z"/></svg><span class="sr">on LinkedIn</span></a>
     </div>
   </div>
 </section>
