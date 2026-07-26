@@ -1,6 +1,7 @@
 "use client";
 
 import React, { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { readRole, writeRole, clearRole } from "../lib/role";
 
 type CallSummary = {
   queue_id?: string | null;
@@ -175,7 +176,7 @@ export default function Page() {
   useEffect(() => {
     const storedEmail = (window.localStorage.getItem("auditReviewerEmail") || "").trim().toLowerCase();
     const storedDisplay = window.localStorage.getItem("auditReviewerDisplay") || "";
-    const storedRole = window.localStorage.getItem("auditReviewerRole") || "reviewer";
+    const storedRole = readRole() || "reviewer";
     const initialMode = RESPONSE_VIBE_MODE;
     setLoginEmail(storedEmail);
     setAuditMode(initialMode);
@@ -195,7 +196,7 @@ export default function Page() {
           setReviewerRole(p.role || "reviewer");
           setRoleConfirmed(true);
           setReviewerDisplay(p.display_name || storedEmail);
-          window.localStorage.setItem("auditReviewerRole", p.role || "reviewer");
+          writeRole(p.role || "reviewer");
           window.localStorage.setItem("auditReviewerDisplay", p.display_name || storedEmail);
         })
         .catch(() => {});
@@ -626,7 +627,7 @@ export default function Page() {
         setLoginVisible(false);
         window.localStorage.setItem("auditReviewerEmail", result.email);
         window.localStorage.setItem("auditReviewerDisplay", result.display_name || result.email);
-        window.localStorage.setItem("auditReviewerRole", result.role || "reviewer");
+        writeRole(result.role || "reviewer");
         window.localStorage.setItem("auditMode", auditMode);
         await loadCalls(result.email, auditMode);
         return;
@@ -659,7 +660,7 @@ export default function Page() {
       setLoginVisible(false);
       window.localStorage.setItem("auditReviewerEmail", profile.email);
       window.localStorage.setItem("auditReviewerDisplay", profile.display_name || profile.email);
-      window.localStorage.setItem("auditReviewerRole", profile.role || "reviewer");
+      writeRole(profile.role || "reviewer");
       window.localStorage.setItem("auditMode", auditMode);
       await loadCalls(profile.email, auditMode);
     } catch (error) {
@@ -672,7 +673,7 @@ export default function Page() {
   function logout() {
     window.localStorage.removeItem("auditReviewerEmail");
     window.localStorage.removeItem("auditReviewerDisplay");
-    window.localStorage.removeItem("auditReviewerRole");
+    clearRole();
     setReviewerEmail("");
     setReviewerDisplay("");
     setLoginEmail("");

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN } from "../../lib/ui";
+import { isExpert } from "../../lib/role";
 
 // Portal shell · Raindrop-style left nav. Four stable destinations:
 // Overview (how is my AI doing) · Agents (which agent breaks, how) ·
@@ -41,11 +42,11 @@ export default function PortalShell({ children, right }: { children: React.React
   const [collapsed, setCollapsed] = useState(true);
   useEffect(() => {
     try {
-      const isExpert = (window.localStorage.getItem("auditReviewerRole") || "") === "expert";
-      setExpert(isExpert);
+      const signedIn = isExpert();
+      setExpert(signedIn);
       const saved = window.localStorage.getItem("rlNavCollapsed");
       if (saved !== null) setCollapsed(saved === "1");
-      if (!isExpert) return;
+      if (!signedIn) return;
       const extra = JSON.parse(window.localStorage.getItem("rlPrograms") || "[]");
       setPrograms(["Bolna", ...extra]);
       setActive(window.localStorage.getItem("rlActiveProgram") || "Bolna");

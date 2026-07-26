@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, card } from "../../../lib/ui";
+import { isExpert } from "../../../lib/role";
 
 // Connect via MCP · the developer path into the same pipeline.
 // An already-onboarded client's engineer adds our MCP server to their coding
@@ -49,7 +50,7 @@ export default function Connect() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert");
+    setAllowed(isExpert());
     if (typeof window !== "undefined") setOrigin(window.location.origin);
   }, []);
 

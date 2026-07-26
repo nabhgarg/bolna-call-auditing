@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, card } from "../../../lib/ui";
+import { isExpert } from "../../../lib/role";
 
 // New use case (wireframe 23a/23b) · the client describes the job in plain
 // language and we say what we would check, who checks it, and what it costs.
@@ -88,7 +89,7 @@ export default function NewUseCase() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
 
-  useEffect(() => { setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert"); }, []);
+  useEffect(() => { setAllowed(isExpert()); }, []);
 
   // Volume is asked on the plan, not in the composer · the client sees what we
   // would check first, then tells us how much of it there is. A daily figure

@@ -5,6 +5,7 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "../shell";
 import { PAGE, INK, MUT, GREEN, RED, card } from "../../../lib/ui";
 import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
+import { isExpert } from "../../../lib/role";
 
 // Datasets (wireframe 8a) · what the reviews already generated (golden
 // transcripts hero + issue-labeled calls), plus request-more cards with
@@ -52,7 +53,7 @@ export default function Datasets() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setAllowed((window.localStorage.getItem("auditReviewerRole") || "") === "expert");
+    setAllowed(isExpert());
     fetch("/api/portal/judge").then((r) => r.json()).then(setJudge).catch(() => {});
     fetch("/api/portal/overview").then((r) => r.json()).then(setOv).catch(() => {});
   }, []);
