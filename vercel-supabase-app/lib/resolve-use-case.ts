@@ -24,7 +24,10 @@ Return ONLY valid JSON, no prose, no fence:
 function serialize(c: CheckDef, because: string, callsPerWeek: number, selected: boolean, cadence: Cadence, quote: string | null) {
   return {
     id: c.id, name: c.name, routing: c.routing,
-    because: `${because} ${c.work}${c.laneReason ? " " + c.laneReason : ""}`.replace(/\s+/g, " ").trim(),
+    // the card shows why we picked it and what the reviewer does · the lane
+    // rationale is carried separately so the card stays two sentences
+    because: `${because} ${c.work}`.replace(/\s+/g, " ").trim(),
+    laneNote: c.laneReason || null,
     quote,
     unit: c.unit, priceInr: c.priceInr, verifyInr: c.verifyInr ?? null,
     priceLabel: priceLabel(c), samplePct: c.samplePct,

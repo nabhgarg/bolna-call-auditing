@@ -85,6 +85,9 @@ export default function NewUseCase() {
   const [changeText, setChangeText] = useState("");
   const [pending, setPending] = useState<{ from: number; to: number; checks: Check[]; ids: string[] } | null>(null);
   const [busyChange, setBusyChange] = useState(false);
+  // The plan is one page, scoping it is the next · approving separates "is
+  // this the right work" from "how much of it, and what happens then".
+  const [step, setStep] = useState<"plan" | "scope">("plan");
   const [started, setStarted] = useState(false);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
@@ -107,11 +110,11 @@ export default function NewUseCase() {
   // A rough range, shown only after they commit · wide enough to be honest
   // about what we do not know yet, narrow enough to be useful. The exact
   // number comes back with the plan.
-  const roundTo = (n: number, step: number) => Math.max(step, Math.round(n / step) * step);
+  const roundTo = (n: number, to: number) => Math.max(to, Math.round(n / to) * to);
   const mid = est?.weeklyInr ?? 0;
-  const step = mid > 60000 ? 5000 : 1000;
-  const roughLow = roundTo(mid * 0.85, step);
-  const roughHigh = roundTo(mid * 1.15, step);
+  const roundStep = mid > 60000 ? 5000 : 1000;
+  const roughLow = roundTo(mid * 0.85, roundStep);
+  const roughHigh = roundTo(mid * 1.15, roundStep);
 
   // reprice whenever the client changes the volume on the plan
   useEffect(() => {
@@ -147,7 +150,7 @@ export default function NewUseCase() {
       // unit toggle has nothing to act on
       setVol(String(d.facts.callsPerWeek));
       setVolUnit("week");
-      setRes(d); setSel(d.checks.map((c) => c.id)); setEst(d.estimate); setPhase("answered");
+      setRes(d); setSel(d.checks.map((c) => c.id)); setEst(d.estimate); setStep("plan"); setPhase("answered");
     } catch { setPhase("blank"); }
   }
 
@@ -220,7 +223,7 @@ export default function NewUseCase() {
         {phase === "answered" && <span style={{ fontSize: 12.5, color: MUT }}>you describe it · we work out what to measure</span>}
         <span style={{ flex: 1 }} />
         {phase === "answered" && (
-          <button onClick={() => { setPhase("blank"); setRes(null); setEst(null); setSel([]); setStarted(false); }}
+          <button onClick={() => { setPhase("blank"); setRes(null); setEst(null); setSel([]); setStarted(false); setStep("plan"); }}
             style={{ fontSize: 12.5, color: "#4d5a66", background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "6px 13px", cursor: "pointer", fontFamily: "inherit" }}>Start over</button>
         )}
         {/* an existing client landing here from the website needs a way into
@@ -340,7 +343,8 @@ export default function NewUseCase() {
                 );
               })}
 
-              {/* add more + change in plain language */}
+              {/* add more + change in plain language · plan step only */}
+              {step === "plan" && (
               <div style={{ ...card, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 11, flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
                   <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>Add more if you want</span>
@@ -380,13 +384,46 @@ export default function NewUseCase() {
                   )}
                 </div>
               </div>
+              )}
             </div>
 
             {/* RIGHT RAIL */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 16 }}>
+
+              {/* STEP 1 · approve the plan. Volume and timing come after · the
+                  client should settle what we check before how much of it. */}
+              {step === "plan" && (
+                <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Does this look right?</span>
+                  <div style={{ fontSize: 12.5, color: MUT, lineHeight: 1.6 }}>
+                    {sel.length === 0
+                      ? "Pick at least one check to carry on."
+                      : <>You have {sel.length === 1 ? "one check" : `${sel.length} checks`} selected. Uncheck anything you do not want, add more, or change it in plain language. Volume comes next.</>}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5, borderTop: "1px solid #eef2f6", paddingTop: 10 }}>
+                    {res.checks.filter((c) => sel.includes(c.id)).map((c) => (
+                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 3, background: accent(c.routing), flex: "none" }} />
+                        <span style={{ color: "#4d5a66", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setStep("scope")} disabled={sel.length === 0}
+                    style={{ height: 46, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, border: "none", cursor: sel.length ? "pointer" : "default", opacity: sel.length ? 1 : 0.45, fontFamily: "inherit" }}>
+                    Approve the plan →
+                  </button>
+                  <span style={{ fontSize: 11, color: MUT, textAlign: "center" }}>Nothing is configured yet.</span>
+                </div>
+              )}
+
+              {step === "scope" && (
               <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
-                {/* volume lives here · they see the plan first, then tell us
-                    how much of it there is, and every price follows */}
+                {!started && (
+                  <button onClick={() => setStep("plan")}
+                    style={{ alignSelf: "flex-start", fontSize: 12, color: MUT, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}>← back to the plan</button>
+                )}
+                {/* volume lives here · they approve the work first, then say
+                    how much of it there is */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 12.5, color: MUT }}>{cadence === "recurring" ? "How many calls do you want checked?" : "How big is this batch?"}</span>
                 </div>
@@ -412,10 +449,11 @@ export default function NewUseCase() {
                     : `We will scope this ${callsPerWeek.toLocaleString()}-call batch and come back with the plan and the cost.`}
                 </span>
               </div>
+              )}
 
               {/* once they commit, the panel stops selling and starts
                   reporting · this is the only status they need today */}
-              {started ? (
+              {step === "scope" && (started ? (
                 <div style={{ ...card, padding: "18px 18px", display: "flex", flexDirection: "column", gap: 12, minHeight: 420, borderLeft: `4px solid ${GREEN}` }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                     <span style={{ width: 9, height: 9, borderRadius: 99, background: GREEN, flex: "none", animation: "rlLive 1.6s ease-in-out infinite" }} />
@@ -483,7 +521,7 @@ export default function NewUseCase() {
                 <span style={{ fontSize: 11, color: MUT, textAlign: "center" }}>Nothing is configured until you click this.</span>
                 <span style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>Prefer to wire it from code? <a href="/portal/connect" style={{ color: GREEN }}>Connect via MCP</a></span>
               </div>
-              )}
+              ))}
             </div>
           </div>
         )}
