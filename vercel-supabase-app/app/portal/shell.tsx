@@ -21,7 +21,6 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
 // reads a live client's data and stays behind the expert gate.
 const NAV = [
   { href: "/portal/new-use-case", label: "New use case", icon: "＋", pub: true },
-  { href: "/portal/evaluation", label: "Evaluation design", icon: "⌘" },
   { href: "/portal/agents", label: "Agent insights", icon: "◐" },
   { href: "/portal/reliability", label: "Reliability", icon: "◎" },
   { href: "/portal/datasets", label: "Datasets", icon: "▤" },
