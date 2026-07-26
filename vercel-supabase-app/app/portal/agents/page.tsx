@@ -202,16 +202,39 @@ function Inner() {
                         : leadRow ? <> · {leadRow.occ} findings across {leadCalls} calls</> : null}.
                       {isRootCause ? <span style={{ color: MUT }}> Root cause · fixing this clears most of the list below.</span> : null}
                     </div>
-                    {leadEvidence && (
+
+                    {/* the two ways it actually goes wrong · clustered from this
+                        agent's own panel corrections, each one playable */}
+                    {goldenT?.themes?.length ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+                        {(goldenT.themes as any[]).map((th) => (
+                          <div key={th.title} style={{ background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 9, padding: "10px 12px" }}>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{th.title}</span>
+                              <span className={mono.className} style={{ fontSize: 11, color: RED }}>{th.count} segments · {th.pct}%</span>
+                            </div>
+                            <div style={{ fontSize: 12.5, color: MUT, lineHeight: 1.5, marginTop: 3 }}>{th.detail}</div>
+                            {th.example && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 8, fontSize: 12.5, flexWrap: "wrap" }}>
+                                <button onClick={() => play(th.example.call_id, th.example.ts)} style={{ width: 22, height: 22, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none" }}>▶</button>
+                                <span style={{ textDecoration: "line-through", color: RED }}>{th.example.asr}</span>
+                                <span style={{ color: MUT }}>→</span>
+                                <b style={{ color: GREEN }}>{th.example.golden}</b>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : leadEvidence ? (
                       <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 8, background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 8, padding: "7px 10px", fontSize: 12.5 }}>
                         <button onClick={() => play(leadEvidence.call_id, leadEvidence.ts)} style={{ width: 24, height: 24, borderRadius: 12, background: GREEN, color: "#fff", border: "none", fontSize: 9, cursor: "pointer", flex: "none" }}>▶</button>
                         <span className={mono.className} style={{ fontSize: 11.5, flex: "none" }}>{String(leadEvidence.call_id).slice(0, 8)} @{leadEvidence.ts}</span>
                         <span style={{ color: MUT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{leadEvidence.note}</span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
-                {secondFix && (
+                {!goldenT?.themes?.length && secondFix && (
                   <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
                     <span style={{ borderRadius: 999, fontSize: 12, padding: "3px 9px", background: "#eef2f6", color: "#4d5a66", fontWeight: 600, flex: "none", marginTop: 1 }}>2</span>
                     <div style={{ fontSize: 14, lineHeight: 1.5, flex: 1 }}>
