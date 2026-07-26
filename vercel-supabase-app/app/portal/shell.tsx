@@ -73,7 +73,7 @@ export default function PortalShell({ children, right }: { children: React.React
             {collapsed ? "»" : "«"}
           </button>
         </div>
-        <div style={{ margin: "0 10px 14px", position: "relative", display: expert ? "block" : "none" }}>
+        <div className={"nav-program" + (expert ? "" : " nav-hidden")} style={{ margin: "0 10px 14px", position: "relative" }}>
           <button onClick={() => programs.length > 1 && setOpen(!open)} style={{ width: "100%", textAlign: "left", borderRadius: 8, background: "#f5f7f9", padding: "8px 10px", border: "none", cursor: programs.length > 1 ? "pointer" : "default" }}>
             <div style={{ fontSize: 10.5, color: MUT, textTransform: "uppercase", letterSpacing: 0.5 }}>Program{programs.length > 1 ? ` · ${programs.length}` : ""}</div>
             <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
@@ -110,7 +110,7 @@ export default function PortalShell({ children, right }: { children: React.React
           <span className="nav-label">Marketplace</span>
         </a>
         {expert && (
-          <div style={{ borderTop: "1px solid #eef2f6", margin: "8px 4px 0", paddingTop: 10, display: "flex", alignItems: "center", gap: 9 }}>
+          <div className="nav-user" style={{ borderTop: "1px solid #eef2f6", margin: "8px 4px 0", paddingTop: 10, display: "flex", alignItems: "center", gap: 9 }}>
             <span style={{ width: 22, height: 22, borderRadius: 999, background: INK, color: "#fff", fontSize: 10, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>N</span>
             <span className={mono.className} style={{ fontSize: 11.5, color: "#4d5a66" }}>bolna-ops</span>
           </div>

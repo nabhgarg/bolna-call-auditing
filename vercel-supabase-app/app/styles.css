@@ -855,6 +855,12 @@ audio {
    hidden by class rather than unmounted so the mobile strip below can bring
    them straight back without the shell knowing about breakpoints. */
 .portal-collapsed .nav-label { display: none !important; }
+/* the program pill and the user row have no icon-only form · they would spill
+   out of the 64px rail, so they are gone entirely while collapsed */
+.portal-collapsed .nav-program { display: none; }
+/* nav-user carries an inline display:flex, so this needs to outrank it */
+.portal-collapsed .nav-user { display: none !important; }
+.nav-hidden { display: none !important; }
 .portal-collapsed .portal-sidebar a { justify-content: center; padding-left: 0 !important; padding-right: 0 !important; }
 .nav-toggle:hover { background: #f5f7f9 !important; color: #10181f !important; border-color: #d6dee6 !important; }
 
@@ -864,6 +870,8 @@ audio {
   .portal-collapsed .portal-sidebar { width: 100% !important; padding: 8px 10px !important; }
   .portal-collapsed .nav-label { display: inline !important; }
   .portal-collapsed .portal-sidebar a { justify-content: flex-start; }
+  /* the mobile strip is horizontal · the pill fits, so bring it back */
+  .portal-collapsed .nav-program { display: block; }
   .nav-toggle { display: none !important; }
 }
 @media (max-width: 720px) {
