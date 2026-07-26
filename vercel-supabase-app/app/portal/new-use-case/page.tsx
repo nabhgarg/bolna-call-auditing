@@ -29,7 +29,7 @@ type Resolved = {
 };
 
 const EXAMPLES = [
-  "Our agent calls customers who left items in their cart and completes the order on the call, in Hindi. We confirm the user name and address on the call, which gets wrongly transcribed and leads to back and forth. We also confirm the order quantity and size on the call, which sometimes gets wrongly tagged. And the agent needs to ensure the right discount is communicated to the user.",
+  "Our agent calls customers who left items in their cart and completes the order on the call, in Hindi. We confirm the user name and address on the call, which gets wrongly transcribed and leads to back and forth. The order is also sometimes wrongly tagged to COD instead of prepaid. We also confirm the order quantity and size on the call, which sometimes gets wrongly tagged. And the agent needs to ensure the right discount is communicated to the user.",
   "We do EMI reminders. If it tells someone the wrong outstanding amount we have a compliance problem.",
 ];
 const DEFAULT_CALLS = 1240;
