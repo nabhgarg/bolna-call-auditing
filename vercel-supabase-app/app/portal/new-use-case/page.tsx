@@ -186,7 +186,11 @@ export default function NewUseCase() {
     } catch { /* the pilot is confirmed on screen either way */ }
   }
 
-  if (allowed === false) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The portal is available to experts. Log in on the <a href="/" style={{ color: GREEN }}>main app</a> first.</main>;
+  // No expert gate here on purpose. This is the public front door · the
+  // landing page's main CTA points straight at it, so it has to work for
+  // someone who has never logged in. It shows no client data: only what the
+  // visitor types, the catalog we price against, and their own estimate.
+  // Every screen that does read a live client's data stays gated.
 
   const shown = (res?.checks || []).filter((c) => sel.includes(c.id) || true);
   const initial = "N";
