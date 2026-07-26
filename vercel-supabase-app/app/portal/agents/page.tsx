@@ -297,8 +297,10 @@ function Inner() {
                     <span style={{ width: 14, color: isOpen ? GREEN : MUT }}>{none ? "·" : isOpen ? "▾" : "▸"}</span>
                     <span style={{ width: 210, fontWeight: 600, flex: "none" }}>{r.label}</span>
                     <div style={{ flex: 1, display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "#eef2f6", minWidth: 90 }}>
-                      <div style={{ width: `${(r.human_calls / Math.max(a.calls, 1)) * 100}%`, background: GREEN }} />
-                      <div style={{ width: `${(r.llm_calls / Math.max(a.calls, 1)) * 100}%`, background: PURPLE }} />
+                      {/* same denominator as the "N of M calls" text beside it ·
+                          reviewed, not the vibe-scored subset */}
+                      <div style={{ width: `${(r.human_calls / Math.max(a.reviewed, 1)) * 100}%`, background: GREEN }} />
+                      <div style={{ width: `${(r.llm_calls / Math.max(a.reviewed, 1)) * 100}%`, background: PURPLE }} />
                     </div>
                     <span style={{ width: 152, textAlign: "right", lineHeight: 1.25, fontSize: 12.5, flex: "none" }}>
                       {none ? <span style={{ color: MUT }}>nothing flagged</span> : <>
