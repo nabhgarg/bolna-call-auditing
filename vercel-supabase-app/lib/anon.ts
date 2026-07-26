@@ -3,7 +3,7 @@
 // org names; they show use-case archetypes.
 const ARCHETYPE: Record<string, string> = {
   "Visi Cooler Support v5.1 | Prod": "Field Support · Appliances",
-  "Unicommerce": "Order Confirmation · E-commerce",
+  "Unicommerce": "Cart Recovery · Marketplace",
   "GoKwik 2": "Cart Recovery · E-commerce A",
   "BiteSpeed": "Cart Recovery · E-commerce B",
   "Alibaba India": "Seller Activation · B2B Marketplace",

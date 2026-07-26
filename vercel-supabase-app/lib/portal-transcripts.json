@@ -1,10 +1,10 @@
 {
   "note": "Per-agent golden-transcript output · built from real timing_transcription reviews (987 reviews joined to calls). The hero pairs are verbatim ASR-vs-panel corrections; call_id + ts are playable. No org or reviewer names.",
   "generated_from": "reviews.review_mode=timing_transcription · 2026-07-26",
-  "hero": "Order Confirmation · E-commerce",
+  "hero": "Cart Recovery · Marketplace",
   "agents": [
     {
-      "agent": "Order Confirmation · E-commerce",
+      "agent": "Cart Recovery · Marketplace",
       "calls": 101,
       "segments": 1428,
       "corrected": 115,

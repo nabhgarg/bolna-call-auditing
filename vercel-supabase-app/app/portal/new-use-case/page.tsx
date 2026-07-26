@@ -365,7 +365,7 @@ export default function NewUseCase() {
                     <button onClick={requestChange} disabled={!changeText.trim() || busyChange}
                       style={{ minWidth: 66, borderRadius: 8, background: INK, color: "#fff", fontWeight: 600, fontSize: 12.5, border: "none", cursor: changeText.trim() ? "pointer" : "not-allowed", opacity: changeText.trim() ? 1 : 0.45 }}>{busyChange ? "…" : "Send"}</button>
                   </div>
-                  <span style={{ fontSize: 11, color: MUT }}>We will show what it does to the price and to reliability before anything runs.</span>
+                  <span style={{ fontSize: 11, color: MUT }}>We will show what it changes before anything runs.</span>
 
                   {pending && (
                     <div style={{ background: "#fffdf7", border: "1px solid #ecd9a8", borderRadius: 9, padding: "11px 13px", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -458,15 +458,15 @@ export default function NewUseCase() {
               <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 11, minHeight: 420 }}>
                 <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>What happens when you start</span>
                 {(cadence === "recurring" ? [
-                  ["today", "We source and train reviewers against your volume, and build a calibration set from your own recordings."],
-                  ["48 hours", "You get your reviewer panel back, sized to your weekly volume, with the reliability number it screened at."],
-                  ["day 3", "The process starts. Only reviewers who match our experts are on your work."],
+                  ["today", "We match reviewers from the marketplace to your volume and languages, and build a calibration set from your own recordings."],
+                  ["48 hours", "You get the plan and the cost, with your reviewer panel and the reliability number it screened at."],
+                  ["then", "The panel goes live. Only reviewers who match our experts are on your work."],
                   ["day 4", "First findings land in Agent insights, each with a timestamp you can play."],
                   ["weekly", "Expert-rated calls stay seeded in every batch, unmarked, so reliability keeps being checked."],
                 ] : [
-                  ["today", "We source and train reviewers against this batch's volume, and build a calibration set from your own recordings."],
-                  ["48 hours", "You get your reviewer panel back, sized to the batch, with the reliability number it screened at."],
-                  ["day 3", "The process starts. Only reviewers who match our experts are on your work."],
+                  ["today", "We match reviewers from the marketplace to this batch, and build a calibration set from your own recordings."],
+                  ["48 hours", "You get the plan and the cost, with your reviewer panel and the reliability number it screened at."],
+                  ["then", "The panel goes live. Only reviewers who match our experts are on your work."],
                   ["day 5", "The full batch is reviewed. Findings land in Agent insights, each with a timestamp you can play."],
                   ["after", "You keep the report and the golden data. Run another batch whenever you want."],
                 ]).map(([d, t]) => (

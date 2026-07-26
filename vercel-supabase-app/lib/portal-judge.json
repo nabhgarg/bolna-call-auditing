@@ -18,14 +18,14 @@
    "examples": [
     {
      "call_id": "3bb33c09-4cf6-40ea-994d-52f5574abf2a",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "Sorry, I probably did not hear the city name, which city did you say you are located in?",
      "description": "Agent ignored user's explicit request for Telugu and switched to English instead, breaking user's stated language preference."
     },
     {
      "call_id": "52a1118b-15ac-4356-bbea-2b1b33d31162",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 6,
      "quote": "नहीं नहीं हमको तेलुगू में बात कर रहा हूं",
      "description": "User explicitly requests Telugu; agent correctly declines but creates friction; language mismatch is a blocker for engagement."
@@ -60,14 +60,14 @@
     },
     {
      "call_id": "eb1f89ab-f8dd-4242-80e9-a8b18289c9bb",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 5,
      "quote": "Actually, बस two",
      "description": "Incoherent English-Hindi mix; sentence fragment ('basta two') breaks comprehension and sounds like system glitch."
     },
     {
      "call_id": "e1d4023b-4561-4e1a-b3d8-b7dc442c73ff",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 7,
      "quote": "अभी नहीं होना चाहिए ma'am / अभी नहीं होना चाहिए एक बार भी दिया है अभी दस है",
      "description": "User's speech is heavily garbled/ASR-corrupted; agent's final response 'Hmm, मैं पूरी तरह समझती हू' trails off without addressing user's stated concern."
@@ -88,7 +88,7 @@
     },
     {
      "call_id": "401b900b-60f7-4d5a-b563-73858b1c737d",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "हिंदी नहीं",
      "description": "User explicitly said 'Hindi नहीं' (no Hindi), but agent continued in Hindi in first turn and then started English response incompletely ('Yeah so I was...'), showing failure to pro"
@@ -109,14 +109,14 @@
     },
     {
      "call_id": "97c1ff4e-c7ff-4267-b9e5-24df504a00ec",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "toilet disinfectant tabletautomatic flush sanitationtoilet cistern cleaning tabletbathroom hard stain removerblue flush deodorizing tabletodor control hygiene c",
      "description": "Product list is garbled/concatenated without spaces or proper formatting; appears to be ASR output not cleaned by agent; severely impacts clarity and professionalism."
     },
     {
      "call_id": "66918322-6b9f-432c-919f-cda0831346a9",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 4,
      "quote": "तमिल तेलुगु language was हिंदी",
      "description": "User indicates language preference is Tamil/Telugu, not Hindi; agent fails to recognize or respond appropriately to this constraint."
@@ -137,14 +137,14 @@
     },
     {
      "call_id": "092d7dec-a09c-4881-8b90-c3f9472a4e04",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "तेलुगू तेलुगू... हिंदी english नहीं नहीं",
      "description": "User explicitly requested Telugu but agent continued in Hindi/English mix, ignoring stated language preference."
     },
     {
      "call_id": "11373d3f-b512-466c-af73-a76f0e210190",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "Intimify Size Gain Oil penis growth oil... ling massage oil ling mota lamba oil hammer of thor sandas oil japani tel penis massag",
      "description": "Broken, unprofessional enumeration mixing English and Hindi; product names degrade into colloquial/vulgar terminology, harming credibility and user trust."
@@ -207,7 +207,7 @@
     },
     {
      "call_id": "b30e2c07-b46f-4a5f-abc3-756887ae11f2",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 9,
      "quote": "oh, अच्छा। क्या मैं आपके concern के बारे में थोड़ा और जान सकती हूँ?",
      "description": "Agent ignores the original cart recovery purpose and pivots to generic 'concern' inquiry without acknowledging user confusion"
@@ -221,7 +221,7 @@
     },
     {
      "call_id": "3bb33c09-4cf6-40ea-994d-52f5574abf2a",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 4,
      "quote": "Agent responds about city after user clearly stated 'तेलुगु तेलुगु में बोलो हिंदी मालूम नहीं' (speak in Telugu, don't know Hindi)",
      "description": "Agent did not acknowledge or action the language preference request; treated it as inaudible rather than a direct instruction."
@@ -249,7 +249,7 @@
     },
     {
      "call_id": "3c180888-6f5b-412b-a594-6cae61daa7fc",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 4,
      "quote": "Actually, बस two minute लगेंगे, उसके बाद मैं आपको free कर दूँगी",
      "description": "Agent abruptly switches to discussing 'two minutes' without establishing what the call is about or acknowledging user's fragmented input."
@@ -263,7 +263,7 @@
     },
     {
      "call_id": "42268be4-601b-4071-92a1-bb9603f9d1f0",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 2,
      "quote": "माफ़ कीजिए, आपकी आवाज़ साफ़ नहीं आई।",
      "description": "Agent ignores that user was providing information ('company है') and treats it as a technical audio problem."
@@ -277,14 +277,14 @@
     },
     {
      "call_id": "2d6ef93c-c8e6-43e7-8597-5a3844fe23d3",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 12,
      "quote": "Agent ignores repeated hold notifications and keeps trying to pitch product",
      "description": "Agent fails to recognize that user is on hold (system repeatedly says so) and should pause or adjust behavior instead of looping the pitch."
     },
     {
      "call_id": "3235ec72-1f13-4fe9-a436-a4ca80fc3649",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 6,
      "quote": "user: कौन सा order है | agent: [repeats product name without acknowledging user doesn't recognize it]",
      "description": "User explicitly states 'मुझे कौन सा order किया है मुझे भी नहीं पता' (I don't even know which order I placed), but agent ignores this and assumes user will proceed."
@@ -305,14 +305,14 @@
     },
     {
      "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 15,
      "quote": "oh, समझ सकती हूँ। मैं आपकी मदद के लिए आपके order की स्थिति [brand] system में चेक कर सकती हूँ?",
      "description": "Agent pivots away from user's specific payment dispute without acknowledging the core issue: Rs 26 shortfall and delivery agent fleeing. User had explained a complex scenario about"
     },
     {
      "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 50,
      "quote": "एक बार फिर शुक्रिया आपके time के लिए। Happy shopping...",
      "description": "Agent closes call without resolving the user's main complaint (missing payment tracking, Rs 26 shortfall, delivery agent misconduct). User never agreed to proceed, only resigned ('"
@@ -347,7 +347,7 @@
    "examples": [
     {
      "call_id": "c242e0dd-67c8-4d89-a6e7-09d3752a51bb",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "Hello, क्या आपको आवाज सुनाई दे रही है?",
      "description": "Agent ignores user's direct question ('कहां से बोल रहे हो') and shifts to technical check instead of clarifying organization."
@@ -375,7 +375,7 @@
     },
     {
      "call_id": "b30e2c07-b46f-4a5f-abc3-756887ae11f2",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 8,
      "quote": "ah, कोई बात नहीं। Product की details,",
      "description": "Agent dismisses user's incomplete statement ('पिछले दिन जो sun...') without clarifying what user was trying to say"
@@ -410,7 +410,7 @@
     },
     {
      "call_id": "3c180888-6f5b-412b-a594-6cae61daa7fc",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 4,
      "quote": "Actually, बस two minute लगेंगे",
      "description": "User's input is incoherent/cut off; agent responds with a duration commitment unrelated to any stated need."
@@ -424,7 +424,7 @@
     },
     {
      "call_id": "a94f4d5f-56a4-4ee3-b7fe-da6552ebcffc",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 2,
      "quote": "As I was saying, yeah so I was calling you today regarding a product that you left in your [brand] cart.",
      "description": "Agent launches into sales pitch without confirming caller identity or consent; user only said 'hello'."
@@ -452,7 +452,7 @@
     },
     {
      "call_id": "925c04f7-fce4-476f-948a-e0cfb6f8cd0c",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 7,
      "quote": "मैं return process में मदद नहीं कर सकती। आप [brand] की official app या we",
      "description": "Agent abruptly refuses to help with user's stated priority (return) without escalation, empathy, or alternative solution."
@@ -480,7 +480,7 @@
     },
     {
      "call_id": "7d170364-19b5-4c78-bf3a-f2a044f8beb0",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "अच्छा, तो फिर क्या मैं Shapur",
      "description": "Agent's response is incomplete and does not address user's statement 'भैया है जी मैं phone करता हूं' (implying user may hang up and call back)."
@@ -494,21 +494,21 @@
     },
     {
      "call_id": "316dc9c5-c896-4240-9a0d-4f4f013169cf",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 5,
      "quote": "Product की details, pricing या offers से जुड़ी किसी भी जानकारी के लिए आप हमारी website देख सकते हैं।",
      "description": "User directly asked 'किस चीज़ का order है' (what product is this order for?), but agent deflected to website instead of repeating product name clearly."
     },
     {
      "call_id": "e9dd9535-f60a-45bd-bd79-e374ddcf5e0e",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 4,
      "quote": "Product की details, pricing या offers से जुड़ी किसी भी जानकारी के लिए आप हमारी website देख सकते हैं।",
      "description": "Agent deflects user to website instead of helping complete the cart recovery-contradicts the stated purpose of the call."
     },
     {
      "call_id": "ea7ab980-3519-4eae-9360-29291d2ec68e",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 11,
      "quote": "जी, समझ गई। तो, मैंने देखा था कि आपने अपने cart में Kyrena Boys Cotton Blend Shirt Shorts Se",
      "description": "Agent continues product pitch after user has clearly placed call on hold; agent should have acknowledged hold state and waited silently."
@@ -543,7 +543,7 @@
     },
     {
      "call_id": "b30e2c07-b46f-4a5f-abc3-756887ae11f2",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 10,
      "quote": "जी हाँ, मैं यहीं हूँ। मैं पूछ रही थी कि आपके concern के बारे में थोड़ा और बता सकते हैं?",
      "description": "Agent repeats the same question after user gave incoherent response; no progress made"
@@ -571,7 +571,7 @@
     },
     {
      "call_id": "a2819fca-2427-48ab-935c-cb025cf96774",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 6,
      "quote": "Hello, क्या आपको आवाज सुनाई दे रही है? [repeated 3 times]",
      "description": "Agent asks 'Can you hear me?' three times despite user confirming receipt and responding-disrupts task flow."
@@ -585,14 +585,14 @@
     },
     {
      "call_id": "2d6ef93c-c8e6-43e7-8597-5a3844fe23d3",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 12,
      "quote": "जी, मैं यहीं हूँ। तो, मैंने देखा था कि आपने अपने cart में Gm Trend Pack... [repeats ~6 times with truncation]",
      "description": "Agent repeats the same product pitch verbatim, progressively truncating it, while hold message repeats; no attempt to acknowledge hold or change strategy."
     },
     {
      "call_id": "3235ec72-1f13-4fe9-a436-a4ca80fc3649",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 10,
      "quote": "क्या मैं आपकी order complete करने में मदद कर सकती हूँ? [repeated 7+ times across multiple turns]",
      "description": "Agent repeats the same offer mechanically without addressing user's actual concern (not knowing which product, wanting photo/video proof, requesting agent contact)."
@@ -606,7 +606,7 @@
     },
     {
      "call_id": "a2ed9e21-8a7f-4d59-a754-906f77e59f37",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 6,
      "quote": "अच्छा, तो क्या आप अभी भी consider कर रहे हैं, या आप इसे लेना पसंद करेंगे? [repeated verbatim at turn 8]",
      "description": "Agent repeats identical question twice within 2 turns, indicating loop stuck or no understanding of user input."
@@ -711,7 +711,7 @@
    "examples": [
     {
      "call_id": "a5891eee-3ed4-43bf-98f6-c099909c8f7e",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 8,
      "quote": "Hmm, मैं पूरी तरह समझती हूँ। मैं बस आपको बताना चाहती हूँ कि फिलहाल इस product पर सबसे अच्छी",
      "description": "Agent continues pushing product after user explicitly declined ('नहीं नहीं रहने दीजिए') instead of respecting the refusal."
@@ -788,7 +788,7 @@
     },
     {
      "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 30,
      "quote": "oh, समझ सकती हूँ। मैं आपकी बात समझती हूँ, लेकिन payment और delivery के मामले में मैं सीधे मद",
      "description": "Agent repeatedly refuses to help with payment/refund issue and keeps pushing customer toward external customer care, even when user explicitly states customer care number was inval"
@@ -802,7 +802,7 @@
     },
     {
      "call_id": "925c04f7-fce4-476f-948a-e0cfb6f8cd0c",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 7,
      "quote": "मैं return process में मदद नहीं कर सकती",
      "description": "Agent should either handle return inquiry or escalate to appropriate team; flat refusal without offer to connect user elsewhere violates service standard."
@@ -823,7 +823,7 @@
     },
     {
      "call_id": "ba1fdff6-0954-47dd-a473-3a2b3f5e0dbb",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 10,
      "quote": "मैं बस आपको बताना चाहती हूँ कि फिलहाल इस product पर सबसे अच्छी price चल रही है। क्या आप एक बार फिर से इस पर विचार करना चाहेंगे?",
      "description": "Persistent sales pitch after user declined; continues pushing same product despite clear refusal."
@@ -858,7 +858,7 @@
     },
     {
      "call_id": "069a9e66-72d3-4533-a66a-e11bec5805cf",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 7,
      "quote": "नहीं नहीं अभी मत करना cancel करो",
      "description": "User explicitly declines and asks to cancel, but agent response is cut off mid-word ('Hmm, मैं पूरी तरह'), unclear if cancellation was honored"
@@ -914,7 +914,7 @@
     },
     {
      "call_id": "b30e2c07-b46f-4a5f-abc3-756887ae11f2",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 7,
      "quote": "user: और पिछले दिन जो sun... [cut off]",
      "description": "Agent fails to capture what user is trying to communicate; ASR garbled but agent should have asked user to repeat"
@@ -963,14 +963,14 @@
     },
     {
      "call_id": "cfbab4fc-46af-4497-aab1-d4615f563a8a",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 1,
      "quote": "क्या मेरी बात lrshad जी से हो रही है?",
      "description": "Agent mispronounces or misreads the customer name as 'lrshad' (appears garbled/ASR artifact); fails to confirm correct identity with customer before proceeding."
     },
     {
      "call_id": "42268be4-601b-4071-92a1-bb9603f9d1f0",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 2,
      "quote": "माफ़ कीजिए, आपकी आवाज़ साफ़ नहीं आई। क्या मैं Raising से बात कर रही हूँ?",
      "description": "Agent misinterprets user's simple response ('company है') as audio issue; fails to capture that user was correcting the organization/context."
@@ -991,7 +991,7 @@
     },
     {
      "call_id": "a94f4d5f-56a4-4ee3-b7fe-da6552ebcffc",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 1,
      "quote": "vedprakash ahivhare",
      "description": "Agent did not verify spelling/name correctness; acted on ASR-garbled contact name without clarification."
@@ -1054,7 +1054,7 @@
     },
     {
      "call_id": "7d170364-19b5-4c78-bf3a-f2a044f8beb0",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 1,
      "quote": "Shapur jeedimetla",
      "description": "Agent captures or references what may be ASR error or unclear user name; no confirmation obtained, suggesting failed data capture."
@@ -1082,14 +1082,14 @@
     },
     {
      "call_id": "a94f4d5f-56a4-4ee3-b7fe-da6552ebcffc",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "Yes, I",
      "description": "Agent response truncated; call ends abruptly, no resolution or next step communicated."
     },
     {
      "call_id": "04cba31e-4a99-4e42-84e8-2e195c374c5a",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 4,
      "quote": "Hello, क्या आपको आवाज सुनाई दे रही है?",
      "description": "Abrupt mid-conversation technical check ('can you hear me?') breaks conversation flow; appears to be script error or connection hiccup rather than natural agent behavior."
@@ -1138,14 +1138,14 @@
     },
     {
      "call_id": "eb868250-c244-44cb-a843-3dd99acfb9f7",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 5,
      "quote": "ah, कोई बात नहीं। मैं आपको",
      "description": "Agent's final response is incomplete and trails off; call abruptly ends without resolution"
     },
     {
      "call_id": "8396f4f6-2a7e-4e43-a520-22b730a4e048",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 5,
      "quote": "Agent response cut off mid-sentence: 'RAPZOD Men Polyeste'",
      "description": "Response truncated abruptly; suggests system error or transcript cutoff, leaving user hanging"
@@ -1187,7 +1187,7 @@
     },
     {
      "call_id": "eba4845a-b2b2-4200-a35f-f4c25caaff94",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 9,
      "quote": "जी। तो आप इसे जब भी लेना पसंद करेंगे, आप directly Sna",
      "description": "Call ends mid-sentence with incomplete statement; no proper closure, confirmation of next steps, or polite goodbye."
@@ -1208,7 +1208,7 @@
     },
     {
      "call_id": "e799faa7-9a34-4043-87b5-6ff359085a37",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "तो, मैंने देखा था कि आपने अपने cart में Dynore Stainless Ste",
      "description": "Agent response truncated mid-sentence; call likely dropped or transcript cut off before completion."
@@ -1243,7 +1243,7 @@
     },
     {
      "call_id": "65eb6a7c-69d1-4b9d-92a9-4d5360fc8d7d",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 6,
      "quote": "hmm,",
      "description": "Agent fails to respond meaningfully after user declines; incomplete utterance leaves conversation hanging."
@@ -1257,7 +1257,7 @@
    "examples": [
     {
      "call_id": "c242e0dd-67c8-4d89-a6e7-09d3752a51bb",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 1,
      "quote": "मैं [brand] बात कर रही हूँ [brand] से",
      "description": "Agent claims to be calling from [brand] when org is [brand]; critical trust breach."
@@ -1306,7 +1306,7 @@
     },
     {
      "call_id": "830b58f1-a621-495e-ad88-ec688558d1a1",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 6,
      "quote": "GEEO LED Headlamp with All Perspectives Induction 230 Illumination 350 Lumens 2 in 1 Lightweight Head Lights Weatherproof Type C Rechargeable Head Lamp for Runn",
      "description": "Product name appears fabricated or corrupted (incoherent specifications like 'All Perspectives Induction'); likely ASR error but agent did not clarify with user"
@@ -1327,7 +1327,7 @@
     },
     {
      "call_id": "28d83b0d-9803-4117-bacf-b4f0126dd030",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 4,
      "quote": "Section 7 Branch G trigger करें। Brief acknowledgement के बाद directly Section 8 Branch C पर जाएँ।",
      "description": "Agent leaked internal routing instructions instead of responding to user; broke customer-facing interaction entirely."
@@ -1341,7 +1341,7 @@
     },
     {
      "call_id": "11373d3f-b512-466c-af73-a76f0e210190",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "turn": 3,
      "quote": "आपने अपने cart में Intimify Size Gain Oil penis growth oil penis enlargement supplements... hammer of thor sandas oil japani tel",
      "description": "Agent recites an extremely detailed, repetitive, and inappropriate product listing that appears fabricated or pulled from spam content rather than a legitimate [brand] abandoned-c"
@@ -1370,7 +1370,7 @@
    "examples": [
     {
      "call_id": "a5891eee-3ed4-43bf-98f6-c099909c8f7e",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "abrupt_disengage"
     },
     {
@@ -1380,7 +1380,7 @@
     },
     {
      "call_id": "9b6eb39f-587f-4a5d-ad5b-49c2eac35c13",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "abrupt_disengage"
     },
     {
@@ -1410,7 +1410,7 @@
     },
     {
      "call_id": "6af613ae-50a4-4c47-944b-f29c5b5d0592",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "abrupt_disengage"
     },
     {
@@ -1436,12 +1436,12 @@
    "examples": [
     {
      "call_id": "a5891eee-3ed4-43bf-98f6-c099909c8f7e",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "user_repeats_self"
     },
     {
      "call_id": "9b6eb39f-587f-4a5d-ad5b-49c2eac35c13",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "user_repeats_self"
     },
     {
@@ -1471,7 +1471,7 @@
     },
     {
      "call_id": "6af613ae-50a4-4c47-944b-f29c5b5d0592",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "user_repeats_self"
     },
     {
@@ -1486,7 +1486,7 @@
     },
     {
      "call_id": "b30e2c07-b46f-4a5f-abc3-756887ae11f2",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "user_repeats_self"
     },
     {
@@ -1507,7 +1507,7 @@
     },
     {
      "call_id": "e302b170-7863-48f1-b780-bb03d6d2d7c2",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "explicit_complaint"
     },
     {
@@ -1532,7 +1532,7 @@
     },
     {
      "call_id": "c242e0dd-67c8-4d89-a6e7-09d3752a51bb",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "explicit_complaint"
     },
     {
@@ -1568,12 +1568,12 @@
    "examples": [
     {
      "call_id": "c242e0dd-67c8-4d89-a6e7-09d3752a51bb",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "suspects_ai"
     },
     {
      "call_id": "b30e2c07-b46f-4a5f-abc3-756887ae11f2",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "suspects_ai"
     },
     {
@@ -1583,7 +1583,7 @@
     },
     {
      "call_id": "a736c7d1-1c45-4c0a-b98c-ae12aed82265",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "suspects_ai"
     },
     {
@@ -1593,7 +1593,7 @@
     },
     {
      "call_id": "d3488c9a-8e32-4ebe-a8f7-26930672da26",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "suspects_ai"
     },
     {
@@ -1603,7 +1603,7 @@
     },
     {
      "call_id": "dc394e91-6113-4493-90cc-5323aca1b0a8",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "suspects_ai"
     },
     {
@@ -1634,12 +1634,12 @@
    "examples": [
     {
      "call_id": "3235ec72-1f13-4fe9-a436-a4ca80fc3649",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "asks_for_human"
     },
     {
      "call_id": "0471334e-a578-4bb5-80da-0a0af685d3c1",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "asks_for_human"
     },
     {
@@ -1664,7 +1664,7 @@
     },
     {
      "call_id": "c03b2e6f-9cc5-4200-8833-c2f38aa540e0",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "asks_for_human"
     },
     {
@@ -1679,7 +1679,7 @@
     },
     {
      "call_id": "e56d26d7-0cd9-4af3-bd98-6c4c7ad8e7fe",
-     "org": "Order Confirmation · E-commerce",
+     "org": "Cart Recovery · Marketplace",
      "raw": "asks_for_human"
     },
     {
@@ -1846,7 +1846,7 @@
    "label": "Cart Recovery · E-commerce B"
   },
   {
-   "org": "Order Confirmation · E-commerce",
+   "org": "Cart Recovery · Marketplace",
    "calls": 297,
    "outcomes": {
     "completed": 67,
@@ -1917,7 +1917,7 @@
      "call_id": "c242e0dd-67c8-4d89-a6e7-09d3752a51bb"
     }
    ],
-   "label": "Order Confirmation · E-commerce"
+   "label": "Cart Recovery · Marketplace"
   },
   {
    "org": "Seller Activation · B2B Marketplace",
