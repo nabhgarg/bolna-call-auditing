@@ -35,24 +35,43 @@ export default function PortalShell({ children, right }: { children: React.React
   // Anonymous until proven otherwise · a visitor arriving cold from the landing
   // page must never see a live client's name in the program pill.
   const [expert, setExpert] = useState(false);
+  // Collapsed on first open · the nav is nearly empty for a new visitor, so it
+  // should not take a fifth of the screen before they have typed anything.
+  // Once someone toggles it, their choice is what sticks.
+  const [collapsed, setCollapsed] = useState(true);
   useEffect(() => {
     try {
       const isExpert = (window.localStorage.getItem("auditReviewerRole") || "") === "expert";
       setExpert(isExpert);
+      const saved = window.localStorage.getItem("rlNavCollapsed");
+      if (saved !== null) setCollapsed(saved === "1");
       if (!isExpert) return;
       const extra = JSON.parse(window.localStorage.getItem("rlPrograms") || "[]");
       setPrograms(["Bolna", ...extra]);
       setActive(window.localStorage.getItem("rlActiveProgram") || "Bolna");
     } catch {}
   }, []);
+  function toggleNav() {
+    setCollapsed((c) => {
+      const n = !c;
+      try { window.localStorage.setItem("rlNavCollapsed", n ? "1" : "0"); } catch {}
+      return n;
+    });
+  }
   function pick(p: string) { setActive(p); setOpen(false); try { window.localStorage.setItem("rlActiveProgram", p); } catch {} }
   return (
-    <div className={`portal-shell ${instrument.className}`} style={{ minHeight: "100vh", background: "#f5f7f9", color: INK, display: "flex" }}>
-      {/* sidebar */}
-      <div className="portal-sidebar" style={{ width: 200, flex: "none", background: "#fff", borderRight: "1px solid #e2e8ee", display: "flex", flexDirection: "column", padding: "14px 10px", position: "sticky", top: 0, height: "100vh" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 10px 12px" }}>
+    <div className={`portal-shell ${collapsed ? "portal-collapsed" : ""} ${instrument.className}`} style={{ minHeight: "100vh", background: "#f5f7f9", color: INK, display: "flex" }}>
+      {/* sidebar · collapsible. Structure is kept stable because the mobile
+          rules in styles.css select these children positionally. */}
+      <div className="portal-sidebar" style={{ width: collapsed ? 64 : 200, flex: "none", background: "#fff", borderRight: "1px solid #e2e8ee", display: "flex", flexDirection: "column", padding: collapsed ? "14px 8px" : "14px 10px", position: "sticky", top: 0, height: "100vh", transition: "width .16s ease" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: collapsed ? 4 : 8, padding: collapsed ? "2px 0 12px" : "2px 10px 12px" }}>
           <span style={{ width: 18, height: 18, borderRadius: 5, background: GREEN, flex: "none" }} />
-          <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 700 }}>realloop</span>
+          <span className={`nav-label ${grotesk.className}`} style={{ fontSize: 16, fontWeight: 700 }}>realloop</span>
+          <span className="nav-label" style={{ flex: 1 }} />
+          <button onClick={toggleNav} className="nav-toggle" title={collapsed ? "Expand menu" : "Collapse menu"} aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+            style={{ flex: "none", width: 22, height: 22, borderRadius: 6, border: "1px solid #e2e8ee", background: "#fff", color: MUT, cursor: "pointer", fontSize: 11, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+            {collapsed ? "»" : "«"}
+          </button>
         </div>
         <div style={{ margin: "0 10px 14px", position: "relative", display: expert ? "block" : "none" }}>
           <button onClick={() => programs.length > 1 && setOpen(!open)} style={{ width: "100%", textAlign: "left", borderRadius: 8, background: "#f5f7f9", padding: "8px 10px", border: "none", cursor: programs.length > 1 ? "pointer" : "default" }}>
@@ -79,16 +98,16 @@ export default function PortalShell({ children, right }: { children: React.React
         {NAV.filter((n) => expert || n.pub).map((n) => {
           const active = path === n.href;
           return (
-            <a key={n.href} href={n.href} style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", background: active ? "#e7f4ee" : "transparent", color: active ? GREEN : INK, fontWeight: active ? 600 : 400, fontSize: 13.5, border: active ? "1px solid #cde8db" : "1px solid transparent" }}>
-              <span style={{ fontSize: 13, width: 16, textAlign: "center", color: active ? GREEN : MUT }}>{n.icon}</span>
-              {n.label}
+            <a key={n.href} href={n.href} title={n.label} style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", background: active ? "#e7f4ee" : "transparent", color: active ? GREEN : INK, fontWeight: active ? 600 : 400, fontSize: 13.5, border: active ? "1px solid #cde8db" : "1px solid transparent" }}>
+              <span style={{ fontSize: 13, width: 16, textAlign: "center", color: active ? GREEN : MUT, flex: "none" }}>{n.icon}</span>
+              <span className="nav-label">{n.label}</span>
             </a>
           );
         })}
         <span style={{ flex: 1 }} />
-        <a href="https://marketplace.realloop.in" style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", color: MUT, fontSize: 13 }}>
-          <span style={{ fontSize: 13, width: 16, textAlign: "center", color: MUT }}>⋱</span>
-          Marketplace
+        <a href="https://marketplace.realloop.in" title="Marketplace" style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", color: MUT, fontSize: 13 }}>
+          <span style={{ fontSize: 13, width: 16, textAlign: "center", color: MUT, flex: "none" }}>⋱</span>
+          <span className="nav-label">Marketplace</span>
         </a>
         {expert && (
           <div style={{ borderTop: "1px solid #eef2f6", margin: "8px 4px 0", paddingTop: 10, display: "flex", alignItems: "center", gap: 9 }}>
