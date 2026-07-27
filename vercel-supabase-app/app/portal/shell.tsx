@@ -27,7 +27,10 @@ const NAV = [
   { href: "/portal/connect", label: "Connect via MCP", icon: "⌥" }
 ];
 
-export default function PortalShell({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
+// `solo` strips the nav back to the one public destination · used by the new
+// use case screen when it is standing in as a front door rather than as one
+// tab of a signed-in portal. Nothing else about the shell changes.
+export default function PortalShell({ children, right, solo }: { children: React.ReactNode; right?: React.ReactNode; solo?: boolean }) {
   const path = usePathname();
   const [programs, setPrograms] = useState<string[]>([]);
   const [active, setActive] = useState("");
@@ -73,7 +76,7 @@ export default function PortalShell({ children, right }: { children: React.React
             {collapsed ? "»" : "«"}
           </button>
         </div>
-        <div className={"nav-program" + (expert ? "" : " nav-hidden")} style={{ margin: "0 10px 14px", position: "relative" }}>
+        <div className={"nav-program" + (expert && !solo ? "" : " nav-hidden")} style={{ margin: "0 10px 14px", position: "relative" }}>
           {/* display:block is load-bearing · the global button rule is
               inline-flex, which laid the label and the program name out side
               by side ("PROGRAMBolna · live" on one cramped line) instead of
@@ -99,7 +102,7 @@ export default function PortalShell({ children, right }: { children: React.React
             </div>
           )}
         </div>
-        {NAV.filter((n) => expert || n.pub).map((n) => {
+        {NAV.filter((n) => (expert && !solo) || n.pub).map((n) => {
           const active = path === n.href;
           return (
             <a key={n.href} href={n.href} title={n.label} style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", background: active ? "#e7f4ee" : "transparent", color: active ? GREEN : INK, fontWeight: active ? 600 : 400, fontSize: 13.5, border: active ? "1px solid #cde8db" : "1px solid transparent" }}>
@@ -109,11 +112,11 @@ export default function PortalShell({ children, right }: { children: React.React
           );
         })}
         <span style={{ flex: 1 }} />
-        <a href="https://marketplace.realloop.in" title="Marketplace" style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", color: MUT, fontSize: 13 }}>
+        {!solo && <a href="https://marketplace.realloop.in" title="Marketplace" style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", color: MUT, fontSize: 13 }}>
           <span style={{ fontSize: 13, width: 16, textAlign: "center", color: MUT, flex: "none" }}>⋱</span>
           <span className="nav-label">Marketplace</span>
-        </a>
-        {expert && (
+        </a>}
+        {expert && !solo && (
           <div className="nav-user" style={{ borderTop: "1px solid #eef2f6", margin: "8px 4px 0", paddingTop: 10, display: "flex", alignItems: "center", gap: 9 }}>
             <span style={{ width: 22, height: 22, borderRadius: 999, background: INK, color: "#fff", fontSize: 10, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>N</span>
             <span className={mono.className} style={{ fontSize: 11.5, color: "#4d5a66" }}>bolna-ops</span>

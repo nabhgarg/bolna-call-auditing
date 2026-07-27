@@ -6,7 +6,7 @@ import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, card } from "../../../lib/ui";
 import { isPortalUser } from "../../../lib/role";
 import DemoReady from "../../../lib/DemoReady";
-import { demoHref } from "../../../lib/demo";
+import { demoHref, isDemo } from "../../../lib/demo";
 
 // New use case (wireframe 23a/23b) · the client describes the job in plain
 // language and we say what we would check, who checks it, and what it costs.
@@ -92,9 +92,13 @@ export default function NewUseCase() {
   const [step, setStep] = useState<"plan" | "scope">("plan");
   const [started, setStarted] = useState(false);
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  // In the YC partner shell this screen is the front door, not one tab of a
+  // portal · show the single destination it offers and nothing else. A real
+  // signed-in client landing here keeps their full nav.
+  const [solo, setSolo] = useState(false);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
 
-  useEffect(() => { setAllowed(isPortalUser()); }, []);
+  useEffect(() => { setAllowed(isPortalUser()); setSolo(isDemo()); }, []);
 
   // Volume is asked on the plan, not in the composer · the client sees what we
   // would check first, then tells us how much of it there is.
@@ -222,7 +226,7 @@ export default function NewUseCase() {
   const initial = "N";
 
   return (
-    <PortalShell right={
+    <PortalShell solo={solo} right={
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "13px 22px", flexWrap: "wrap" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>New use case</span>
         {phase === "answered" && <span style={{ fontSize: 12.5, color: MUT }}>you describe it · we work out what to measure</span>}

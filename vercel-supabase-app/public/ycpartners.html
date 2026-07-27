@@ -26,8 +26,9 @@
   .tab .dot{width:8px;height:8px;border-radius:50%;flex:none}
   .tab[aria-selected="true"]{background:#fff;color:#10181f;font-weight:600;box-shadow:0 -1px 3px rgba(16,24,31,.06)}
   #bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#fff;border-bottom:1px solid #e2e8ee}
-  #url{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#6b7885;background:#f5f7f9;border:1px solid #e2e8ee;border-radius:999px;padding:6px 16px;flex:1;max-width:560px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #hint{font-size:12.5px;color:#6b7885;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  #url{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#6b7885;background:#f5f7f9;border:1px solid #e2e8ee;border-radius:999px;padding:6px 16px;flex:1;max-width:560px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none;display:block}
+  #url:hover{color:#10181f;border-color:#c8d2dc}
+  #foot{flex:none;padding:7px 16px;background:#fff;border-top:1px solid #e2e8ee;font-size:12px;color:#6b7885;text-align:center}
   .ctl{border:1px solid #e2e8ee;background:#fff;color:#4b5762;font-family:inherit;font-size:12.5px;font-weight:500;padding:7px 13px;border-radius:8px;cursor:pointer;white-space:nowrap;flex:none}
   .ctl:hover{border-color:#10181f;color:#10181f}
   #stage{flex:1;position:relative;background:#f5f7f9;overflow:hidden}
@@ -40,7 +41,6 @@
   #fallback p{margin:0;font-size:14.5px;line-height:1.6;color:#6b7885;max-width:44ch}
   @media (max-width:720px){
     .tab{padding:9px 11px;font-size:12px;max-width:150px}
-    #hint{display:none}
   }
 </style>
 </head>
@@ -50,10 +50,11 @@
     <div class="brand"><span class="wm">realloop<i>.</i></span><span class="yc">For YC partners</span></div>
   </div>
   <div id="bar">
-    <span id="url">🔒 https://realloop.in/ycpartners</span>
-    <span id="hint"></span>
+    <!-- the address is the live link · clicking it opens the real route in a
+         new tab, which is also the wide view for the portal screens -->
+    <a id="url" href="#" target="_blank" rel="noopener" title="Open this screen in a new tab">🔒 https://realloop.in/ycpartners</a>
+    <span style="flex:1"></span>
     <button class="ctl" id="reload">↻ Reload tab</button>
-    <button class="ctl" id="pop">⤢ Full width</button>
   </div>
   <div id="nudge">
     <span>Blank pane or a login screen? The live route may not allow embedding yet.</span>
@@ -66,6 +67,7 @@
       <button class="ctl" id="fbopen">⤢ Open full width</button>
     </div>
   </div>
+  <div id="foot">This URL is made for YC partners to use the products powering both sides of the business · the live link is at the top of each page.</div>
 </div>
 
 <script>
@@ -76,24 +78,20 @@ var DEMO_TOKEN = "?demo=YCPARTNER2026";   // read-only demo session · see lib/d
 var TABS = [
   { label:"New use case", dot:"#0e8a5f",
     src:"https://portal.realloop.in/portal/new-use-case", demo:true,
-    show:"portal.realloop.in/portal/new-use-case",
-    hint:"A client describes the problem in plain language · we read it back as checks and a price" },
+    show:"portal.realloop.in/portal/new-use-case" },
   { label:"Marketplace · become a reviewer", dot:"#0e8a5f",
     src:"https://marketplace.realloop.in", demo:true,
-    show:"marketplace.realloop.in",
-    hint:"How reviewers get in · application straight into a real screening assignment" },
+    show:"marketplace.realloop.in" },
   { label:"Grading a call, live", dot:"#0e8a5f",
     src:"https://review.realloop.in/transcribe", demo:true,
-    show:"review.realloop.in/transcribe",
-    hint:"The judgment logging interface · listen, judge, instant expert feedback" },
+    show:"review.realloop.in/transcribe" },
   { label:"Analytics · reliability", dot:"#7c5cbf",
     src:"https://portal.realloop.in/portal/reliability", demo:true,
-    show:"portal.realloop.in/portal/reliability",
-    hint:"What the client sees back · agent insights and whether the panel can be trusted" }
+    show:"portal.realloop.in/portal/reliability" }
 ];
 
 var strip=document.getElementById('tabstrip'), stage=document.getElementById('stage'),
-    urlEl=document.getElementById('url'), hintEl=document.getElementById('hint'),
+    urlEl=document.getElementById('url'),
     fallback=document.getElementById('fallback'), nudge=document.getElementById('nudge'),
     cur=0, frames=[], btns=[], loaded=[];
 
@@ -143,7 +141,7 @@ function select(i){
   frames.forEach(function(f,n){ f.hidden = n!==i; });
   btns.forEach(function(b,n){ b.setAttribute('aria-selected', n===i ? 'true':'false'); });
   urlEl.textContent='🔒 https://'+TABS[i].show;
-  hintEl.textContent=TABS[i].hint;
+  urlEl.href=fullSrc(TABS[i]);
   /* lazy-load: only fetch a route once its tab is first opened */
   if(!frames[i].getAttribute('src')) frames[i].setAttribute('src', fullSrc(TABS[i]));
   fallback.style.display='none';
@@ -156,8 +154,10 @@ document.getElementById('reload').onclick=function(){
   loaded[cur]=false; fallback.style.display='none';
   frames[cur].setAttribute('src', fullSrc(TABS[cur]));
 };
+/* Kept only on the failure paths · when a pane is blocked or blank, opening the
+   real route in a new tab is the one way through. The top bar no longer carries
+   it, because a working pane does not need an escape hatch. */
 function openFull(){ window.open(fullSrc(TABS[cur]),'_blank','noopener'); }
-document.getElementById('pop').onclick=openFull;
 document.getElementById('fbopen').onclick=openFull;
 document.getElementById('nudgeopen').onclick=openFull;
 
