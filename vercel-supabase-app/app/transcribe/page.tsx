@@ -263,8 +263,25 @@ export default function Transcribe() {
   }, []);
   useEffect(() => {
     if (!email) return;
+    let first = !submittedId;
     fetch(`/api/calls?reviewer=${encodeURIComponent(email)}&audit_mode=${MODE}`)
-      .then((r) => r.json()).then((d) => setQueue((d.calls || []).filter((c: QueueItem) => c.execution_id)))
+      .then((r) => r.json()).then((d) => {
+        const rows = (d.calls || []).filter((c: QueueItem) => c.execution_id);
+        setQueue(rows);
+        // Mirror of the check on the vibe page (see app/page.tsx): this tool is
+        // transcription-only, so a vibe reviewer who lands here would see an
+        // empty screen and assume there is no work. Bounce them back only when
+        // nothing is pending HERE and something is pending there — the same
+        // rule on both sides, so the two pages can never ping-pong a reviewer.
+        // Only on first load, never straight after a submit.
+        if (!first || rows.some((c: QueueItem) => !c.reviewed)) return;
+        fetch(`/api/calls?reviewer=${encodeURIComponent(email)}&audit_mode=response_vibe`)
+          .then((r) => r.json())
+          .then((v) => {
+            if ((v.calls || []).some((c: QueueItem) => !c.reviewed)) window.location.replace("/");
+          })
+          .catch(() => {});
+      })
       .catch(() => setQueue([]));
   }, [email, submittedId]);
 

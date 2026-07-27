@@ -135,6 +135,8 @@ export default function Page() {
   const [loginStep, setLoginStep] = useState<"email" | "code">("email");
   const [otpCode, setOtpCode] = useState("");
   const [auditMode, setAuditMode] = useState<AuditMode>(RESPONSE_VIBE_MODE);
+  // Calls waiting for this reviewer in the transcription tool (/transcribe).
+  const [txPending, setTxPending] = useState(0);
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
   // Set-4 dual assignment: vibe reviewers carry a vibe queue (s4v_*) AND an
   // issue-logging queue (s4i_*). Tabs split the two; the review panel adapts
@@ -186,7 +188,7 @@ export default function Page() {
       setReviewerDisplay(storedDisplay || storedEmail);
       setReviewerRole(storedRole);
       setLoginVisible(false);
-      loadCalls(storedEmail, initialMode);
+      loadCalls(storedEmail, initialMode, true);
       // Refresh role/display from the server so a cached session (e.g. from before
       // roles existed) self-heals instead of defaulting to the reviewer screen.
       fetch(`/api/profile?email=${encodeURIComponent(storedEmail)}`)
@@ -248,11 +250,35 @@ export default function Page() {
     return payload;
   }
 
-  async function loadCalls(reviewer = reviewerEmail, mode: AuditMode = auditMode) {
+  async function loadCalls(reviewer = reviewerEmail, mode: AuditMode = auditMode, autoRoute = false) {
     const params = new URLSearchParams({ mode });
     if (reviewer) params.set("reviewer", reviewer);
     const payload = await api(`/api/calls?${params.toString()}`);
-    setCalls(payload.calls || []);
+    const rows: CallSummary[] = payload.calls || [];
+    setCalls(rows);
+    if (reviewer && mode === RESPONSE_VIBE_MODE) checkTranscriptionQueue(reviewer, rows, autoRoute);
+  }
+
+  // This page is vibe-only; transcription lives at /transcribe. A reviewer
+  // swapped onto transcription opens their old bookmark, sees a finished vibe
+  // queue, and reasonably concludes there is no work today — that happened on
+  // the first swap. So: count what is waiting in the other tool, and if NOTHING
+  // is pending here, send them straight there on login. Only when this queue is
+  // clear, so someone holding both kinds of work is never yanked away
+  // mid-batch — they get the banner instead. The mirror check on /transcribe
+  // uses the same rule, so the two can never bounce a reviewer back and forth.
+  async function checkTranscriptionQueue(reviewer: string, vibeRows: CallSummary[], autoRoute: boolean) {
+    try {
+      const url = `/api/calls?reviewer=${encodeURIComponent(reviewer)}&audit_mode=timing_transcription`;
+      const data = await fetch(url).then((r) => r.json());
+      const pending = (data.calls || []).filter((call: CallSummary) => !call.reviewed).length;
+      setTxPending(pending);
+      if (autoRoute && pending > 0 && !vibeRows.some((call) => !call.reviewed)) {
+        window.location.replace("/transcribe");
+      }
+    } catch {
+      setTxPending(0);
+    }
   }
 
   const isPriority = (call: CallSummary) => String(call.source_sheet || "").includes("★");
@@ -629,7 +655,7 @@ export default function Page() {
         window.localStorage.setItem("auditReviewerDisplay", result.display_name || result.email);
         writeRole(result.role || "reviewer");
         window.localStorage.setItem("auditMode", auditMode);
-        await loadCalls(result.email, auditMode);
+        await loadCalls(result.email, auditMode, true);
         return;
       }
       setLoginStep("code");
@@ -662,7 +688,7 @@ export default function Page() {
       window.localStorage.setItem("auditReviewerDisplay", profile.display_name || profile.email);
       writeRole(profile.role || "reviewer");
       window.localStorage.setItem("auditMode", auditMode);
-      await loadCalls(profile.email, auditMode);
+      await loadCalls(profile.email, auditMode, true);
     } catch (error) {
       setLoginError((error as Error).message);
     } finally {
@@ -1063,6 +1089,21 @@ export default function Page() {
             </div>
           </div>
           <div className="single-mode-pill sidebar-mode">Combined audit</div>
+          {txPending > 0 && (
+            <a
+              href="/transcribe"
+              style={{
+                display: "block", margin: "0 0 10px", padding: "9px 11px", borderRadius: 8,
+                background: "#e7f4ee", border: "1px solid #cde8db", color: "#0e8a5f",
+                textDecoration: "none", fontSize: 12.5, fontWeight: 600, lineHeight: 1.35
+              }}
+            >
+              {txPending} transcription {txPending === 1 ? "call" : "calls"} waiting
+              <span style={{ display: "block", fontWeight: 400, color: "#4d5a66" }}>
+                Open the transcription tool →
+              </span>
+            </a>
+          )}
           {/* Sheet import is retired: calls are loaded directly into Supabase;
               the sheet only receives review syncs (one-way, DB -> sheet). */}
 
