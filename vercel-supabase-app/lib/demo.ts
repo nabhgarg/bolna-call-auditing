@@ -16,6 +16,37 @@ export const DEMO_TOKEN = process.env.NEXT_PUBLIC_DEMO_TOKEN || "YCPARTNER2026";
 
 const KEY = "rlDemo";
 
+/** Names for the demo transcription queue.
+ *
+ *  The real `agent_name` on these rows is the client's own campaign handle, so
+ *  it is blanked for demo requests · but "call, call, call" down the sidebar
+ *  tells a partner nothing about what they are picking. These are archetype
+ *  labels in the same vocabulary the client portal uses, describing what the
+ *  call actually is. The audio and transcript are untouched and still carry
+ *  real brand names · that is the reviewer's job and cannot be anonymised
+ *  without destroying the work itself. */
+export const DEMO_CALL_LABELS: Record<string, string> = {
+  "250f1855-8fd4-4f91-b4f7-1ea54a2885ad": "Seller Activation · B2B Marketplace",
+  "5a8a4036-3a4f-4b64-a6b5-d636e62da06f": "Seasonal Sale Outreach · D2C Fashion",
+  "b97580b3-9346-430e-8cf2-bb0b5e193555": "Cart Recovery · D2C Jewellery"
+};
+
+/** Is somebody actually signed in? Read straight from storage rather than
+ *  importing lib/role · role.ts already imports this file, and the cycle would
+ *  leave one of the two undefined at module-eval time. */
+function hasRealRole(): boolean {
+  try { if (window.localStorage.getItem("auditReviewerRole")) return true; } catch {}
+  try { return /(^|; )rl_role=[^;]/.test(document.cookie); } catch { return false; }
+}
+
+/** Drop the demo session. Called on any real login, and whenever a signed-in
+ *  account is found while the flag is still lying around. */
+export function clearDemo() {
+  try { window.sessionStorage.removeItem(KEY); } catch {}
+  try { document.cookie = `${KEY}=; path=/; max-age=0; SameSite=None; Secure`; } catch {}
+  try { document.cookie = `${KEY}=; path=/; max-age=0`; } catch {}
+}
+
 /** True when this page is running inside the YC partner demo.
  *
  *  The URL is the source of truth · the shell re-appends ?demo= on every load
@@ -35,6 +66,14 @@ export function isDemo(): boolean {
       } catch {}
       return true;
     }
+    // A signed-in account always beats a leftover demo flag.
+    //
+    // The flag is a host cookie on portal.realloop.in with no max-age, so it
+    // outlives the demo tab and follows the browser into a real session. A
+    // client who had opened the YC link would then get the partner tour, blanked
+    // agent names, and · far worse · every write silently dropped, because the
+    // API routes honour the same flag. Whoever has a role is a real user.
+    if (hasRealRole()) { clearDemo(); return false; }
     if (window.sessionStorage.getItem(KEY) === "1") return true;
     return document.cookie.includes(`${KEY}=1`);
   } catch { return false; }

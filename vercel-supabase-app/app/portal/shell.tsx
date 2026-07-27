@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN } from "../../lib/ui";
 import { isPortalUser } from "../../lib/role";
-import { isDemo } from "../../lib/demo";
+import { isDemo, demoHref } from "../../lib/demo";
 
 // Portal shell · Raindrop-style left nav. Four stable destinations:
 // Overview (how is my AI doing) · Agents (which agent breaks, how) ·
@@ -28,6 +28,29 @@ const NAV = [
   { href: "/portal/connect", label: "Connect via MCP", icon: "⌥" }
 ];
 
+// Guided walk through the portal, for the YC demo only. Four stops in the order
+// a client actually asks the questions: what is broken, can I believe it, what
+// am I accumulating, how do I get it out. The step lives in sessionStorage
+// because each stop is a real page load · the tour has to survive navigation.
+const TOUR = [
+  { href: "/portal/agents", label: "Agent insights",
+    body: "Every agent ranked by how badly it needs attention, what is breaking on each, and the evidence behind the number. Click a row to open it." },
+  { href: "/portal/reliability", label: "Reliability",
+    body: "How far to trust those numbers. How often reviewers agree with each other, and how often they match a hidden expert." },
+  { href: "/portal/datasets", label: "Datasets",
+    body: "Every human judgment doubles as labelled training data. This is what the client accumulates by running the panel." },
+  { href: "/portal/connect", label: "Connect via MCP",
+    body: "Pull all of it into your own stack. Last stop · thanks for walking through it." }
+];
+const TOUR_KEY = "rlTourStep";
+function readTourStep(): number {
+  try {
+    const v = window.sessionStorage.getItem(TOUR_KEY);
+    if (v === "off") return -1;
+    return v === null ? 0 : Number(v);
+  } catch { return 0; }
+}
+
 // `solo` strips the nav back to the one public destination · used by the new
 // use case screen when it is standing in as a front door rather than as one
 // tab of a signed-in portal. Nothing else about the shell changes.
@@ -43,16 +66,19 @@ export default function PortalShell({ children, right, solo }: { children: React
   // should not take a fifth of the screen before they have typed anything.
   // Once someone toggles it, their choice is what sticks.
   const [collapsed, setCollapsed] = useState(true);
+  // -1 = dismissed or not a demo session. Only rendered on the stop it belongs
+  // to, so wandering off the tour route quietly hides it rather than nagging.
+  const [tour, setTour] = useState(-1);
   useEffect(() => {
     try {
       const signedIn = isPortalUser();
       setExpert(signedIn);
       const saved = window.localStorage.getItem("rlNavCollapsed");
-      // The YC demo opens expanded · a partner has seconds to understand what
-      // this portal contains, and a strip of icons does not tell them. Their
-      // own toggle still wins if they collapse it.
-      if (saved !== null) setCollapsed(saved === "1");
-      else if (isDemo()) setCollapsed(false);
+      // The YC demo always opens expanded · the tour below walks the nav item
+      // by item, and a saved preference from some earlier visit must not be
+      // able to hide the thing being pointed at. Toggling still works.
+      if (isDemo()) { setCollapsed(false); setTour(readTourStep()); }
+      else if (saved !== null) setCollapsed(saved === "1");
       if (!signedIn) return;
       const extra = JSON.parse(window.localStorage.getItem("rlPrograms") || "[]");
       setPrograms(["Bolna", ...extra]);
@@ -67,6 +93,16 @@ export default function PortalShell({ children, right, solo }: { children: React
     });
   }
   function pick(p: string) { setActive(p); setOpen(false); try { window.localStorage.setItem("rlActiveProgram", p); } catch {} }
+  function endTour() { setTour(-1); try { window.sessionStorage.setItem(TOUR_KEY, "off"); } catch {} }
+  function nextStop() {
+    const n = tour + 1;
+    if (n >= TOUR.length) { endTour(); return; }
+    try { window.sessionStorage.setItem(TOUR_KEY, String(n)); } catch {}
+    window.location.href = demoHref(TOUR[n].href);
+  }
+  // Show a stop only when we are standing on it · the step counter alone would
+  // put "Reliability" on screen while the reader is still looking at Datasets.
+  const stop = tour >= 0 && TOUR[tour] && path === TOUR[tour].href ? TOUR[tour] : null;
   return (
     <div className={`portal-shell ${collapsed ? "portal-collapsed" : ""} ${instrument.className}`} style={{ minHeight: "100vh", background: "#f5f7f9", color: INK, display: "flex" }}>
       {/* sidebar · collapsible. Structure is kept stable because the mobile
@@ -128,6 +164,24 @@ export default function PortalShell({ children, right, solo }: { children: React
           </div>
         )}
       </div>
+      {/* Tour card · bottom-left, tucked against the nav it is describing. The
+          shell's own per-tab card sits bottom-right, so the two never overlap. */}
+      {stop && (
+        <div style={{ position: "fixed", left: 16, bottom: 16, zIndex: 60, width: "min(330px, calc(100vw - 32px))", background: "#fff", border: "1px solid #e2e8ee", borderRadius: 14, boxShadow: "0 16px 40px rgba(16,24,31,.18)", padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+          <span className={mono.className} style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", color: GREEN }}>
+            Step {tour + 1} of {TOUR.length} · {stop.label}
+          </span>
+          <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: "#4b5762" }}>{stop.body}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={nextStop} style={{ border: "none", background: GREEN, color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 600, padding: "9px 16px", borderRadius: 9, cursor: "pointer" }}>
+              {tour + 1 < TOUR.length ? `Next · ${TOUR[tour + 1].label} →` : "Done"}
+            </button>
+            {tour + 1 < TOUR.length && (
+              <button onClick={endTour} style={{ border: "none", background: "none", color: MUT, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer", padding: 0 }}>Skip</button>
+            )}
+          </div>
+        </div>
+      )}
       {/* content */}
       <div className="portal-content" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <div className="portal-topbar">{right}</div>

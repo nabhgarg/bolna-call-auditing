@@ -8,7 +8,7 @@
 // source of truth on a single origin (and on localhost / the vercel.app host,
 // where a dotted domain cookie does not apply).
 
-import { isDemo } from "./demo";
+import { isDemo, clearDemo } from "./demo";
 
 const KEY = "auditReviewerRole";
 const COOKIE = "rl_role";
@@ -69,6 +69,9 @@ export function isClient(): boolean {
 
 /** Called on login · writes both stores. */
 export function writeRole(role: string) {
+  // Signing in ends any demo session outright · see clearDemo() for why a
+  // leftover flag is dangerous rather than merely untidy.
+  clearDemo();
   try { window.localStorage.setItem(KEY, role); } catch {}
   try {
     const secure = window.location.protocol === "https:" ? "; Secure" : "";

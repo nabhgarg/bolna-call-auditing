@@ -279,10 +279,17 @@ export default function Transcribe() {
   useEffect(() => {
     if (!email) return;
     let first = !submittedId;
-    fetch(`/api/calls?reviewer=${encodeURIComponent(email)}&audit_mode=${MODE}`)
+    fetch(demoHref(`/api/calls?reviewer=${encodeURIComponent(email)}&audit_mode=${MODE}`))
       .then((r) => r.json()).then((d) => {
         const rows = (d.calls || []).filter((c: QueueItem) => c.execution_id);
         setQueue(rows);
+        // Demo · open the first call straight away. "Select a call to start" is
+        // a dead end for someone who has thirty seconds and does not yet know
+        // this is a queue, so the workbench should already be showing work.
+        if (isDemo() && first && !call) {
+          const firstOpen = rows.find((c: QueueItem) => !c.reviewed);
+          if (firstOpen) openCall(firstOpen);
+        }
         // Mirror of the check on the vibe page (see app/page.tsx): this tool is
         // transcription-only, so a vibe reviewer who lands here would see an
         // empty screen and assume there is no work. Bounce them back only when
@@ -314,7 +321,7 @@ export default function Transcribe() {
     // queue_id is shared across a person's whole batch (e.g. b4t_nabh) · track
     // the open call by composite key so exactly one card shows active.
     setCurrentQueueId(`${item.queue_id}:${item.execution_id}`);
-    const d: Call = await fetch(`/api/calls/${item.execution_id}`).then((r) => r.json());
+    const d: Call = await fetch(demoHref(`/api/calls/${item.execution_id}`)).then((r) => r.json());
     setCall(d);
     setAnalyzing(true);
     const anchors = (d.turn_anchors || []).slice().sort((a, b) => a.startSec - b.startSec);

@@ -146,8 +146,9 @@ var TABS = [
   { label:"Client insight portal", dot:"#7c5cbf",
     src:"https://portal.realloop.in/portal/agents", demo:true,
     show:"portal.realloop.in/portal/agents",
-    pop:"What the client actually gets back",
-    focus:"Agents ranked by how much they need attention, what is breaking on each, and the evidence behind every number. Reliability, in the left sidebar, says how far to trust it." }
+    /* no pop · the portal runs its own four-stop tour of the sidebar from the
+       moment it loads, and a shell card on top of it would be one card too many */
+    pop:"" }
 ];
 
 var strip=document.getElementById('tabstrip'), stage=document.getElementById('stage'),
@@ -231,7 +232,7 @@ var tabpop=document.getElementById('tabpop'), popSeen=[], popsOff=false, POPS='r
 try{ popsOff=localStorage.getItem(POPS)==='1'; }catch(e){}
 function hideTabPop(){ tabpop.style.display='none'; }
 function showTabPop(i){
-  if(popsOff || popSeen[i] || welcomeOpen){ hideTabPop(); return; }
+  if(popsOff || popSeen[i] || welcomeOpen || !TABS[i].pop){ hideTabPop(); return; }
   popSeen[i]=true;
   document.getElementById('popttl').textContent=TABS[i].pop;
   document.getElementById('popbody').textContent=TABS[i].focus;
