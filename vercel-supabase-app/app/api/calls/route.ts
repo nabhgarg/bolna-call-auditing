@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { normalizeAuditMode } from "../../../lib/callImport";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { isDemoRequest } from "../../../lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,11 @@ function reviewerMatches(assignedReviewer: unknown, reviewerEmail: string, email
 }
 
 export async function GET(request: Request) {
+  // The YC partner demo is a client-facing surface, and these two fields carry
+  // the one thing such a surface must never carry · who the client is. They are
+  // not rendered in the workbench anyway, so blanking them costs the demo
+  // nothing and keeps a devtools-open partner from reading a customer name.
+  const anonOrg = isDemoRequest(request) ? () => null : (v: string | null) => v;
   const supabase = supabaseAdmin();
   const url = new URL(request.url);
   const auditMode = normalizeAuditMode(url.searchParams.get("audit_mode") || url.searchParams.get("mode") || "pronunciation_tone");
@@ -144,8 +150,8 @@ export async function GET(request: Request) {
           queue_id: queueId,
           execution_id: queue.call_id,
           assigned_reviewer: queue.assigned_reviewer,
-          org_name: call.org_name,
-          agent_name: call.agent_name,
+          org_name: anonOrg(call.org_name),
+          agent_name: anonOrg(call.agent_name),
           duration_sec: call.duration_sec,
           created_at_ist: call.created_at_ist,
           status: call.status,
@@ -202,8 +208,8 @@ export async function GET(request: Request) {
       return {
         execution_id: call.execution_id,
         assigned_reviewer: call.assigned_reviewer,
-        org_name: call.org_name,
-        agent_name: call.agent_name,
+        org_name: anonOrg(call.org_name),
+        agent_name: anonOrg(call.agent_name),
         duration_sec: call.duration_sec,
         created_at_ist: call.created_at_ist,
         status: call.status,
