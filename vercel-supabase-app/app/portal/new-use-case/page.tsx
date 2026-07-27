@@ -229,7 +229,7 @@ export default function NewUseCase() {
         {/* an existing client landing here from the website needs a way into
             their own program · signed-in experts already have the full nav */}
         {allowed === false && (
-          <a href="https://review.realloop.in/" style={{ fontSize: 12.5, fontWeight: 600, color: GREEN, textDecoration: "none", padding: "6px 4px" }}>
+          <a href="/portal/login?next=/portal/agents" style={{ fontSize: 12.5, fontWeight: 600, color: GREEN, textDecoration: "none", padding: "6px 4px" }}>
             Already a client? Log in →
           </a>
         )}
