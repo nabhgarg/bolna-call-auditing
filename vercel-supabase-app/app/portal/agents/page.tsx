@@ -8,6 +8,8 @@ import { INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
 import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
 import RELIABILITY from "../../../lib/portal-reliability.json";
 import { isPortalUser } from "../../../lib/role";
+import DemoReady from "../../../lib/DemoReady";
+import { isDemo } from "../../../lib/demo";
 
 // Agent insights · Overall + By-agent MERGED into one master-detail screen
 // (wireframe 19a / 20a + philosophy 21a). Left: agents ranked by how much
@@ -70,10 +72,14 @@ function Inner() {
   const [sel, setSel] = useState(0);
   const [open, setOpen] = useState<string>(params.get("l2") || "");
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  // read after mount, never during render · the server has no window and a
+  // mismatch here would blow up hydration
+  const [demo, setDemo] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setAllowed(isPortalUser());
+    setDemo(isDemo());
     fetch("/api/portal/byagent").then((r) => r.json()).then((d) => {
       setData(d);
       const want = params.get("agent");
@@ -159,11 +165,14 @@ function Inner() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "11px 22px", flexWrap: "wrap" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Agent insights</span>
         <span style={{ fontSize: 12.5, color: MUT }}>{agents.length} agents · ranked by how much they need attention · {totalCalls.toLocaleString()} calls</span>
+        {/* YC partners are looking at a real program, not a mockup · say whose */}
+        {demo && <span style={{ fontSize: 11.5, fontWeight: 600, color: "#b07a15", background: "#faf3e3", borderRadius: 999, padding: "4px 11px" }}>This is based on what we have done for Bolna</span>}
         <span style={{ flex: 1 }} />
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
     }>
       <div className={instrument.className} style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 16, padding: "16px 22px 28px", alignItems: "start" }}>
+        <DemoReady ready={agents.length > 0} />
         <audio ref={audioRef} style={{ display: "none" }} />
 
         {/* LEFT · ranked agent list */}

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN } from "../../lib/ui";
 import { isPortalUser } from "../../lib/role";
+import { isDemo } from "../../lib/demo";
 
 // Portal shell · Raindrop-style left nav. Four stable destinations:
 // Overview (how is my AI doing) · Agents (which agent breaks, how) ·
@@ -47,7 +48,11 @@ export default function PortalShell({ children, right, solo }: { children: React
       const signedIn = isPortalUser();
       setExpert(signedIn);
       const saved = window.localStorage.getItem("rlNavCollapsed");
+      // The YC demo opens expanded · a partner has seconds to understand what
+      // this portal contains, and a strip of icons does not tell them. Their
+      // own toggle still wins if they collapse it.
       if (saved !== null) setCollapsed(saved === "1");
+      else if (isDemo()) setCollapsed(false);
       if (!signedIn) return;
       const extra = JSON.parse(window.localStorage.getItem("rlPrograms") || "[]");
       setPrograms(["Bolna", ...extra]);
