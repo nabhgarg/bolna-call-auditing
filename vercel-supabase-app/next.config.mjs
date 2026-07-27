@@ -19,7 +19,15 @@ const nextConfig = {
   async headers() {
     return [
       embeddable("/portal/new-use-case"),
+      // agents is where the partner demo lands; reliability and issues are one
+      // sidebar click from it, inside the same frame. A route with no policy at
+      // all is framable by anyone, so every screen reachable in the frame needs
+      // the header · leaving one off is the permissive case, not the safe one.
+      embeddable("/portal/agents"),
       embeddable("/portal/reliability"),
+      embeddable("/portal/issues"),
+      embeddable("/portal/datasets"),
+      embeddable("/portal/connect"),
       embeddable("/transcribe"),
       embeddable("/marketplace/join"),
       // marketplace.realloop.in serves /marketplace/join from its root via the
