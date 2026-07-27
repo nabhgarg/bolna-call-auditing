@@ -20,18 +20,15 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
-type L2 = { key: string; label: string; human_calls: number; llm_calls: number; occ: number; subtypes: [string, number][] };
-type Agent = { agent: string; avg: number; calls: number; avg_raters: number; reviewed: number; calls_with_issue: number; bad_pct: number; trend: { first: number; last: number }; l2: L2[] };
+type L2 = { key: string; label: string; occ: number; reviews_flagged: number; subtypes: [string, number][] };
+type Agent = { agent: string; avg: number; calls: number; reviews: number; reviews_with_issue: number; raters: number; bad_pct: number; trend: { first: number; last: number }; l2: L2[] };
 type Reliability = { inter_panel: number; vs_gt: number; calls: number } | null;
 
 const scoreColor = (v: number) => (v >= 3.4 ? GREEN : v >= 3 ? AMBER : RED);
-// Clamped on purpose. `calls_with_issue` comes back larger than `calls` for at
-// least one agent in the live feed, and human_calls + llm_calls double-counts a
-// call that both a reviewer and the judge flagged. Neither can exceed the
-// agent's own call count in reality, and a report claiming 106% destroys trust
-// in every other figure on the page.
-const pct = (n: number, d: number) => (d > 0 ? Math.min(100, Math.round((n / d) * 100)) : 0);
-const affectedCalls = (r: L2, calls: number) => Math.min((r.human_calls || 0) + (r.llm_calls || 0), calls || 0);
+// Every issue count in this feed is denominated in REVIEWS, not calls · most
+// calls are rated by more than one person. Divide by `reviews` or the figure
+// overstates itself by the rater count (see app/api/portal/byagent/route.ts).
+const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
 
 export default function ReportPrint({
   agents, reliability, program, verdictLabel
@@ -44,7 +41,8 @@ export default function ReportPrint({
   if (!agents.length) return null;
 
   const totalCalls = agents.reduce((s, a) => s + (a.calls || 0), 0);
-  const totalIssue = agents.reduce((s, a) => s + (a.calls_with_issue || 0), 0);
+  const totalReviews = agents.reduce((s, a) => s + (a.reviews || 0), 0);
+  const totalIssue = agents.reduce((s, a) => s + (a.reviews_with_issue || 0), 0);
   // Volume-weighted · a five-call agent scoring 1.0 must not drag the fleet
   // average as hard as a hundred-call agent does.
   const fleetAvg = totalCalls
@@ -59,7 +57,7 @@ export default function ReportPrint({
   // call can carry a dozen findings of the same kind.
   const byType = new Map<string, { label: string; calls: number; occ: number; agents: number }>();
   agents.forEach((a) => (a.l2 || []).forEach((r) => {
-    const affected = affectedCalls(r, a.calls);
+    const affected = r.reviews_flagged || 0;
     if (!affected) return;
     const cur = byType.get(r.key) || { label: r.label, calls: 0, occ: 0, agents: 0 };
     cur.calls += affected; cur.occ += r.occ || 0; cur.agents += 1;
@@ -92,7 +90,7 @@ export default function ReportPrint({
       <div style={{ display: "flex", gap: 0, border: "1px solid #e2e8ee", borderRadius: 8, overflow: "hidden", marginBottom: 16 }}>
         {[
           { v: fleetAvg.toFixed(1) + " / 4", l: "average call quality", s: "scored by people, not a model", c: scoreColor(fleetAvg) },
-          { v: pct(totalIssue, totalCalls) + "%", l: "calls with at least one issue", s: `${totalIssue.toLocaleString()} of ${totalCalls.toLocaleString()}`, c: INK },
+          { v: pct(totalIssue, totalReviews) + "%", l: "reviews flagging an issue", s: `${totalIssue.toLocaleString()} of ${totalReviews.toLocaleString()} reviews`, c: INK },
           { v: majorPct + "%", l: "rated a major failure", s: "1 or 2 out of 4", c: majorPct > 25 ? RED : INK },
           reliability
             ? { v: reliability.vs_gt + "%", l: "panel matches a hidden expert", s: "within 1 point", c: GREEN }
@@ -108,14 +106,14 @@ export default function ReportPrint({
 
       {/* ---------- what to fix first ---------- */}
       <div className={grotesk.className} style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>What to fix first</div>
-      <div style={{ fontSize: 9.5, color: MUT, marginBottom: 8 }}>Ranked by how many calls each problem touches across the whole fleet, not by how many findings it generated · one call can carry a dozen findings of the same kind.</div>
+      <div style={{ fontSize: 9.5, color: MUT, marginBottom: 8 }}>Ranked by how many reviews raised each problem across the whole fleet, not by raw finding count · one review can carry a dozen findings of the same kind.</div>
       <ol style={{ margin: "0 0 16px", padding: 0, listStyle: "none" }}>
         {priorities.map((p, i) => (
           <li key={i} style={{ display: "flex", gap: 9, alignItems: "baseline", padding: "6px 0", borderTop: i ? "1px solid #eef2f6" : "none" }}>
             <span className={mono.className} style={{ fontSize: 9, fontWeight: 600, color: MUT }}>{i + 1}</span>
             <span style={{ flex: 1, fontSize: 10.5 }}>
               <b>{p.label}</b>
-              <span style={{ color: MUT }}> · {p.calls} affected calls across {p.agents} agent{p.agents === 1 ? "" : "s"}, {p.occ.toLocaleString()} findings</span>
+              <span style={{ color: MUT }}> · raised in {p.calls.toLocaleString()} of {totalReviews.toLocaleString()} reviews across {p.agents} agent{p.agents === 1 ? "" : "s"}, {p.occ.toLocaleString()} findings</span>
             </span>
           </li>
         ))}
@@ -130,7 +128,7 @@ export default function ReportPrint({
             <th style={{ ...th, textAlign: "right" }}>Calls</th>
             <th style={{ ...th, textAlign: "right" }}>Raters</th>
             <th style={{ ...th, textAlign: "right" }}>Quality</th>
-            <th style={{ ...th, textAlign: "right" }}>With issue</th>
+            <th style={{ ...th, textAlign: "right" }}>Flagged</th>
             <th style={th}>Defining problem</th>
           </tr>
         </thead>
@@ -139,9 +137,9 @@ export default function ReportPrint({
             <tr key={a.agent}>
               <td style={{ ...td, fontWeight: 600 }}>{a.agent}</td>
               <td style={{ ...td, textAlign: "right" }} className={mono.className}>{a.calls}</td>
-              <td style={{ ...td, textAlign: "right" }} className={mono.className}>{(a.avg_raters || 0).toFixed(1)}</td>
+              <td style={{ ...td, textAlign: "right" }} className={mono.className}>{(a.raters || 0).toFixed(1)}</td>
               <td style={{ ...td, textAlign: "right", fontWeight: 700, color: scoreColor(a.avg) }} >{a.avg?.toFixed(1)}</td>
-              <td style={{ ...td, textAlign: "right" }} className={mono.className}>{pct(a.calls_with_issue, a.calls)}%</td>
+              <td style={{ ...td, textAlign: "right" }} className={mono.className}>{pct(a.reviews_with_issue, a.reviews)}%</td>
               <td style={{ ...td, color: MUT }}>{verdictLabel(a)}</td>
             </tr>
           ))}
@@ -152,13 +150,13 @@ export default function ReportPrint({
       {attention.length > 0 && (
         <div style={{ breakBefore: "page" } as React.CSSProperties}>
           <div className={grotesk.className} style={{ fontSize: 12, fontWeight: 600, marginBottom: 2 }}>Agents needing attention</div>
-          <div style={{ fontSize: 9.5, color: MUT, marginBottom: 10 }}>Scoring 2.9 or below out of 4. What is breaking on each, ranked by affected calls.</div>
+          <div style={{ fontSize: 9.5, color: MUT, marginBottom: 10 }}>Scoring 2.9 or below out of 4. What is breaking on each, ranked by how many reviews raised it.</div>
           {attention.map((a) => (
             <div key={a.agent} style={{ border: "1px solid #e2e8ee", borderRadius: 8, padding: "10px 12px", marginBottom: 8, breakInside: "avoid" } as React.CSSProperties}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
                 <span className={grotesk.className} style={{ fontSize: 11.5, fontWeight: 600 }}>{a.agent}</span>
                 <span className={mono.className} style={{ fontSize: 12, fontWeight: 700, color: scoreColor(a.avg) }}>{a.avg?.toFixed(1)}</span>
-                <span style={{ fontSize: 9, color: MUT }}>· {a.calls} calls · {pct(a.calls_with_issue, a.calls)}% with an issue · {a.bad_pct}% major failure</span>
+                <span style={{ fontSize: 9, color: MUT }}>· {a.calls} calls · {a.reviews} reviews · {pct(a.reviews_with_issue, a.reviews)}% flagged · {a.bad_pct}% major failure</span>
                 <span style={{ flex: 1 }} />
                 {a.trend && (
                   <span style={{ fontSize: 9, color: a.trend.last >= a.trend.first ? GREEN : RED }}>
@@ -166,19 +164,19 @@ export default function ReportPrint({
                   </span>
                 )}
               </div>
-              {(a.l2 || []).filter((r) => affectedCalls(r, a.calls) > 0)
-                .sort((x, y) => affectedCalls(y, a.calls) - affectedCalls(x, a.calls))
+              {(a.l2 || []).filter((r) => (r.reviews_flagged || 0) > 0)
+                .sort((x, y) => (y.reviews_flagged || 0) - (x.reviews_flagged || 0))
                 .slice(0, 4)
                 .map((r) => {
-                  const affected = affectedCalls(r, a.calls);
+                  const affected = r.reviews_flagged || 0;
                   return (
                     <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                       <span style={{ fontSize: 9.5, width: 150, flex: "none" }}>{r.label}</span>
                       <span style={{ flex: 1, height: 5, background: "#eef2f6", borderRadius: 3, overflow: "hidden" }}>
-                        <span style={{ display: "block", height: "100%", width: `${pct(affected, a.calls)}%`, background: GREEN }} />
+                        <span style={{ display: "block", height: "100%", width: `${pct(affected, a.reviews)}%`, background: GREEN }} />
                       </span>
                       <span className={mono.className} style={{ fontSize: 9, color: MUT, width: 118, textAlign: "right", flex: "none" }}>
-                        {affected} of {a.calls} calls · {r.occ} findings
+                        {affected} of {a.reviews} reviews · {r.occ} findings
                       </span>
                     </div>
                   );
@@ -193,7 +191,7 @@ export default function ReportPrint({
       <div style={{ borderTop: "1px solid #e2e8ee", marginTop: 14, paddingTop: 10, breakInside: "avoid" } as React.CSSProperties}>
         <div className={grotesk.className} style={{ fontSize: 11, fontWeight: 600, marginBottom: 5 }}>How to read this</div>
         <div style={{ fontSize: 9, lineHeight: 1.65, color: "#4b5762" }}>
-          Every call in this report was listened to by a trained human reviewer, and most by more than one · the raters column is the average number of people per call for that agent. Quality is scored 1 to 4, where 1 and 2 count as a major failure. Issue counts are per call, so an agent can have more findings than calls.
+          Every call in this report was listened to by a trained human reviewer, and most by more than one · the raters column is the average number of people per call. That is why issue rates are given per REVIEW rather than per call: two reviewers on one call produce two independent judgments, and collapsing them would throw away the disagreement this whole system exists to measure. Quality is scored 1 to 4, where 1 and 2 count as a major failure. One review can raise several findings, so findings always outnumber reviews.
           {reliability && (
             <> The panel itself is audited: on a hidden set of expert-rated calls, reviewers land within one point of each other {reliability.inter_panel}% of the time and within one point of the expert {reliability.vs_gt}% of the time, across {reliability.calls?.toLocaleString?.() || reliability.calls} scored calls. Where that agreement is low, treat the agent-level number as directional rather than exact.</>
           )}
