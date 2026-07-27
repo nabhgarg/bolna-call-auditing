@@ -9,6 +9,7 @@ import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
 import RELIABILITY from "../../../lib/portal-reliability.json";
 import { isPortalUser } from "../../../lib/role";
 import DemoReady from "../../../lib/DemoReady";
+import ReportPrint from "./report";
 import { isDemo } from "../../../lib/demo";
 
 // Agent insights · Overall + By-agent MERGED into one master-detail screen
@@ -75,11 +76,15 @@ function Inner() {
   // read after mount, never during render · the server has no window and a
   // mismatch here would blow up hydration
   const [demo, setDemo] = useState(false);
+  // Only used by the printed report · the screen never shows these figures, so
+  // a failed fetch degrades the report's method note rather than the page.
+  const [panelRel, setPanelRel] = useState<{ inter_panel: number; vs_gt: number; calls: number } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setAllowed(isPortalUser());
     setDemo(isDemo());
+    fetch("/api/portal/reliability").then((r) => r.json()).then((d) => setPanelRel(d?.overall || null)).catch(() => {});
     fetch("/api/portal/byagent").then((r) => r.json()).then((d) => {
       setData(d);
       const want = params.get("agent");
@@ -171,7 +176,8 @@ function Inner() {
         <button onClick={() => window.print()} style={{ fontWeight: 600, fontSize: 13, color: "#fff", background: GREEN, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Download report</button>
       </div>
     }>
-      <div className={instrument.className} style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 16, padding: "16px 22px 28px", alignItems: "start" }}>
+      <ReportPrint agents={agents as never} reliability={panelRel} program="Bolna" verdictLabel={(x) => verdictFor(x as never, fleetRate).label} />
+      <div className={`screen-only ${instrument.className}`} style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 16, padding: "16px 22px 28px", alignItems: "start" }}>
         <DemoReady ready={agents.length > 0} />
         <audio ref={audioRef} style={{ display: "none" }} />
 

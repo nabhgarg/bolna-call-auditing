@@ -839,15 +839,28 @@ audio {
 }
 
 /* ===== Portal: print (Download report) ===== */
+/* The printed report is a separate document · it exists only on paper, and the
+   interactive view exists only on screen. Neither is a styled version of the
+   other, which is why this is a swap rather than a stylesheet that hides bits
+   of the app. */
+.print-only { display: none; }
+
 @media print {
   .portal-sidebar { display: none !important; }
-  .portal-topbar button, .portal-topbar a { display: none !important; }
+  .portal-topbar { display: none !important; }
+  .screen-only { display: none !important; }
+  .print-only { display: block !important; }
   body, html { background: #fff !important; }
   .portal-content { width: 100% !important; }
   a { text-decoration: none !important; color: inherit !important; }
   audio { display: none !important; }
   * { box-shadow: none !important; }
-  @page { margin: 14mm; }
+  /* keep the ink · without this the score colours and the bars print grey */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  table { break-inside: auto; }
+  tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+  @page { margin: 13mm; }
 }
 
 /* ===== Portal: collapsible sidebar =====

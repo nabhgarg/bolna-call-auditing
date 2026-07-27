@@ -167,7 +167,7 @@ export default function PortalShell({ children, right, solo }: { children: React
       {/* Tour card · bottom-left, tucked against the nav it is describing. The
           shell's own per-tab card sits bottom-right, so the two never overlap. */}
       {stop && (
-        <div style={{ position: "fixed", left: 16, bottom: 16, zIndex: 60, width: "min(330px, calc(100vw - 32px))", background: "#fff", border: "1px solid #e2e8ee", borderRadius: 14, boxShadow: "0 16px 40px rgba(16,24,31,.18)", padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="screen-only" style={{ position: "fixed", left: 16, bottom: 16, zIndex: 60, width: "min(330px, calc(100vw - 32px))", background: "#fff", border: "1px solid #e2e8ee", borderRadius: 14, boxShadow: "0 16px 40px rgba(16,24,31,.18)", padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
           <span className={mono.className} style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", color: GREEN }}>
             Step {tour + 1} of {TOUR.length} · {stop.label}
           </span>
