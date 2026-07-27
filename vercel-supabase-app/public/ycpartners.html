@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RealLoop · YC partner demo</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:#dfe5ea;color:#10181f;font-family:'Instrument Sans',sans-serif;overflow:hidden}
+  a{color:#0e8a5f;text-decoration:none}
+  a:hover{color:#0a6b4a}
+  #shell{height:100%;display:flex;flex-direction:column}
+  #tabstrip{display:flex;align-items:flex-end;gap:2px;padding:8px 10px 0;overflow-x:auto;scrollbar-width:none}
+  #tabstrip::-webkit-scrollbar{display:none}
+  .brand{display:flex;align-items:center;gap:8px;padding:0 10px 8px 6px;flex:none}
+  .wm{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;white-space:nowrap}
+  .wm i{color:#0e8a5f;font-style:normal}
+  .yc{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#b07a15;background:#faf3e3;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .tab{display:flex;align-items:center;gap:8px;border:0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;padding:9px 16px;border-radius:10px 10px 0 0;max-width:230px;min-width:0;flex:0 1 auto;background:transparent;color:#4b5762;white-space:nowrap}
+  .tab span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tab .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .tab[aria-selected="true"]{background:#fff;color:#10181f;font-weight:600;box-shadow:0 -1px 3px rgba(16,24,31,.06)}
+  #bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#fff;border-bottom:1px solid #e2e8ee}
+  #url{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#6b7885;background:#f5f7f9;border:1px solid #e2e8ee;border-radius:999px;padding:6px 16px;flex:1;max-width:560px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #hint{font-size:12.5px;color:#6b7885;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .ctl{border:1px solid #e2e8ee;background:#fff;color:#4b5762;font-family:inherit;font-size:12.5px;font-weight:500;padding:7px 13px;border-radius:8px;cursor:pointer;white-space:nowrap;flex:none}
+  .ctl:hover{border-color:#10181f;color:#10181f}
+  #stage{flex:1;position:relative;background:#f5f7f9;overflow:hidden}
+  #stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  #stage iframe[hidden]{visibility:hidden;pointer-events:none;display:block}
+  #nudge{display:flex;align-items:center;gap:8px;padding:7px 14px;background:#fffdf7;border-bottom:1px solid #f0e4c8;font-size:12.5px;color:#8a6d20}
+  #nudge button{border:0;background:none;color:#0e8a5f;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0}
+  #fallback{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;text-align:center;background:#f5f7f9}
+  #fallback h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:20px;margin:0}
+  #fallback p{margin:0;font-size:14.5px;line-height:1.6;color:#6b7885;max-width:44ch}
+  @media (max-width:720px){
+    .tab{padding:9px 11px;font-size:12px;max-width:150px}
+    #hint{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="tabstrip">
+    <div class="brand"><span class="wm">realloop<i>.</i></span><span class="yc">For YC partners</span></div>
+  </div>
+  <div id="bar">
+    <span id="url">🔒 https://realloop.in/ycpartners</span>
+    <span id="hint"></span>
+    <button class="ctl" id="reload">↻ Reload tab</button>
+    <button class="ctl" id="pop">⤢ Full width</button>
+  </div>
+  <div id="nudge">
+    <span>Blank pane or a login screen? The live route may not allow embedding yet.</span>
+    <button type="button" id="nudgeopen">⤢ Open this screen full width</button>
+  </div>
+  <div id="stage">
+    <div id="fallback">
+      <h2>This screen did not load</h2>
+      <p>The live route is blocking embedding, or the demo session expired. Open it full width instead.</p>
+      <button class="ctl" id="fbopen">⤢ Open full width</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Config ────────────────────────────────────────────────────────────
+   Swap any tab's `src` to a static snapshot (e.g. "/ycpartners/analytics.html")
+   if a live route is not demo-ready. `demo` appends the shared demo token.   */
+var DEMO_TOKEN = "?demo=YCPARTNER2026";   // read-only demo session · see lib/demo.ts
+var TABS = [
+  { label:"New use case", dot:"#0e8a5f",
+    src:"https://portal.realloop.in/portal/new-use-case", demo:true,
+    show:"portal.realloop.in/portal/new-use-case",
+    hint:"A client describes the problem in plain language · we read it back as checks and a price" },
+  { label:"Marketplace · become a reviewer", dot:"#0e8a5f",
+    src:"https://marketplace.realloop.in", demo:true,
+    show:"marketplace.realloop.in",
+    hint:"How reviewers get in · application straight into a real screening assignment" },
+  { label:"Grading a call, live", dot:"#0e8a5f",
+    src:"https://review.realloop.in/transcribe", demo:true,
+    show:"review.realloop.in/transcribe",
+    hint:"The judgment logging interface · listen, judge, instant expert feedback" },
+  { label:"Analytics · reliability", dot:"#7c5cbf",
+    src:"https://portal.realloop.in/portal/reliability", demo:true,
+    show:"portal.realloop.in/portal/reliability",
+    hint:"What the client sees back · agent insights and whether the panel can be trusted" }
+];
+
+var strip=document.getElementById('tabstrip'), stage=document.getElementById('stage'),
+    urlEl=document.getElementById('url'), hintEl=document.getElementById('hint'),
+    fallback=document.getElementById('fallback'), nudge=document.getElementById('nudge'),
+    cur=0, frames=[], btns=[], loaded=[];
+
+function fullSrc(t){ return t.src + (t.demo && DEMO_TOKEN ? DEMO_TOKEN : ""); }
+
+TABS.forEach(function(t,i){
+  var b=document.createElement('button');
+  b.className='tab'; b.setAttribute('role','tab'); b.type='button';
+  b.innerHTML='<span class="dot" style="background:'+t.dot+'"></span><span class="t"></span>';
+  b.querySelector('.t').textContent=t.label;
+  b.onclick=function(){ select(i); };
+  strip.appendChild(b); btns.push(b);
+
+  var f=document.createElement('iframe');
+  f.title=t.label;
+  f.setAttribute('allow','autoplay; microphone; clipboard-write');
+  f.hidden = i!==0;
+  /* A cross-origin frame fires `load` even for an error page or a CSP block,
+     so `load` proves nothing. Real confirmation comes from a postMessage
+     handshake the embedded app sends: { realloopDemoReady: true }. */
+  f.addEventListener('load',function(){ if(i===cur) armFailTimer(); });
+  stage.insertBefore(f,fallback);
+  frames.push(f); loaded[i]=false;
+});
+
+function armFailTimer(){
+  clearTimeout(armFailTimer._t);
+  if(loaded[cur]) return;
+  armFailTimer._t=setTimeout(function(){
+    if(!loaded[cur]) fallback.style.display='flex';
+  }, 8000);
+}
+
+/* The embedded app confirms it really rendered. Until it does, we assume nothing. */
+window.addEventListener('message',function(e){
+  if(!e.data || e.data.realloopDemoReady!==true) return;
+  frames.forEach(function(f,i){
+    if(f.contentWindow===e.source){
+      loaded[i]=true;
+      if(i===cur){ fallback.style.display='none'; nudge.style.display='none'; }
+    }
+  });
+});
+
+function select(i){
+  cur=i;
+  frames.forEach(function(f,n){ f.hidden = n!==i; });
+  btns.forEach(function(b,n){ b.setAttribute('aria-selected', n===i ? 'true':'false'); });
+  urlEl.textContent='🔒 https://'+TABS[i].show;
+  hintEl.textContent=TABS[i].hint;
+  /* lazy-load: only fetch a route once its tab is first opened */
+  if(!frames[i].getAttribute('src')) frames[i].setAttribute('src', fullSrc(TABS[i]));
+  fallback.style.display='none';
+  nudge.style.display = loaded[i] ? 'none' : 'flex';
+  armFailTimer();
+  /* browser URL never changes: no pushState, no hash */
+}
+
+document.getElementById('reload').onclick=function(){
+  loaded[cur]=false; fallback.style.display='none';
+  frames[cur].setAttribute('src', fullSrc(TABS[cur]));
+};
+function openFull(){ window.open(fullSrc(TABS[cur]),'_blank','noopener'); }
+document.getElementById('pop').onclick=openFull;
+document.getElementById('fbopen').onclick=openFull;
+document.getElementById('nudgeopen').onclick=openFull;
+
+frames[0].setAttribute('src', fullSrc(TABS[0]));
+select(0);
+</script>
+</body>
+</html>

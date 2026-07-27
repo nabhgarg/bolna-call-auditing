@@ -6,6 +6,7 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
 import { isPortalUser } from "../../../lib/role";
+import DemoReady from "../../../lib/DemoReady";
 
 // Reliability tab (wireframe 22a) · exact design layout: a horizontal overall
 // strip, then Reliability by agent + by issue type SIDE BY SIDE, then a
@@ -43,6 +44,10 @@ function Inner() {
     fetch("/api/portal/reliability").then((r) => r.json()).then(setD).catch(() => {});
   }, []);
 
+  // Ready only once the numbers are actually on screen · a gate message or a
+  // spinner must not tell the shell this pane worked.
+  const ready = allowed === true && !!d;
+
   if (allowed === false) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The portal is available to your team. <a href="/portal/login?next=/portal/reliability" style={{ color: GREEN }}>Log in</a> to see this program, or <a href="/portal/new-use-case" style={{ color: GREEN }}>start a use case</a>.</main>;
   if (!d) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>Loading reliability…</main>;
 
@@ -70,6 +75,7 @@ function Inner() {
       </div>
     }>
       <div className={instrument.className} style={{ display: "flex", flexDirection: "column", gap: 14, padding: "16px 22px 30px", color: INK }}>
+        <DemoReady ready={ready} />
 
         {/* overall strip · becomes THIS agent's strip in focused mode */}
         <div style={{ ...card, padding: "16px 22px", display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap", borderLeft: focus ? `4px solid ${GREEN}` : undefined }}>

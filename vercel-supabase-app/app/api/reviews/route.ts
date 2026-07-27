@@ -2,6 +2,7 @@ import { NextResponse, after } from "next/server";
 import { normalizeReviewMode, ReviewRow } from "../../../lib/audit";
 import { syncReviewsToSheets } from "../../../lib/sheetsSync";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { isDemoRequest } from "../../../lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,12 @@ export async function POST(request: Request) {
   if (!callId) {
     return NextResponse.json({ error: "call_id is required" }, { status: 400 });
   }
+
+  // YC partner demo · the judgment is graded on screen but never stored. A row
+  // here would enter the golden dataset, void a real reviewer's prior
+  // submission for the same call (see the "cleared" update below) and sync
+  // itself out to the ops sheet. None of that should follow from a demo click.
+  if (isDemoRequest(request)) return NextResponse.json({ ok: true, demo: true });
 
   const supabase = supabaseAdmin();
   const reviewerName = payload.reviewer_name || "";

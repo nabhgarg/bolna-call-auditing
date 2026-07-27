@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { isDemoRequest } from "../../../lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,10 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   let body: any = {};
   try { body = await request.json(); } catch {}
+  // YC partner demo · the assignment opens exactly as it would for a real
+  // applicant, but no row is created. A partner trying the flow is not applying
+  // for reviewer work, and their phone number does not belong in our roster.
+  if (isDemoRequest(request)) return NextResponse.json({ ok: true, id: "demo" });
   const supabase = supabaseAdmin();
   // Mint the id here instead of reading the row back. There is deliberately no
   // anon select policy on applicants (phone numbers are private), and asking
@@ -34,6 +39,7 @@ export async function PATCH(request: Request) {
   let body: any = {};
   try { body = await request.json(); } catch {}
   if (!body.id) return NextResponse.json({ ok: false, error: "missing id" });
+  if (isDemoRequest(request)) return NextResponse.json({ ok: true });
   const supabase = supabaseAdmin();
   const { error } = await supabase.from("applicants").update({
     status: "assignment_done",

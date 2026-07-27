@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { CHECKS, estimate } from "../../../lib/use-case-catalog";
+import { isDemoRequest } from "../../../lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,14 @@ export async function POST(request: Request) {
   const callsPerWeek = Math.max(50, Math.min(200000, Math.round(Number(facts.callsPerWeek) || 1240)));
   const status = body.status === "pilot" ? "pilot" : "draft";
   const est = estimate(ids, callsPerWeek);
+
+  // YC partner demo · they get the full read-back and the price, but the row
+  // is never written. A use case that reached the table would be indistinguish-
+  // able from a real client's pilot and would pull reviewers onto imaginary
+  // work. The estimate below is the honest one · only the persistence is dropped.
+  if (isDemoRequest(request)) {
+    return NextResponse.json({ ok: true, id: "demo", status: "demo", estimate: est });
+  }
 
   const supabase = supabaseAdmin();
   // Mint the id here rather than reading the row back · there is no anon select

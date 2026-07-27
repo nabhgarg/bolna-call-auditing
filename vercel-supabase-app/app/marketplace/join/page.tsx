@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN, RED, AMBER, card } from "../../../lib/ui";
+import DemoReady from "../../../lib/DemoReady";
+import { demoHref } from "../../../lib/demo";
 
 // Reviewer onboarding + screening assignment. Apply -> 7 real judgment-heavy
 // questions across the two core reviewer tools: transcription review (the exact
@@ -381,7 +383,7 @@ export default function Join() {
   useEffect(() => {
     if (screen !== "result" || savedRef.current || !applicantId || !total) return;
     savedRef.current = true;
-    fetch("/api/apply", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({
+    fetch(demoHref("/api/apply"), { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({
       id: applicantId, score: Math.round((ptsSum / total) * 100), total, matched: ptsSum,
       results: [...Array(total).keys()].map((i) => ({ i, type: qs[i]?.type, verdict: results[i] }))
     }) }).catch(() => {});
@@ -454,6 +456,9 @@ export default function Join() {
 
   return (
     <div className={instrument.className} style={{ minHeight: "100vh", background: "#f5f7f9", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
+      {/* the apply screen is this page's content and needs no fetch · it is
+          real the moment it paints */}
+      <DemoReady ready />
       <div style={{ width: "100%", background: "#f5f7f9", display: "flex", flexDirection: "column", flex: 1 }}>
 
         <div className="jn-top" style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "12px 32px" }}>
@@ -521,7 +526,7 @@ export default function Join() {
                   <div style={{ fontSize: 10, color: "#93a1ae", marginTop: 3 }}>Only for your login code and onboarding call. Never shown anywhere.</div>
                 </div>
                 <div style={{ flex: 1, minHeight: 12 }} />
-                <div onClick={() => { if (!canApply) return; setScreen("work"); fetch("/api/apply", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ role, full_name: fullName, state: stateName, languages: langs, education: edu, hours, phone }) }).then((r) => r.json()).then((d) => { if (d.ok) setApplicantId(d.id); }).catch(() => {}); }} style={{ height: 46, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: canApply ? 1 : 0.45 }}>Apply → your assignment is ready</div>
+                <div onClick={() => { if (!canApply) return; setScreen("work"); fetch(demoHref("/api/apply"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ role, full_name: fullName, state: stateName, languages: langs, education: edu, hours, phone }) }).then((r) => r.json()).then((d) => { if (d.ok) setApplicantId(d.id); }).catch(() => {}); }} style={{ height: 46, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: canApply ? 1 : 0.45 }}>Apply → your assignment is ready</div>
                 <div style={{ fontSize: 11, color: "#93a1ae", textAlign: "center" }}>{canApply ? "No wait · 7 real questions, about 3 minutes." : "Add your name, state, a language and a valid phone number."}</div>
               </div>
             </div>

@@ -18,9 +18,13 @@ export function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").toLowerCase();
   const url = req.nextUrl.clone();
 
-  // Apex (and www): serve the ported marketing landing.
+  // Apex (and www): serve the ported marketing landing, plus the one deeper
+  // path the apex owns · the YC partner demo shell. A rewrite, not a redirect:
+  // the address bar has to keep reading realloop.in/ycpartners for the whole
+  // session, because the shell fakes its own URL bar per tab.
   if (host === "realloop.in" || host === "www.realloop.in") {
-    url.pathname = "/apex.html";
+    const path = url.pathname.replace(/\/+$/, "").toLowerCase();
+    url.pathname = path === "/ycpartners" ? "/ycpartners.html" : "/apex.html";
     return NextResponse.rewrite(url);
   }
   if (host.startsWith("portal.")) {
@@ -35,5 +39,6 @@ export function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// Only the root path is host-routed; all other paths pass straight through.
-export const config = { matcher: ["/"] };
+// Only the root path and the apex-owned /ycpartners are host-routed; every
+// other path passes straight through untouched.
+export const config = { matcher: ["/", "/ycpartners", "/ycpartners/"] };

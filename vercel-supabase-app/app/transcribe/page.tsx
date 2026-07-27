@@ -2,6 +2,12 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { readRole } from "../../lib/role";
+import { isDemo, demoHref } from "../../lib/demo";
+import DemoReady from "../../lib/DemoReady";
+
+// Sandbox reviewer for the YC partner demo · a real row in `reviewers` so the
+// queue API answers normally, but nothing it submits is ever written.
+const DEMO_REVIEWER = "ycdemo@realloop.in";
 
 // Transcription workbench · golden dataset, audio-first.
 // Same shell as the main app (sidebar call list + workspace). The waveform is
@@ -259,6 +265,11 @@ export default function Transcribe() {
   }
 
   useEffect(() => {
+    // YC partner demo · borrow a sandbox reviewer identity so the workbench is
+    // genuinely usable without an account. Its queue holds the same handful of
+    // calls the public screening assignment already uses, and submit() below
+    // never persists, so a partner cannot touch a real reviewer's work.
+    if (isDemo()) { setEmail(DEMO_REVIEWER); setDisplay("YC demo"); return; }
     // Clients have a valid session but no business in the workbench · their
     // queue is empty anyway, so all this shows them is our internal tooling.
     if (readRole() === "client") { window.location.replace("/portal/agents"); return; }
@@ -548,7 +559,7 @@ export default function Transcribe() {
           approx_timing: approxMode ? "Yes" : "No"
         };
       });
-      const res = await fetch("/api/reviews", {
+      const res = await fetch(demoHref("/api/reviews"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           call_id: call.execution_id, reviewer_name: display, reviewer_email: email, review_mode: MODE,
@@ -593,6 +604,9 @@ export default function Transcribe() {
 
   return (
     <div className="app-shell">
+      {/* the queue is this screen's proof of life · an empty sidebar means the
+          demo reviewer lost its assignment, which the shell should surface */}
+      <DemoReady ready={queue.length > 0} />
       <aside className="sidebar">
         <div className="brand">
           <h1 style={{ fontSize: 18 }}>Transcription</h1>

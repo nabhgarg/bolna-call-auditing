@@ -8,6 +8,8 @@
 // source of truth on a single origin (and on localhost / the vercel.app host,
 // where a dotted domain cookie does not apply).
 
+import { isDemo } from "./demo";
+
 const KEY = "auditReviewerRole";
 const COOKIE = "rl_role";
 const YEAR = 60 * 60 * 24 * 365;
@@ -53,6 +55,10 @@ export function isExpert(): boolean {
  *  client so they could see their dashboard would also hand them our audit
  *  cockpit. "client" opens the portal and nothing else. */
 export function isPortalUser(): boolean {
+  // The YC partner demo is a read-only client session with no account behind
+  // it. It sees exactly what a client sees · the same anonymised program data
+  // · and every write path checks isDemoRequest() separately before persisting.
+  if (isDemo()) return true;
   const role = readRole();
   return role === "expert" || role === "client";
 }

@@ -5,6 +5,8 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, card } from "../../../lib/ui";
 import { isPortalUser } from "../../../lib/role";
+import DemoReady from "../../../lib/DemoReady";
+import { demoHref } from "../../../lib/demo";
 
 // New use case (wireframe 23a/23b) · the client describes the job in plain
 // language and we say what we would check, who checks it, and what it costs.
@@ -200,7 +202,10 @@ export default function NewUseCase() {
   async function start() {
     setStarted(true);
     try {
-      await fetch("/api/use-cases", {
+      // A YC partner pressing this is exploring, not buying · the route drops
+      // the write on its own (it re-reads the token server-side rather than
+      // trusting this flag), so nothing they type becomes a real pilot.
+      await fetch(demoHref("/api/use-cases"), {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ description: desc.trim(), facts: { ...res?.facts, cadence, callsPerWeek }, ids: sel, status: "pilot" }),
       });
@@ -236,6 +241,9 @@ export default function NewUseCase() {
       </div>
     }>
       <div className={instrument.className} style={{ color: INK, padding: phase === "answered" ? "16px 22px 30px" : 0 }}>
+        {/* the prompt itself is this screen's content · it is usable the moment
+            it paints, so there is no data to wait for here */}
+        <DemoReady ready />
 
         {/* ---------- 23a · blank ---------- */}
         {phase !== "answered" && (
