@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, card } from "../../../lib/ui";
-import { isExpert } from "../../../lib/role";
+import { isPortalUser } from "../../../lib/role";
 
 // N2 · issue drill-down, evidence-backed. Every count on the portal home
 // opens here as playable rows: call + timestamp + finding + who caught it.
@@ -27,7 +27,7 @@ function Inner() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    setAllowed(isExpert());
+    setAllowed(isPortalUser());
   }, []);
   useEffect(() => {
     setData(null);

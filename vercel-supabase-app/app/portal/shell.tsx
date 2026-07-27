@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN } from "../../lib/ui";
-import { isExpert } from "../../lib/role";
+import { isPortalUser } from "../../lib/role";
 
 // Portal shell · Raindrop-style left nav. Four stable destinations:
 // Overview (how is my AI doing) · Agents (which agent breaks, how) ·
@@ -41,7 +41,7 @@ export default function PortalShell({ children, right }: { children: React.React
   const [collapsed, setCollapsed] = useState(true);
   useEffect(() => {
     try {
-      const signedIn = isExpert();
+      const signedIn = isPortalUser();
       setExpert(signedIn);
       const saved = window.localStorage.getItem("rlNavCollapsed");
       if (saved !== null) setCollapsed(saved === "1");
@@ -74,9 +74,13 @@ export default function PortalShell({ children, right }: { children: React.React
           </button>
         </div>
         <div className={"nav-program" + (expert ? "" : " nav-hidden")} style={{ margin: "0 10px 14px", position: "relative" }}>
-          <button onClick={() => programs.length > 1 && setOpen(!open)} style={{ width: "100%", textAlign: "left", borderRadius: 8, background: "#f5f7f9", padding: "8px 10px", border: "none", cursor: programs.length > 1 ? "pointer" : "default" }}>
-            <div style={{ fontSize: 10.5, color: MUT, textTransform: "uppercase", letterSpacing: 0.5 }}>Program{programs.length > 1 ? ` · ${programs.length}` : ""}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+          {/* display:block is load-bearing · the global button rule is
+              inline-flex, which laid the label and the program name out side
+              by side ("PROGRAMBolna · live" on one cramped line) instead of
+              stacking them. */}
+          <button onClick={() => programs.length > 1 && setOpen(!open)} style={{ display: "block", width: "100%", textAlign: "left", borderRadius: 8, background: "#f5f7f9", padding: "8px 10px", border: "none", cursor: programs.length > 1 ? "pointer" : "default" }}>
+            <div style={{ fontSize: 10, color: MUT, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4, marginBottom: 1 }}>Program{programs.length > 1 ? ` · ${programs.length}` : ""}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, lineHeight: 1.3 }}>
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{active}</span>
               <span style={{ width: 6, height: 6, borderRadius: 3, background: GREEN, flex: "none" }} />
               <span style={{ fontSize: 11, color: GREEN, fontWeight: 500 }}>live</span>

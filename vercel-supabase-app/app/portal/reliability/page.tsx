@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
-import { isExpert } from "../../../lib/role";
+import { isPortalUser } from "../../../lib/role";
 
 // Reliability tab (wireframe 22a) · exact design layout: a horizontal overall
 // strip, then Reliability by agent + by issue type SIDE BY SIDE, then a
@@ -39,7 +39,7 @@ function Inner() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setAllowed(isExpert());
+    setAllowed(isPortalUser());
     fetch("/api/portal/reliability").then((r) => r.json()).then(setD).catch(() => {});
   }, []);
 

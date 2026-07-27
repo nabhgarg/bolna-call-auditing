@@ -7,7 +7,7 @@ import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
 import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
 import RELIABILITY from "../../../lib/portal-reliability.json";
-import { isExpert } from "../../../lib/role";
+import { isPortalUser } from "../../../lib/role";
 
 // Agent insights · Overall + By-agent MERGED into one master-detail screen
 // (wireframe 19a / 20a + philosophy 21a). Left: agents ranked by how much
@@ -73,7 +73,7 @@ function Inner() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    setAllowed(isExpert());
+    setAllowed(isPortalUser());
     fetch("/api/portal/byagent").then((r) => r.json()).then((d) => {
       setData(d);
       const want = params.get("agent");

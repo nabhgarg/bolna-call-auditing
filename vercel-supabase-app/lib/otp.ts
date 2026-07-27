@@ -32,8 +32,19 @@ export function longLivedOtp(email: string) {
   return codeForLabel(`${email.trim().toLowerCase()}|L${Math.floor(Date.now() / LONG_WINDOW_MS)}`);
 }
 
+// Demo accounts with a fixed code, for showing the portal to people who will
+// never receive our email (YC partners, a live pitch, a recorded walkthrough).
+// Deliberately a standing code, so it is a real, if narrow, hole: it works only
+// for these exact addresses, they are `client` role (portal only, no audit
+// tool, no ground truth), and the reviewer roster is untouched. Delete the row
+// from `reviewers` — or this entry — to revoke.
+const FIXED_CODES: Record<string, string> = {
+  "ycpartnersaccess@gmail.com": process.env.YC_DEMO_OTP || "999999"
+};
+
 export function verifyOtp(email: string, code: string) {
   const e = email.trim().toLowerCase();
+  if (FIXED_CODES[e] && code === FIXED_CODES[e]) return true;
   const w = Math.floor(Date.now() / WINDOW_MS);
   const lw = Math.floor(Date.now() / LONG_WINDOW_MS);
   return (

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 import { INK, MUT, LINE, GREEN, RED, card } from "../../../lib/ui";
-import { writeRole, isExpert } from "../../../lib/role";
+import { writeRole, isPortalUser } from "../../../lib/role";
 
 // Client login for the portal.
 //
@@ -46,7 +46,7 @@ export default function PortalLogin() {
     } catch {}
     // Already signed in · don't make them do it twice. Uses the local `target`,
     // not the `next` state, which has not applied yet on this first pass.
-    try { if (isExpert()) window.location.replace(target); } catch {}
+    try { if (isPortalUser()) window.location.replace(target); } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -66,9 +66,10 @@ export default function PortalLogin() {
       window.localStorage.setItem("auditReviewerEmail", profile.email);
       window.localStorage.setItem("auditReviewerDisplay", profile.display_name || profile.email);
     } catch {}
-    // The portal is the expert view. A reviewer's account is valid but belongs
-    // in the audit tool, so say that rather than looping them through the gate.
-    if (role !== "expert") { setStep("no_access"); return; }
+    // "client" is the outside-facing role, "expert" is ours. A reviewer's
+    // account is valid but belongs in the audit tool, so say that rather than
+    // looping them through a gate that just repeats "log in".
+    if (role !== "expert" && role !== "client") { setStep("no_access"); return; }
     window.location.replace(next);
   }
 

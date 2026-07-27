@@ -207,8 +207,16 @@ export default function Page() {
 
   // Issue loggers now work exclusively in the transcription workbench ·
   // send them straight there once their role is known.
+  // Clients never belong here at all: this is the internal audit cockpit, with
+  // other clients' calls in it. Their signed-in session is valid, so bounce
+  // them to their own portal rather than showing an empty or forbidden queue.
   useEffect(() => {
-    if (!loginVisible && roleConfirmed && reviewerRole === "issue_logger") window.location.replace("/transcribe");
+    if (loginVisible || !roleConfirmed) return;
+    // Relative on purpose · the portal is the same deployment behind a host
+    // rewrite, so this works on review., portal., the vercel.app host and
+    // localhost alike, where an absolute portal URL would bounce off-origin.
+    if (reviewerRole === "client") window.location.replace("/portal/agents");
+    else if (reviewerRole === "issue_logger") window.location.replace("/transcribe");
   }, [reviewerRole, loginVisible, roleConfirmed]);
 
   // Draw waveform: agent channel up (green), user channel down (blue), playhead line

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { readRole } from "../../lib/role";
 
 // Transcription workbench · golden dataset, audio-first.
 // Same shell as the main app (sidebar call list + workspace). The waveform is
@@ -258,6 +259,9 @@ export default function Transcribe() {
   }
 
   useEffect(() => {
+    // Clients have a valid session but no business in the workbench · their
+    // queue is empty anyway, so all this shows them is our internal tooling.
+    if (readRole() === "client") { window.location.replace("/portal/agents"); return; }
     const e = (window.localStorage.getItem("auditReviewerEmail") || "").trim().toLowerCase();
     setEmail(e); setDisplay(window.localStorage.getItem("auditReviewerDisplay") || e);
   }, []);

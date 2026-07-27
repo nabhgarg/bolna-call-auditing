@@ -46,6 +46,21 @@ export function isExpert(): boolean {
   return readRole() === "expert";
 }
 
+/** Who may open the portal.
+ *
+ *  "expert" is an INTERNAL role: in the reviewer app it unlocks the vibe form,
+ *  the transcript panel and the ground-truth issue types. Granting it to a
+ *  client so they could see their dashboard would also hand them our audit
+ *  cockpit. "client" opens the portal and nothing else. */
+export function isPortalUser(): boolean {
+  const role = readRole();
+  return role === "expert" || role === "client";
+}
+
+export function isClient(): boolean {
+  return readRole() === "client";
+}
+
 /** Called on login · writes both stores. */
 export function writeRole(role: string) {
   try { window.localStorage.setItem(KEY, role); } catch {}
