@@ -31,16 +31,50 @@
   #foot{flex:none;padding:7px 16px;background:#fff;border-top:1px solid #e2e8ee;font-size:12px;color:#6b7885;text-align:center}
   .ctl{border:1px solid #e2e8ee;background:#fff;color:#4b5762;font-family:inherit;font-size:12.5px;font-weight:500;padding:7px 13px;border-radius:8px;cursor:pointer;white-space:nowrap;flex:none}
   .ctl:hover{border-color:#10181f;color:#10181f}
+  #help{font-weight:600;width:30px;padding:7px 0;text-align:center}
   #stage{flex:1;position:relative;background:#f5f7f9;overflow:hidden}
   #stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
   #stage iframe[hidden]{visibility:hidden;pointer-events:none;display:block}
   #nudge{display:flex;align-items:center;gap:8px;padding:7px 14px;background:#fffdf7;border-bottom:1px solid #f0e4c8;font-size:12.5px;color:#8a6d20}
   #nudge button{border:0;background:none;color:#0e8a5f;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0}
+  /* per-tab "what to look at" card */
+  /* bottom-right, not top-left · every one of the four screens puts its nav or
+     its work queue down the left edge, and a card explaining "use the call
+     list" while sitting on top of the call list is worse than no card */
+  #tabpop{position:absolute;z-index:30;right:16px;bottom:16px;width:min(400px,calc(100% - 32px));background:#fff;border:1px solid #e2e8ee;border-radius:14px;box-shadow:0 16px 40px rgba(16,24,31,.18);padding:20px;display:none;flex-direction:column;gap:12px}
+  #tabpop .lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#0e8a5f}
+  #tabpop h3{margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px}
+  #tabpop p{margin:0;font-size:14px;line-height:1.6;color:#4b5762}
+  #tabpop .link{font-size:12.5px;line-height:1.5;color:#6b7885;border-top:1px solid #e2e8ee;padding-top:12px}
+  #tabpop .link a{font-family:'IBM Plex Mono',monospace;font-weight:500}
+  #tabpop .row{display:flex;align-items:center;gap:12px}
+  #tabpop .ok{border:0;background:#0e8a5f;color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:9px;cursor:pointer}
+  #tabpop .ok:hover{background:#0a6b4a}
+  #tabpop .never{border:0;background:none;color:#6b7885;font-family:inherit;font-size:12.5px;cursor:pointer;padding:0}
+  #tabpop .never:hover{color:#10181f}
   #fallback{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;text-align:center;background:#f5f7f9}
   #fallback h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:20px;margin:0}
   #fallback p{margin:0;font-size:14.5px;line-height:1.6;color:#6b7885;max-width:44ch}
+  /* first-visit welcome */
+  #scrim{position:fixed;inset:0;background:rgba(16,24,31,.55);display:none;z-index:40}
+  #welcome{position:fixed;z-index:41;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 32px);background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(16,24,31,.28);display:none;flex-direction:column;overflow:hidden}
+  #wbody{overflow:auto;padding:26px 28px 20px;display:flex;flex-direction:column;gap:14px}
+  #welcome .eye{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#0e8a5f}
+  #welcome h2{margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:24px;letter-spacing:-.015em;line-height:1.15}
+  #welcome p.lede{margin:0;font-size:15px;line-height:1.6;color:#4b5762}
+  #welcome ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+  #welcome li{display:flex;gap:11px;align-items:flex-start;font-size:14px;line-height:1.5}
+  #welcome li .n{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#6b7885;background:#f5f7f9;border-radius:6px;padding:3px 7px;flex:none;margin-top:2px}
+  #welcome li span.d{color:#6b7885}
+  #welcome .foot{display:flex;flex-wrap:wrap;align-items:center;gap:12px;border-top:1px solid #e2e8ee;padding:16px 28px;background:#fff;flex:none}
+  #welcome .go{border:0;background:#0e8a5f;color:#fff;font-family:inherit;font-size:14.5px;font-weight:600;padding:12px 20px;border-radius:10px;cursor:pointer}
+  #welcome .go:hover{background:#0a6b4a}
+  #welcome .note{font-size:12.5px;line-height:1.5;color:#6b7885;flex:1;min-width:180px}
   @media (max-width:720px){
     .tab{padding:9px 11px;font-size:12px;max-width:150px}
+    #welcome h2{font-size:20px}
+    #wbody{padding:22px 22px 16px}
+    #welcome .foot{padding:14px 22px}
   }
 </style>
 </head>
@@ -55,12 +89,23 @@
     <a id="url" href="#" target="_blank" rel="noopener" title="Open this screen in a new tab">🔒 https://realloop.in/ycpartners</a>
     <span style="flex:1"></span>
     <button class="ctl" id="reload">↻ Reload tab</button>
+    <button class="ctl" id="help" title="What is this?" aria-label="What is this?">?</button>
   </div>
   <div id="nudge">
     <span>Blank pane or a login screen? The live route may not allow embedding yet.</span>
     <button type="button" id="nudgeopen">⤢ Open this screen full width</button>
   </div>
   <div id="stage">
+    <div id="tabpop" role="note">
+      <span class="lbl">What to look at</span>
+      <h3 id="popttl"></h3>
+      <p id="popbody"></p>
+      <div class="link">This screen really lives at <a id="pophref" href="#" target="_blank" rel="noopener"></a> · we merged the four into one link for the YC team.</div>
+      <div class="row">
+        <button type="button" class="ok" id="popok">Got it</button>
+        <button type="button" class="never" id="popnever">Stop showing these</button>
+      </div>
+    </div>
     <div id="fallback">
       <h2>This screen did not load</h2>
       <p>The live route is blocking embedding, or the demo session expired. Open it full width instead.</p>
@@ -68,6 +113,26 @@
     </div>
   </div>
   <div id="foot">This URL is made for YC partners to use the products powering both sides of the business · the live link is at the top of each page.</div>
+</div>
+
+<div id="scrim"></div>
+<div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wtitle">
+  <div id="wbody">
+  <span class="eye">For YC partners · RealLoop</span>
+  <h2 id="wtitle">You are inside the actual product, not a deck.</h2>
+  <p class="lede">RealLoop is a marketplace for credible human judgment. AI companies describe what their agent must get right, we put a screened and trained panel of reviewers on it, and we publish how much that panel can be trusted.</p>
+  <p class="lede">The tabs at the top of this page are four live screens, in the order a client meets them. Click any of them, in any order.</p>
+  <ol>
+    <li><span class="n">01</span><span><b>New use case</b> · <span class="d">a client writes their problem in plain language. We read it back as checks, what is human versus machine judged, and a price. Type your own and see.</span></span></li>
+    <li><span class="n">02</span><span><b>Marketplace</b> · <span class="d">the supply side. How a reviewer in India applies and gets screened.</span></span></li>
+    <li><span class="n">03</span><span><b>Grading a call, live</b> · <span class="d">the work itself. Hear a real production call, log a judgment, get corrected on the spot.</span></span></li>
+    <li><span class="n">04</span><span><b>Client insight portal</b> · <span class="d">what the client gets back · which agent is failing, what to fix first, and whether the panel can be trusted.</span></span></li>
+  </ol>
+  </div>
+  <div class="foot">
+    <button class="go" id="wstart">Start with New use case →</button>
+    <span class="note">Green means a human did it, purple means a machine judged it. Figures shown are demo data.</span>
+  </div>
 </div>
 
 <script>
@@ -78,22 +143,30 @@ var DEMO_TOKEN = "?demo=YCPARTNER2026";   // read-only demo session · see lib/d
 var TABS = [
   { label:"New use case", dot:"#0e8a5f",
     src:"https://portal.realloop.in/portal/new-use-case", demo:true,
-    show:"portal.realloop.in/portal/new-use-case" },
+    show:"portal.realloop.in/portal/new-use-case",
+    pop:"The read-back",
+    focus:"A client writes three or four sentences. Watch what we resolve it into · which checks, quoting their own words, what a human does versus what a machine judges, and the price. Type your own description." },
   { label:"Marketplace · become a reviewer", dot:"#0e8a5f",
     src:"https://marketplace.realloop.in", demo:true,
-    show:"marketplace.realloop.in" },
+    show:"marketplace.realloop.in",
+    pop:"How little stands between applying and working",
+    focus:"Pick languages, then land straight in a real assignment on production audio · no CV, no waiting." },
   { label:"Grading a call, live", dot:"#0e8a5f",
     src:"https://review.realloop.in/transcribe", demo:true,
-    show:"review.realloop.in/transcribe" },
+    show:"review.realloop.in/transcribe",
+    pop:"Judgment broken into objective sub-tasks",
+    focus:"Hear the call, then log what actually happened one spike at a time. The unit of work is a single stretch of audio, not a whole-call opinion." },
   { label:"Client insight portal", dot:"#7c5cbf",
     src:"https://portal.realloop.in/portal/agents", demo:true,
-    show:"portal.realloop.in/portal/agents" }
+    show:"portal.realloop.in/portal/agents",
+    pop:"What the client actually gets back",
+    focus:"Agents ranked by how much they need attention, what is breaking on each, and the evidence behind every number. Reliability, in the left sidebar, says how far to trust it." }
 ];
 
 var strip=document.getElementById('tabstrip'), stage=document.getElementById('stage'),
     urlEl=document.getElementById('url'),
     fallback=document.getElementById('fallback'), nudge=document.getElementById('nudge'),
-    cur=0, frames=[], btns=[], loaded=[];
+    welcomeOpen=false, cur=0, frames=[], btns=[], loaded=[];
 
 function fullSrc(t){ return t.src + (t.demo && DEMO_TOKEN ? DEMO_TOKEN : ""); }
 
@@ -142,6 +215,7 @@ function select(i){
   btns.forEach(function(b,n){ b.setAttribute('aria-selected', n===i ? 'true':'false'); });
   urlEl.textContent='🔒 https://'+TABS[i].show;
   urlEl.href=fullSrc(TABS[i]);
+  showTabPop(i);
   /* lazy-load: only fetch a route once its tab is first opened */
   if(!frames[i].getAttribute('src')) frames[i].setAttribute('src', fullSrc(TABS[i]));
   fallback.style.display='none';
@@ -156,13 +230,54 @@ document.getElementById('reload').onclick=function(){
 };
 /* Kept only on the failure paths · when a pane is blocked or blank, opening the
    real route in a new tab is the one way through. The top bar no longer carries
-   it, because a working pane does not need an escape hatch. */
+   it, because the address itself is the link. */
 function openFull(){ window.open(fullSrc(TABS[cur]),'_blank','noopener'); }
 document.getElementById('fbopen').onclick=openFull;
 document.getElementById('nudgeopen').onclick=openFull;
 
 frames[0].setAttribute('src', fullSrc(TABS[0]));
+
+/* ── Per-tab "what to look at" card ────────────────────────────────────
+   Shown once per tab, the first time a partner opens it. Never twice, and
+   "Stop showing these" kills the rest for good. */
+var tabpop=document.getElementById('tabpop'), popSeen=[], popsOff=false, POPS='realloop_yc_pops_off';
+try{ popsOff=localStorage.getItem(POPS)==='1'; }catch(e){}
+function hideTabPop(){ tabpop.style.display='none'; }
+function showTabPop(i){
+  if(popsOff || popSeen[i] || welcomeOpen){ hideTabPop(); return; }
+  popSeen[i]=true;
+  document.getElementById('popttl').textContent=TABS[i].pop;
+  document.getElementById('popbody').textContent=TABS[i].focus;
+  var a=document.getElementById('pophref');
+  a.textContent=TABS[i].show; a.setAttribute('href', fullSrc(TABS[i]));
+  tabpop.style.display='flex';
+}
+document.getElementById('popok').onclick=hideTabPop;
+document.getElementById('popnever').onclick=function(){
+  popsOff=true; try{ localStorage.setItem(POPS,'1'); }catch(e){} hideTabPop();
+};
+
 select(0);
+
+/* ── First-visit welcome ───────────────────────────────────────────────
+   Once per browser. The "?" in the top bar brings it back, so a partner who
+   dismissed it early is never stranded. */
+var scrim=document.getElementById('scrim'), welcome=document.getElementById('welcome'),
+    SEEN='realloop_yc_seen';
+function openWelcome(){ welcomeOpen=true; hideTabPop(); scrim.style.display='block'; welcome.style.display='flex'; }
+function closeWelcome(){
+  welcomeOpen=false;
+  scrim.style.display='none'; welcome.style.display='none';
+  try{ localStorage.setItem(SEEN,'1'); }catch(e){}
+}
+/* Tab 1's card is NOT re-armed here · the welcome just described it in step 01,
+   and a second card landing the instant the first one closes reads as nagging. */
+document.getElementById('wstart').onclick=function(){ closeWelcome(); select(0); };
+scrim.onclick=closeWelcome;
+document.getElementById('help').onclick=openWelcome;
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeWelcome(); });
+var seen=false; try{ seen=localStorage.getItem(SEEN)==='1'; }catch(e){}
+if(!seen) openWelcome();
 </script>
 </body>
 </html>
