@@ -57,17 +57,17 @@
   #fallback p{margin:0;font-size:14.5px;line-height:1.6;color:#6b7885;max-width:44ch}
   /* first-visit welcome */
   #scrim{position:fixed;inset:0;background:rgba(16,24,31,.55);display:none;z-index:40}
-  #welcome{position:fixed;z-index:41;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 32px);background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(16,24,31,.28);display:none;flex-direction:column;overflow:hidden}
+  #welcome{position:fixed;z-index:41;left:50%;top:50%;transform:translate(-50%,-50%);width:min(470px,calc(100vw - 32px));max-height:calc(100vh - 32px);background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(16,24,31,.28);display:none;flex-direction:column;overflow:hidden}
   #wbody{overflow:auto;padding:26px 28px 20px;display:flex;flex-direction:column;gap:14px}
   #welcome .eye{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#0e8a5f}
-  #welcome h2{margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:24px;letter-spacing:-.015em;line-height:1.15}
+  #welcome h2{margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:26px;letter-spacing:-.018em;line-height:1.14;text-wrap:balance}
   #welcome p.lede{margin:0;font-size:15px;line-height:1.6;color:#4b5762}
   #welcome .foot{display:flex;flex-wrap:wrap;align-items:center;gap:12px;border-top:1px solid #e2e8ee;padding:16px 28px;background:#fff;flex:none}
   #welcome .go{border:0;background:#0e8a5f;color:#fff;font-family:inherit;font-size:14.5px;font-weight:600;padding:12px 20px;border-radius:10px;cursor:pointer}
   #welcome .go:hover{background:#0a6b4a}
   @media (max-width:720px){
     .tab{padding:9px 11px;font-size:12px;max-width:150px}
-    #welcome h2{font-size:20px}
+    #welcome h2{font-size:21px}
     #wbody{padding:22px 22px 16px}
     #welcome .foot{padding:14px 22px}
   }
@@ -114,8 +114,8 @@
 <div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wtitle">
   <div id="wbody">
   <span class="eye">For YC partners · RealLoop</span>
-  <h2 id="wtitle">Both sides of the product, in one link.</h2>
-  <p class="lede">We made this for the YC team to walk the reviewer side and the client side without four logins. Use the tabs at the top to move between them.</p>
+  <h2 id="wtitle">Made for the YC team to walk both sides of the product, without four logins.</h2>
+  <p class="lede">Use the tabs at the top to move between them.</p>
   </div>
   <div class="foot">
     <button class="go" id="wstart">Start →</button>
