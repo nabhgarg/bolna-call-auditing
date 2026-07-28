@@ -28,9 +28,14 @@ const NAV = [
   { href: "/portal/agents", label: "Agent insights", icon: "◐" },
   { href: "/portal/reliability", label: "Reliability", icon: "◎" },
   { href: "/portal/datasets", label: "Datasets", icon: "▤" },
-  { href: "/portal/connect", label: "Connect via MCP", icon: "⌥" },
-  { href: "/portal/new-use-case", label: "New use case", icon: "＋", pub: true }
+  { href: "/portal/connect", label: "Connect via MCP", icon: "⌥" }
 ];
+
+// Pinned to the foot of the sidebar, in the slot the Marketplace link used to
+// hold · a client comes here to read their program, and starting another one is
+// an action, not a destination. It is also the public front door, so it is the
+// one item a signed-out visitor still sees.
+const FOOT = { href: "/portal/new-use-case", label: "New use case", icon: "＋" };
 
 // Guided walk through the portal, for the YC demo only. Four stops in the order
 // a client actually asks the questions: what is broken, can I believe it, what
@@ -147,7 +152,9 @@ export default function PortalShell({ children, right, solo }: { children: React
             </div>
           )}
         </div>
-        {NAV.filter((n) => (expert && !solo) || n.pub).map((n) => {
+        {/* every NAV item reads a live client's program, so all of them are
+            gated · the one public destination is FOOT, pinned below */}
+        {(expert && !solo ? NAV : []).map((n) => {
           const active = path === n.href;
           return (
             <a key={n.href} href={n.href} title={n.label} style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", background: active ? "#e7f4ee" : "transparent", color: active ? GREEN : INK, fontWeight: active ? 600 : 400, fontSize: 13.5, border: active ? "1px solid #cde8db" : "1px solid transparent" }}>
@@ -157,10 +164,10 @@ export default function PortalShell({ children, right, solo }: { children: React
           );
         })}
         <span style={{ flex: 1 }} />
-        {!solo && <a href="https://marketplace.realloop.in" title="Marketplace" style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", color: MUT, fontSize: 13 }}>
-          <span style={{ fontSize: 13, width: 16, textAlign: "center", color: MUT, flex: "none" }}>⋱</span>
-          <span className="nav-label">Marketplace</span>
-        </a>}
+        <a href={FOOT.href} title={FOOT.label} style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", background: path === FOOT.href ? "#e7f4ee" : "transparent", color: path === FOOT.href ? GREEN : INK, fontWeight: path === FOOT.href ? 600 : 400, fontSize: 13.5, border: path === FOOT.href ? "1px solid #cde8db" : "1px solid transparent" }}>
+          <span style={{ fontSize: 13, width: 16, textAlign: "center", color: path === FOOT.href ? GREEN : MUT, flex: "none" }}>{FOOT.icon}</span>
+          <span className="nav-label">{FOOT.label}</span>
+        </a>
         {expert && !solo && (
           <div className="nav-user" style={{ borderTop: "1px solid #eef2f6", margin: "8px 4px 0", paddingTop: 10, display: "flex", alignItems: "center", gap: 9 }}>
             <span style={{ width: 22, height: 22, borderRadius: 999, background: INK, color: "#fff", fontSize: 10, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>N</span>

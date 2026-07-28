@@ -32,6 +32,22 @@ type Agent = { agent: string; avg: number; dist: number[]; calls: number; avg_ra
 
 const L2_ISSUE_ROUTE: Record<string, string> = { transcription: "asr", response: "response", naturalness: "tone", proper_noun: "proper_noun", pronunciation: "pronunciation" };
 
+/** Whether an agent needs attention.
+ *
+ *  The score alone was deciding this, and it put the worst agent in the healthy
+ *  group: Cart Recovery · E-commerce A rates 3.0 on call quality while the panel
+ *  flagged an issue in 66% of its reviews · the highest of the four · and it
+ *  carries the most transcript errors per call. A 1-to-4 vibe score is a
+ *  judgement about how the call felt; it does not know how often the transcript
+ *  was wrong. So the share of reviews carrying an issue counts too, and an agent
+ *  clears only when both are good. */
+function needsWork(a: { avg: number; reviews_with_issue?: number; reviews?: number; calls_with_issue?: number; reviewed?: number }) {
+  const flagged = a.reviews_with_issue ?? a.calls_with_issue ?? 0;
+  const of = a.reviews ?? a.reviewed ?? 0;
+  const rate = of > 0 ? flagged / of : 0;
+  return a.avg <= 2.9 || rate >= 0.5;
+}
+
 // The four agents carrying 170+ human reviews each · see the `agents` memo.
 const DEEP_AGENTS = [
   "Cart Recovery · E-commerce B",
@@ -138,8 +154,8 @@ function Inner() {
   // rank: needs-attention (avg<=2.9) worst-first, then healthy best-first
   const ranked = useMemo(() => {
     const idx = agents.map((a, i) => ({ a, i, v: verdictFor(a, fleetRate) }));
-    const needs = idx.filter((x) => x.a.avg <= 2.9).sort((x, y) => x.a.avg - y.a.avg);
-    const healthy = idx.filter((x) => x.a.avg > 2.9).sort((x, y) => y.a.avg - x.a.avg);
+    const needs = idx.filter((x) => needsWork(x.a as never)).sort((x, y) => x.a.avg - y.a.avg);
+    const healthy = idx.filter((x) => !needsWork(x.a as never)).sort((x, y) => y.a.avg - x.a.avg);
     return { needs, healthy };
   }, [agents, fleetRate]);
 
@@ -148,7 +164,7 @@ function Inner() {
 
   const a = agents[Math.min(sel, agents.length - 1)] || ({} as Agent);
   const v = verdictFor(a, fleetRate);
-  const needsAttention = a.avg <= 2.9;
+  const needsAttention = needsWork(a as never);
   const totalCalls = agents.reduce((s, x) => s + (x.calls || 0), 0);
   const scoreColor = (x: number) => x <= 2.5 ? RED : x <= 2.9 ? AMBER : GREEN;
 
@@ -186,7 +202,7 @@ function Inner() {
         <span className={grotesk.className} style={{ fontSize: 17, fontWeight: 600, color: scoreColor(x.avg), width: 30, flex: "none" }}>{x.avg}</span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.agent}</span>
-          <span style={{ display: "block", fontSize: 11, color: verd.key ? (x.avg <= 2.9 ? "#b5555a" : MUT) : GREEN, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: 11, color: verd.key ? (needsWork(x as never) ? "#b5555a" : MUT) : GREEN, marginTop: 1 }}>
             {best ? "best · " : ""}{verd.key ? `${verd.label} · ${x.calls} calls` : `clean · ${x.calls} calls`}
           </span>
         </span>
@@ -213,9 +229,9 @@ function Inner() {
 
         {/* LEFT · ranked agent list */}
         <div style={{ ...card, padding: 10, position: "sticky", top: 16, display: "flex", flexDirection: "column", gap: 3 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: RED, textTransform: "uppercase", letterSpacing: 0.6, padding: "4px 11px 3px" }}>Needs attention · {ranked.needs.length}</div>
+          {ranked.needs.length > 0 && <div style={{ fontSize: 10.5, fontWeight: 700, color: RED, textTransform: "uppercase", letterSpacing: 0.6, padding: "4px 11px 3px" }}>Needs attention · {ranked.needs.length}</div>}
           {ranked.needs.map(({ a: x, i, v: verd }) => <AgentRow key={x.agent} x={x} i={i} verd={verd} />)}
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: GREEN, textTransform: "uppercase", letterSpacing: 0.6, padding: "10px 11px 3px" }}>Healthy · {ranked.healthy.length}</div>
+          {ranked.healthy.length > 0 && <div style={{ fontSize: 10.5, fontWeight: 700, color: GREEN, textTransform: "uppercase", letterSpacing: 0.6, padding: "10px 11px 3px" }}>Healthy · {ranked.healthy.length}</div>}
           {ranked.healthy.map(({ a: x, i, v: verd }, k) => <AgentRow key={x.agent} x={x} i={i} verd={verd} best={k === 0} />)}
         </div>
 
