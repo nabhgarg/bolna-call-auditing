@@ -20,12 +20,16 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
 // It is also the public front door · the landing page's main CTA points here,
 // so it must work for someone who has never logged in. Everything below it
 // reads a live client's data and stays behind the expert gate.
+// Reading order, then the action. A signed-in client opens this portal to see
+// how their agents are doing, not to start another program · "New use case"
+// sits at the foot of the nav where an action belongs, rather than taking the
+// first slot and pushing the insight screens down.
 const NAV = [
-  { href: "/portal/new-use-case", label: "New use case", icon: "＋", pub: true },
   { href: "/portal/agents", label: "Agent insights", icon: "◐" },
   { href: "/portal/reliability", label: "Reliability", icon: "◎" },
   { href: "/portal/datasets", label: "Datasets", icon: "▤" },
-  { href: "/portal/connect", label: "Connect via MCP", icon: "⌥" }
+  { href: "/portal/connect", label: "Connect via MCP", icon: "⌥" },
+  { href: "/portal/new-use-case", label: "New use case", icon: "＋", pub: true }
 ];
 
 // Guided walk through the portal, for the YC demo only. Four stops in the order
