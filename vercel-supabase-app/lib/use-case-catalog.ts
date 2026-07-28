@@ -35,13 +35,13 @@ export const CHECKS: CheckDef[] = [
     id: "transcription", name: "Input capture · ASR and transcription", routing: "human",
     priceInr: 34, samplePct: 0.4, unit: "per_call",
     work: "A reviewer listens, writes what was actually said, and checks it against what the bot registered.",
-    laneReason: "A machine judge cannot grade this, it scores against the same audio it already misheard, and the transcript often looks fine while the value is missing.",
+    laneReason: "The transcript often looks fine while the value is missing, so a person has to check it against the audio itself.",
     match: /mishear|misheard|hear|transcri|accent|fast|mumbl|switch(es|ing)? language|hinglish|devanagari|garbl|unclear|speech|order number|address|amount|otp|digit|number|quantity|pin ?code|phone|booking|date|wrong(ly)? (captur|record|regist|tagg)|gets? .* wrong/i,
   },
   {
     id: "factual", name: "Factual accuracy", routing: "judge_human_verified",
     priceInr: 4, verifyInr: 31, samplePct: 1, flagPct: 0.1, unit: "per_verified",
-    work: "The judge reads every call against your policy doc; humans verify what it flags.",
+    work: "Every call is checked against your policy doc, and a person confirms anything that looks off.",
     laneReason: "",
     match: /policy|refund|not what we (actually )?do|wrong info|incorrect|tells? customers|claim|price|offer|knowledge|document|compliance breach|says? something/i,
   },
@@ -49,7 +49,7 @@ export const CHECKS: CheckDef[] = [
     id: "pronunciation", name: "Pronunciation of brand and city names", routing: "human",
     priceInr: 18, samplePct: 0.4, unit: "per_call",
     work: "A reviewer hears names, cities and brands the way your customers do.",
-    laneReason: "Purely acoustic, so a judge reading text produces nothing here.",
+    laneReason: "Purely acoustic · it only shows up in the audio, never in the transcript.",
     match: /pronounc|brand name|city name|says? my name|name wrong/i,
   },
   {
@@ -61,8 +61,8 @@ export const CHECKS: CheckDef[] = [
   },
   {
     id: "barge_in", name: "Talking over the customer", routing: "judge", priceInr: 3, samplePct: 1, unit: "per_call",
-    work: "Every interruption, measured from the call timing.",
-    laneReason: "Measured from telemetry, so no human time is spent on it.",
+    work: "Every interruption, measured from the call's own timing.",
+    laneReason: "Read straight from the call timing, so it covers every call, not a sample.",
     match: /interrupt|talks? over|cuts? (them |people |the customer )?off|barge/i,
   },
   {

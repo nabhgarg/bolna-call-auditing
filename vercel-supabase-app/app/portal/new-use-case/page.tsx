@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
-import { INK, MUT, GREEN, PURPLE, card } from "../../../lib/ui";
+import { INK, MUT, GREEN, card } from "../../../lib/ui";
 import { isPortalUser } from "../../../lib/role";
 import DemoReady from "../../../lib/DemoReady";
 import { demoHref, isDemo } from "../../../lib/demo";
@@ -36,16 +36,16 @@ const EXAMPLES = [
 ];
 const DEFAULT_CALLS = 1240;
 
-const routingPills = (r: Routing) =>
-  r === "human" ? [{ t: "100% human", bg: "#e7f4ee", fg: GREEN }]
-  : r === "judge" ? [{ t: "machine judge", bg: "#f3eefc", fg: PURPLE }]
-  : [{ t: "machine judge", bg: "#f3eefc", fg: PURPLE }, { t: "human verified", bg: "#e7f4ee", fg: GREEN }];
-const accent = (r: Routing) => (r === "human" ? GREEN : PURPLE);
+// The client sees one lane: review. How each check is actually produced
+// (some routed through a machine judge first, then human-verified) is an
+// internal routing and pricing detail, deliberately not surfaced here · the
+// dashboard the client reads is human judgment either way.
+const accent = (_r: Routing) => GREEN;
 
-// underline the exact phrases the resolver keyed on, in the lane colour ·
-// green = humans check this, purple = a machine judge is involved
+// underline the exact phrases the resolver keyed on · one colour, because the
+// client sees a single review lane (see accent() above)
 function HighlightedDesc({ text, checks }: { text: string; checks: Check[] }) {
-  const spans: { start: number; end: number; human: boolean }[] = [];
+  const spans: { start: number; end: number }[] = [];
   for (const c of checks) {
     const q = (c.quote || "").trim();
     if (q.length < 6) continue;
@@ -53,7 +53,7 @@ function HighlightedDesc({ text, checks }: { text: string; checks: Check[] }) {
     if (i < 0) continue;
     const end = i + q.length;
     if (spans.some((s) => i < s.end && end > s.start)) continue;   // no overlaps
-    spans.push({ start: i, end, human: c.routing === "human" });
+    spans.push({ start: i, end });
   }
   spans.sort((a, b) => a.start - b.start);
   if (!spans.length) return <>{text}</>;
@@ -61,9 +61,8 @@ function HighlightedDesc({ text, checks }: { text: string; checks: Check[] }) {
   let pos = 0;
   spans.forEach((sp, k) => {
     if (sp.start > pos) out.push(<span key={"t" + k}>{text.slice(pos, sp.start)}</span>);
-    const col = sp.human ? GREEN : PURPLE;
     out.push(
-      <span key={"h" + k} style={{ borderBottom: `2px solid ${col}`, background: sp.human ? "rgba(14,138,95,.07)" : "rgba(124,92,191,.07)", borderRadius: 2, padding: "0 1px" }}>
+      <span key={"h" + k} style={{ borderBottom: `2px solid ${GREEN}`, background: "rgba(14,138,95,.07)", borderRadius: 2, padding: "0 1px" }}>
         {text.slice(sp.start, sp.end)}
       </span>
     );
@@ -307,10 +306,8 @@ export default function NewUseCase() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, lineHeight: 1.75 }}><HighlightedDesc text={desc.trim()} checks={res.checks.filter((c) => sel.includes(c.id))} /></div>
                     {res.checks.some((c) => c.quote) && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 7, fontSize: 10.5, color: "#93a1ae" }}>
-                        <span>what we picked up</span>
-                        <span><span style={{ color: GREEN }}>●</span> humans check this</span>
-                        <span><span style={{ color: PURPLE }}>●</span> machine judge</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7, fontSize: 10.5, color: "#93a1ae" }}>
+                        <span><span style={{ color: GREEN }}>●</span> the parts we picked up from your description</span>
                       </div>
                     )}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
@@ -343,9 +340,6 @@ export default function NewUseCase() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</span>
-                          {routingPills(c.routing).map((p) => (
-                            <span key={p.t} style={{ borderRadius: 999, background: p.bg, color: p.fg, fontSize: 10.5, fontWeight: 600, padding: "3px 9px" }}>{p.t}</span>
-                          ))}
                         </div>
                         <div style={{ fontSize: 12.5, color: "#4d5a66", lineHeight: 1.55, marginTop: 7 }}>{c.because}</div>
                         <div className={mono.className} style={{ fontSize: 11, color: MUT, marginTop: 7 }}>{c.volumeLabel}</div>

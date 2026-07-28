@@ -33,7 +33,7 @@ export default function AddUseCase() {
     <PortalShell right={
       <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", borderBottom: "1px solid #e2e8ee", padding: "10px 20px" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Add a use case</span>
-        <span style={{ fontSize: 12, color: MUT }}>a rubric + calls + a panel · reuses your existing panel and pricing</span>
+        <span style={{ fontSize: 12, color: MUT }}>Another agent or market · same panel, same per-review price</span>
       </div>
     }>
       <div className={instrument.className} style={{ maxWidth: PAGE, margin: "0 auto", padding: "18px 20px" }}>
@@ -53,7 +53,7 @@ export default function AddUseCase() {
               <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontWeight: 600, fontSize: 12, padding: "5px 12px" }}>✓ voice_v1 template · same issue types as the Bolna pilot</span>
               <a href="/marketplace/start" style={{ borderRadius: 999, background: "#eef2f6", color: "#4d5a66", fontSize: 12, padding: "5px 12px", textDecoration: "none" }}>customize ▾</a>
             </div>
-            <div style={{ fontSize: 11.5, color: MUT }}>5 human-checked issue types + call metrics (speed, interruptions). Your Agent insights page picks these up automatically.</div>
+            <div style={{ fontSize: 11.5, color: MUT }}>Five issue types a human checks, plus speed and interruption metrics. They land on Agent insights as reviews come in.</div>
 
             <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>3 · Calls</span>
             <a href="/marketplace/start" style={{ display: "block", border: "1.5px dashed #d6dee6", borderRadius: 10, padding: 14, textAlign: "center", fontSize: 12.5, color: MUT, textDecoration: "none", cursor: "pointer" }}>
@@ -85,12 +85,12 @@ export default function AddUseCase() {
             <div style={{ flex: 1 }} />
             {launched ? (
               <div style={{ background: "#f2faf6", border: `1.5px solid ${GREEN}`, borderRadius: 9, padding: "12px 14px", fontSize: 13, color: "#4d5a66", lineHeight: 1.5 }}>
-                <b style={{ color: GREEN }}>✓ Program launched.</b> Queues and reviewer assignments created · reviews start today. Track it on the <a href="/portal/agents" style={{ color: GREEN }}>Agent insights</a> page.
+                <b style={{ color: GREEN }}>✓ Launched.</b> Reviewers are on these calls from today · watch it fill in on <a href="/portal/agents" style={{ color: GREEN }}>Agent insights</a>.
               </div>
             ) : (
               <div onClick={() => { try { const list = JSON.parse(window.localStorage.getItem("rlPrograms") || "[]"); if (!list.includes(name)) { list.push(name); window.localStorage.setItem("rlPrograms", JSON.stringify(list)); } window.localStorage.setItem("rlActiveProgram", name); } catch {} setLaunched(true); }} style={{ height: 44, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>Launch use case</div>
             )}
-            <div style={{ fontSize: 11, color: MUT, textAlign: "center" }}>Creates the program, queues, and assignments · reviews start today.</div>
+            <div style={{ fontSize: 11, color: MUT, textAlign: "center" }}>Nothing to schedule · reviewers start the day you launch.</div>
           </div>
         </div>
       </div>
