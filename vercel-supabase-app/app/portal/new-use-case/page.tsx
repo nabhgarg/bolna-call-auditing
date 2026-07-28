@@ -151,9 +151,10 @@ export default function NewUseCase() {
       }).then((r) => r.json());
       if (!d?.checks) { setPhase("blank"); return; }
       // seed the field with a real value rather than leaving a placeholder ·
-      // an empty box that still prices something reads as broken, and the
-      // unit toggle has nothing to act on
-      setVol(String(d.facts.callsPerWeek));
+      // Deliberately NOT prefilled. The resolver does not read a volume out of
+      // the description · it echoes back whatever we sent, which defaults to
+      // 1,240, so prefilling put an invented number in the client's mouth and
+      // every price on the screen inherited it. Blank box, they tell us.
       setVolUnit("week");
       setRes(d); setSel(d.checks.map((c) => c.id)); setEst(d.estimate); setStep("plan"); setPhase("answered");
     } catch { setPhase("blank"); }
@@ -314,9 +315,16 @@ export default function NewUseCase() {
                         <span><span style={{ color: GREEN }}>●</span> the parts we picked up from your description</span>
                       </div>
                     )}
+                    {/* Volume is the client's to state, not ours to guess · it
+                        drives every price on this screen, so it is an input
+                        here rather than an assumed number they have to hunt
+                        for a step later. Blank until they type it. */}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11.5, color: MUT }}>Calls{cadence === "recurring" ? " a week" : " in the batch"}</span>
+                      <input value={vol} onChange={(e) => setVol(e.target.value)} inputMode="numeric" placeholder="how many?"
+                        style={{ width: 92, border: `1px solid ${typedVolume > 0 ? "#cde8db" : "#e2e8ee"}`, borderRadius: 7, padding: "4px 9px", fontSize: 12, fontFamily: "inherit", color: INK, outline: "none", background: "#fff" }} />
                       <span className={mono.className} style={{ fontSize: 11, color: MUT }}>
-                        {callsPerWeek.toLocaleString()} calls{cadence === "recurring" ? " / wk" : ""} · {res.facts.languages.join(", ")}{res.facts.docs[0] ? ` · ${res.facts.docs[0].name}` : ""}
+                        {res.facts.languages.join(", ")}{res.facts.docs[0] ? ` · ${res.facts.docs[0].name}` : ""}
                       </span>
                       <span style={{ flex: 1 }} />
                       <button onClick={() => setPhase("blank")} style={{ fontSize: 12, color: MUT, background: "transparent", border: "1px solid #e2e8ee", borderRadius: 7, padding: "4px 11px", cursor: "pointer" }}>Edit</button>
@@ -346,7 +354,11 @@ export default function NewUseCase() {
                           <span style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</span>
                         </div>
                         <div style={{ fontSize: 12.5, color: "#4d5a66", lineHeight: 1.55, marginTop: 7 }}>{c.because}</div>
-                        <div className={mono.className} style={{ fontSize: 11, color: MUT, marginTop: 7 }}>{c.volumeLabel}</div>
+                        {/* No per-check volume line here. It read "496 calls / wk
+                            at a 40% sample", every digit of which was derived
+                            from a call volume we had invented · the client sets
+                            the volume above, and coverage is settled on the
+                            scope step where it can be discussed. */}
                       </div>
                     </div>
                   </div>
