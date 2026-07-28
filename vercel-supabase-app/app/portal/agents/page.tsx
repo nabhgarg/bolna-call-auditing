@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import PortalShell from "../shell";
-import { INK, MUT, GREEN, PURPLE, RED, AMBER, card } from "../../../lib/ui";
+import { INK, MUT, GREEN, RED, AMBER, card } from "../../../lib/ui";
 import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
 import RELIABILITY from "../../../lib/portal-reliability.json";
 import { isPortalUser } from "../../../lib/role";
@@ -16,7 +16,7 @@ import { isDemo } from "../../../lib/demo";
 // (wireframe 19a / 20a + philosophy 21a). Left: agents ranked by how much
 // they need attention, each with a plain-words verdict. Right: the selected
 // agent, led by "what to fix" (root cause first, playable), then no-nonsense
-// metrics, then the human-vs-LLM issue rows with timestamped evidence.
+// metrics, then the issue rows (human review only) with timestamped evidence.
 // Philosophy honored: verdict first · every number is playable · root cause
 // over volume · green = human, purple = machine.
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"] });
@@ -43,7 +43,7 @@ function verdictFor(a: Agent, fleetRate: Record<string, number>) {
   }
   let best: { key: string; lift: number; calls: number; row: L2 } | null = null;
   for (const r of a.l2 || []) {
-    const affected = r.human_calls + r.llm_calls;
+    const affected = r.human_calls;   // human review only · the machine judge stays internal
     if (affected < 2 || a.calls < 1 || r.occ < 1) continue;
     const rate = affected / a.calls;
     const base = fleetRate[r.key] || 0.0001;
@@ -103,7 +103,7 @@ function Inner() {
     const acc: Record<string, { s: number; n: number }> = {};
     for (const a of agents) for (const r of a.l2 || []) {
       const k = r.key; if (!acc[k]) acc[k] = { s: 0, n: 0 };
-      acc[k].s += (r.human_calls + r.llm_calls) / Math.max(1, a.calls); acc[k].n += 1;
+      acc[k].s += r.human_calls / Math.max(1, a.calls); acc[k].n += 1;   // human only
     }
     const out: Record<string, number> = {};
     for (const k in acc) out[k] = acc[k].s / Math.max(1, acc[k].n);
@@ -146,8 +146,8 @@ function Inner() {
   const isRootCause = v.key === "transcription";
   const goldenT = (TRANSCRIPTS.agents as any[]).find((x) => x.agent === a.agent && x.pairs?.length);
   const rel = (RELIABILITY.by_agent as any[]).find((x) => x.agent === a.agent) || null;
-  // how much of the list traces to the lead issue
-  const leadCalls = leadRow ? leadRow.human_calls + leadRow.llm_calls : 0;
+  // how much of the list traces to the lead issue · human review only
+  const leadCalls = leadRow ? leadRow.human_calls : 0;
 
   const AgentRow = ({ x, i, verd, best }: { x: Agent; i: number; verd: ReturnType<typeof verdictFor>; best?: boolean }) => {
     const active = i === sel;
@@ -315,18 +315,16 @@ function Inner() {
             )}
           </div>
 
-          {/* issue rows · human vs LLM + evidence */}
+          {/* issue rows · human review + evidence. Human judgment only · the
+              machine judge stays internal, same as the intake. */}
           <div style={{ ...card, padding: "16px 18px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, paddingBottom: 10, flexWrap: "wrap" }}>
               <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>What&apos;s breaking, ranked</span>
-              <span style={{ fontSize: 12, color: MUT }}>share of this agent&apos;s <b style={{ color: INK }}>{a.calls} calls</b> · click a row for evidence</span>
-              <span style={{ flex: 1 }} />
-              <span style={{ fontSize: 11, color: GREEN }}>● human</span>
-              <span style={{ fontSize: 11, color: PURPLE }}>● LLM judge</span>
+              <span style={{ fontSize: 12, color: MUT }}>share of this agent&apos;s <b style={{ color: INK }}>{a.calls} calls</b> a human reviewer flagged · click a row for evidence</span>
             </div>
-            {(a.l2 || []).slice().sort((r1, r2) => (r2.human_calls + r2.llm_calls) - (r1.human_calls + r1.llm_calls)).map((r) => {
+            {(a.l2 || []).slice().sort((r1, r2) => r2.human_calls - r1.human_calls).map((r) => {
               const isOpen = open === r.key;
-              const total = r.human_calls + r.llm_calls;
+              const total = r.human_calls;
               const none = total === 0;
               return (
                 <div key={r.key} style={{ borderTop: "1px solid #eef2f6", background: isOpen ? "#fbfcfd" : "transparent", margin: "0 -18px", padding: "0 18px" }}>
@@ -335,15 +333,13 @@ function Inner() {
                     <span style={{ width: 14, color: isOpen ? GREEN : MUT }}>{none ? "·" : isOpen ? "▾" : "▸"}</span>
                     <span style={{ width: 210, fontWeight: 600, flex: "none" }}>{r.label}</span>
                     <div style={{ flex: 1, display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "#eef2f6", minWidth: 90 }}>
-                      {/* same denominator as the "N of M calls" text beside it ·
-                          reviewed, not the vibe-scored subset */}
+                      {/* denominator is reviewed calls · matches the "N of M calls" text */}
                       <div style={{ width: `${(r.human_calls / Math.max(a.reviewed, 1)) * 100}%`, background: GREEN }} />
-                      <div style={{ width: `${(r.llm_calls / Math.max(a.reviewed, 1)) * 100}%`, background: PURPLE }} />
                     </div>
                     <span style={{ width: 152, textAlign: "right", lineHeight: 1.25, fontSize: 12.5, flex: "none" }}>
                       {none ? <span style={{ color: MUT }}>nothing flagged</span> : <>
                         <b>{total} of {a.reviewed} calls</b><br />
-                        <span style={{ fontSize: 11 }}><span style={{ color: GREEN }}>{r.human_calls} human · {r.occ} findings</span>{r.llm_calls ? <> · <span style={{ color: PURPLE }}>{r.llm_calls} LLM</span></> : null}</span>
+                        <span style={{ fontSize: 11, color: GREEN }}>{r.occ} findings</span>
                       </>}
                     </span>
                   </button>
@@ -360,7 +356,7 @@ function Inner() {
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "8px 10px", fontSize: 12.5 }}>
                           <button onClick={() => play(e.call_id, e.ts)} style={{ width: 24, height: 24, borderRadius: 12, background: GREEN, color: "#fff", border: "none", fontSize: 9, cursor: "pointer", flex: "none" }}>▶</button>
                           <span className={mono.className} style={{ fontSize: 11.5, flex: "none" }}>{String(e.call_id).slice(0, 8)} @{e.ts}</span>
-                          <span style={{ borderRadius: 999, fontSize: 10, background: r.key === "response" && r.llm_calls > r.human_calls ? "#f3eefc" : "#e7f4ee", color: r.key === "response" && r.llm_calls > r.human_calls ? PURPLE : GREEN, padding: "2px 8px", flex: "none" }}>{r.key === "response" && r.llm_calls > r.human_calls ? "LLM judge" : "human"}</span>
+                          <span style={{ borderRadius: 999, fontSize: 10, background: "#e7f4ee", color: GREEN, padding: "2px 8px", flex: "none" }}>human</span>
                           <span style={{ color: MUT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.note}</span>
                         </div>
                       ))}

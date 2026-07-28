@@ -43,9 +43,15 @@ export async function GET() {
     };
 
     const reviewsWithIssue = cap(Number(a.calls_with_issue) || 0, "calls_with_issue");
+    // reviews_flagged counts HUMAN review only. The feed also carries llm_calls
+    // (the machine judge's remainder on the "response" row), but the client
+    // dashboard reports human judgment exclusively, same as the intake · a
+    // machine judge stays internal. Bundling llm_calls in was what pushed
+    // "Response" to ~99% when humans flag it on ~7% of reviews; the honest
+    // headline is Input capture, which humans flag ~40% of the time.
     const l2 = (a.l2 || []).map((r) => ({
       ...r,
-      reviews_flagged: cap((Number(r.human_calls) || 0) + (Number(r.llm_calls) || 0), `l2.${r.key}`)
+      reviews_flagged: cap(Number(r.human_calls) || 0, `l2.${r.key}`)
     }));
 
     return {
