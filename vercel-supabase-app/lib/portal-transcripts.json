@@ -1,104 +1,152 @@
 {
-  "note": "Per-agent golden-transcript output · built from real timing_transcription reviews (987 reviews joined to calls). The hero pairs are verbatim ASR-vs-panel corrections; call_id + ts are playable. No org or reviewer names.",
-  "generated_from": "reviews.review_mode=timing_transcription · 2026-07-26",
-  "hero": "Cart Recovery · Marketplace",
-  "agents": [
+ "note": "Per-agent golden-transcript output · built from real timing_transcription reviews (987 reviews joined to calls). The hero pairs are verbatim ASR-vs-panel corrections; call_id + ts are playable. No org or reviewer names.",
+ "generated_from": "reviews.review_mode=timing_transcription · 2026-07-26",
+ "hero": "Cart Recovery · Marketplace",
+ "generated_at": "2026-07-28",
+ "agents": [
+  {
+   "agent": "Cart Recovery · Marketplace",
+   "calls": 168,
+   "segments": 4338,
+   "corrected": 909,
+   "pairs": [
     {
-      "agent": "Cart Recovery · Marketplace",
-      "calls": 101,
-      "segments": 1122,
-      "corrected": 251,
-      "pairs": [
-        {
-          "call_id": "ba1fdff6-0954-47dd-a473-3a2b3f5e0dbb",
-          "ts": "02:09",
-          "asr": "हां जी",
-          "golden": "नहीं नहीं अभी तोह नहीं चाहिए",
-          "tag": "a yes that was a no"
-        },
-        {
-          "call_id": "99dfb5dc-7087-4afe-bbfe-c0dd5784d762",
-          "ts": "00:57",
-          "asr": "five six का है उसका",
-          "golden": "price क्या है उसका",
-          "tag": "asked the price · heard numbers"
-        },
-        {
-          "call_id": "33e489e3-ac44-4f89-bd12-5324d8ba9030",
-          "ts": "06:06",
-          "asr": "sir मैं पहले",
-          "golden": "sir मैं पहले से ही four hundred",
-          "tag": "the amount vanished"
-        },
-        {
-          "call_id": "120b83ab-01f5-4322-9618-16c076d317ca",
-          "ts": "01:18",
-          "asr": "no no i got shit",
-          "golden": "no no i got shirt",
-          "tag": "one letter changed the word"
-        }
-      ],
-      "themes": [
-        {
-          "title": "Short utterances never captured",
-          "count": 158,
-          "pct": 63,
-          "detail": "hello, हां जी, बोलिये, thank you · the customer speaks and nothing reaches the transcript, so the agent carries on as if the line went quiet. On one call the customer said hello seventeen times and not one of them registered.",
-          "example": {
-            "call_id": "ba1fdff6-0954-47dd-a473-3a2b3f5e0dbb",
-            "ts": "00:08",
-            "asr": "(nothing captured)",
-            "golden": "hello"
-          }
-        },
-        {
-          "title": "The wrong word heard",
-          "count": 51,
-          "pct": 20,
-          "detail": "The bot hears a real word, just the wrong one · product words, names and amounts included. The sentence still reads fine, which is why nothing downstream catches it.",
-          "example": {
-            "call_id": "99dfb5dc-7087-4afe-bbfe-c0dd5784d762",
-            "ts": "00:57",
-            "asr": "five six का है उसका",
-            "golden": "price क्या है उसका"
-          }
-        }
-      ]
+     "call_id": "3b174802-8e6c-4883-a03c-e3717b72b4b3",
+     "ts": "01:47",
+     "asr": "yeah मैंने",
+     "golden": "no mam हमें order करना है तो हम",
+     "tag": "a no heard as yeah"
     },
     {
-      "agent": "Cart Recovery · E-commerce A",
-      "calls": 87,
-      "segments": 1455,
-      "corrected": 159,
-      "pairs": []
+     "call_id": "99dfb5dc-7087-4afe-bbfe-c0dd5784d762",
+     "ts": "00:57",
+     "asr": "five six का है उसका",
+     "golden": "price क्या है उसका",
+     "tag": "asked the price · heard numbers"
     },
     {
-      "agent": "Cart Recovery · E-commerce B",
-      "calls": 89,
-      "segments": 1269,
-      "corrected": 150,
-      "pairs": []
+     "call_id": "39ef6535-8e30-4c7f-98f2-29b6bc6917f6",
+     "ts": "00:32",
+     "asr": "ok",
+     "golden": "okay no maa'm मुझे नहीं करना",
+     "tag": "the refusal dropped"
     },
     {
-      "agent": "Seller Activation · B2B Marketplace",
-      "calls": 101,
-      "segments": 1060,
-      "corrected": 107,
-      "pairs": []
-    },
-    {
-      "agent": "Referral Outreach · Hindi",
-      "calls": 14,
-      "segments": 609,
-      "corrected": 91,
-      "pairs": []
-    },
-    {
-      "agent": "Hiring & Onboarding",
-      "calls": 10,
-      "segments": 659,
-      "corrected": 68,
-      "pairs": []
+     "call_id": "33e489e3-ac44-4f89-bd12-5324d8ba9030",
+     "ts": "06:06",
+     "asr": "sir मैं पहले",
+     "golden": "sir मैं पहले से ही four hundred",
+     "tag": "the amount vanished"
     }
-  ]
+   ]
+  },
+  {
+   "agent": "Cart Recovery · E-commerce A",
+   "calls": 163,
+   "segments": 5315,
+   "corrected": 1114,
+   "pairs": [
+    {
+     "call_id": "c55c2868-a3da-414f-94aa-f2be38551b6c",
+     "ts": "00:45",
+     "asr": "करना तो है best latt मैंने order",
+     "golden": "करना तो है bracelet मैंने order",
+     "tag": "the product name misheard"
+    },
+    {
+     "call_id": "ee279f8f-8926-4350-b33b-c607b8f84dd4",
+     "ts": "00:37",
+     "asr": "yeah i logged on it",
+     "golden": "yeah i’ll order",
+     "tag": "an order heard as a login"
+    },
+    {
+     "call_id": "371de166-a9a6-4bda-955f-ae619b9195d0",
+     "ts": "00:35",
+     "asr": "के लिए जो",
+     "golden": "order complete करने के लिए जो",
+     "tag": "half the sentence lost"
+    },
+    {
+     "call_id": "371de166-a9a6-4bda-955f-ae619b9195d0",
+     "ts": "01:45",
+     "asr": "order करना है",
+     "golden": "मेरे को order करना है",
+     "tag": "words the customer said, missing"
+    }
+   ]
+  },
+  {
+   "agent": "Cart Recovery · E-commerce B",
+   "calls": 148,
+   "segments": 3849,
+   "corrected": 842,
+   "pairs": [
+    {
+     "call_id": "51c4243b-b5eb-4291-892f-7f1dacf49fdf",
+     "ts": "01:22",
+     "asr": "ठीक है तो",
+     "golden": "ठीक है cash on delivery में तो आठ सौ रुपया",
+     "tag": "the payment method vanished"
+    },
+    {
+     "call_id": "a426f4ff-b1f4-4568-b1d2-c3df800b68e1",
+     "ts": "00:24",
+     "asr": "पांच सौ side पर",
+     "golden": "कोनसे site पे",
+     "tag": "a question heard as an amount"
+    },
+    {
+     "call_id": "1bcd9a0f-2fc3-45f3-a0fd-9edb02fa5da8",
+     "ts": "00:23",
+     "asr": "जी",
+     "golden": "जी नहीं cash on delivery करना था लेकिन",
+     "tag": "a no that reads as a yes"
+    },
+    {
+     "call_id": "5a5b5195-123b-4cb3-a574-a7124950b3a9",
+     "ts": "01:14",
+     "asr": "hello",
+     "golden": "no",
+     "tag": "a no heard as hello"
+    }
+   ]
+  },
+  {
+   "agent": "Seller Activation · B2B Marketplace",
+   "calls": 171,
+   "segments": 3220,
+   "corrected": 664,
+   "pairs": [
+    {
+     "call_id": "3c980490-3bf3-4a28-9505-1dcc7e81ea5f",
+     "ts": "00:28",
+     "asr": "nine nine",
+     "golden": "नहीं नहीं",
+     "tag": "a no heard as a number"
+    },
+    {
+     "call_id": "c2989d78-307e-4d1e-be0d-c86dd3b3fd27",
+     "ts": "00:44",
+     "asr": "madam हम हरी matter export करना चाहे थी sir",
+     "golden": "madam हम हरी मटर export करना चाहे थी sir",
+     "tag": "the product heard as an English word"
+    },
+    {
+     "call_id": "4414ff63-b7bf-4b27-9e0a-34756ab240b0",
+     "ts": "00:21",
+     "asr": "madam आज निकल है कल कल दस ग्यारह बजे",
+     "golden": "madam आज नहीं कल कल दस ग्यारह बजे",
+     "tag": "a no heard as a word"
+    },
+    {
+     "call_id": "49b413df-059f-42c6-99a8-d58c2958bb95",
+     "ts": "00:39",
+     "asr": "i'm sorry this",
+     "golden": "i'm sorry this person is not available",
+     "tag": "the rejection cut off"
+    }
+   ]
+  }
+ ]
 }

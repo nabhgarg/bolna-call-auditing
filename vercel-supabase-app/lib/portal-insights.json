@@ -1,0 +1,36 @@
+{
+ "generated_at": "2026-07-28",
+ "agents": {
+  "Cart Recovery · Marketplace": {
+   "calls": 168,
+   "metrics": [
+    {
+     "label": "A refusal the transcript lost",
+     "value": "6%",
+     "pct": 6,
+     "note": "the customer said no · the transcript did not carry it"
+    },
+    {
+     "label": "Amount or number wrong",
+     "value": "4%",
+     "pct": 4,
+     "note": "a price, quantity or digit differs from what was said"
+    },
+    {
+     "label": "Transcript errors per call",
+     "value": "5.4",
+     "pct": 54,
+     "note": "913 corrected segments across 168 reviewed calls"
+    }
+   ],
+   "most_common": {
+    "heard": "yeah मैंने",
+    "heard_gloss": "yes",
+    "said": "no mam हमें order करना है तो हम",
+    "said_gloss": "no, we were going to order",
+    "call_id": "3b174802-8e6c-4883-a03c-e3717b72b4b3",
+    "ts": "01:47"
+   }
+  }
+ }
+}

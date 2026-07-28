@@ -8,6 +8,7 @@ import { INK, MUT, GREEN, RED, AMBER, card } from "../../../lib/ui";
 import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
 import RELIABILITY from "../../../lib/portal-reliability.json";
 import PATTERNS from "../../../lib/portal-patterns.json";
+import INSIGHTS from "../../../lib/portal-insights.json";
 import { isPortalUser } from "../../../lib/role";
 import DemoReady from "../../../lib/DemoReady";
 import ReportPrint from "./report";
@@ -173,6 +174,8 @@ function Inner() {
   // how the leading issue actually goes wrong · clustered from this agent's own
   // panel corrections (lib/portal-patterns.json)
   const patterns = (PATTERNS.agents as Record<string, any>)[a.agent] || null;
+  // outcome-level findings · only written for agents we have rules for
+  const insights = (INSIGHTS.agents as Record<string, any>)[a.agent] || null;
   // how much of the list traces to the lead issue · human review only
   const leadCalls = leadRow ? leadRow.human_calls : 0;
 
@@ -228,6 +231,44 @@ function Inner() {
               ? <span style={{ borderRadius: 999, background: "#fbeaea", color: RED, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>needs attention</span>
               : <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>healthy</span>}
           </div>
+
+          {/* Findings · the outcome-level read. The rows below this card name
+              issue TYPES ("wrong / missing transcription"); these name what it
+              cost the client ("a refusal the transcript lost"). Only exists for
+              agents in lib/portal-insights.json · deriving it needs a rule per
+              outcome, so it is written per agent rather than generated. */}
+          {insights && (
+            <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 13 }}>
+              <span className={mono.className} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.7, textTransform: "uppercase", color: MUT }}>
+                Findings · {insights.calls} calls
+              </span>
+              {insights.metrics.map((m: any) => (
+                <div key={m.label} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                    <span style={{ flex: 1, fontSize: 14 }}>{m.label}</span>
+                    <span className={grotesk.className} style={{ fontSize: 21, fontWeight: 700 }}>{m.value}</span>
+                  </div>
+                  <div style={{ height: 5, borderRadius: 3, background: "#eef2f6", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${Math.min(m.pct, 100)}%`, background: GREEN }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: MUT }}>{m.note}</span>
+                </div>
+              ))}
+              {insights.most_common && (
+                <div style={{ borderTop: "1px solid #eef2f6", paddingTop: 11, display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span className={mono.className} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.7, textTransform: "uppercase", color: MUT }}>Most common error</span>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, lineHeight: 1.6 }}>
+                    <button onClick={() => play(insights.most_common.call_id, insights.most_common.ts)}
+                      style={{ width: 22, height: 22, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none", marginTop: 3 }}>▶</button>
+                    <div>
+                      <div><span className={mono.className} style={{ color: MUT }}>Heard</span> <b>&ldquo;{insights.most_common.heard}&rdquo;</b> <span style={{ color: MUT }}>· {insights.most_common.heard_gloss}</span></div>
+                      <div><span className={mono.className} style={{ color: GREEN }}>Said</span> <b style={{ color: GREEN }}>&ldquo;{insights.most_common.said}&rdquo;</b> <span style={{ color: GREEN }}>· {insights.most_common.said_gloss}</span></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* metric chips */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
