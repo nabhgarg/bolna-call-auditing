@@ -171,9 +171,13 @@ export default function NewUseCase() {
     const priced = await reprice(next);
     const added = priced.find((c) => c.id === id);
     if (added) {
+      // No "You added this." prefix · the client just clicked it, so saying so
+      // adds nothing. The description explains what the check does, which is all
+      // this card needs; recommended checks still read differently because they
+      // open by quoting the client's own words ("Because you said …").
       setRes({
         ...res,
-        checks: [...res.checks, { ...added, because: `You added this. ${added.because}` }],
+        checks: [...res.checks, added],
         suggestions: res.suggestions.filter((s) => s.id !== id),
       });
     }
