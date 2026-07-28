@@ -7,6 +7,7 @@ import PortalShell from "../shell";
 import { INK, MUT, GREEN, RED, AMBER, card } from "../../../lib/ui";
 import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
 import RELIABILITY from "../../../lib/portal-reliability.json";
+import PATTERNS from "../../../lib/portal-patterns.json";
 import { isPortalUser } from "../../../lib/role";
 import DemoReady from "../../../lib/DemoReady";
 import ReportPrint from "./report";
@@ -169,6 +170,9 @@ function Inner() {
   const isRootCause = v.key === "transcription";
   const goldenT = (TRANSCRIPTS.agents as any[]).find((x) => x.agent === a.agent && x.pairs?.length);
   const rel = (RELIABILITY.by_agent as any[]).find((x) => x.agent === a.agent) || null;
+  // how the leading issue actually goes wrong · clustered from this agent's own
+  // panel corrections (lib/portal-patterns.json)
+  const patterns = (PATTERNS.agents as Record<string, any>)[a.agent] || null;
   // how much of the list traces to the lead issue · human review only
   const leadCalls = leadRow ? leadRow.human_calls : 0;
 
@@ -241,29 +245,9 @@ function Inner() {
                       {isRootCause ? <span style={{ color: MUT }}> Root cause · fixing this clears most of the list below.</span> : null}
                     </div>
 
-                    {/* the two ways it actually goes wrong · clustered from this
-                        agent's own panel corrections, each one playable */}
-                    {goldenT?.themes?.length ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
-                        {(goldenT.themes as any[]).map((th) => (
-                          <div key={th.title} style={{ background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 9, padding: "10px 12px" }}>
-                            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{th.title}</span>
-                              <span className={mono.className} style={{ fontSize: 11, color: RED }}>{th.count} segments · {th.pct}%</span>
-                            </div>
-                            <div style={{ fontSize: 12.5, color: MUT, lineHeight: 1.5, marginTop: 3 }}>{th.detail}</div>
-                            {th.example && (
-                              <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 8, fontSize: 12.5, flexWrap: "wrap" }}>
-                                <button onClick={() => play(th.example.call_id, th.example.ts)} style={{ width: 22, height: 22, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none" }}>▶</button>
-                                <span style={{ textDecoration: "line-through", color: RED }}>{th.example.asr}</span>
-                                <span style={{ color: MUT }}>→</span>
-                                <b style={{ color: GREEN }}>{th.example.golden}</b>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : leadEvidence ? (
+                    {/* The patterns used to live here. They belong with the
+                        breakdown they explain · see "What's breaking" below. */}
+                    {leadEvidence ? (
                       <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 8, background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 8, padding: "7px 10px", fontSize: 12.5 }}>
                         <button onClick={() => play(leadEvidence.call_id, leadEvidence.ts)} style={{ width: 24, height: 24, borderRadius: 12, background: GREEN, color: "#fff", border: "none", fontSize: 9, cursor: "pointer", flex: "none" }}>▶</button>
                         <span className={mono.className} style={{ fontSize: 11.5, flex: "none" }}>{String(leadEvidence.call_id).slice(0, 8)} @{leadEvidence.ts}</span>
@@ -272,7 +256,7 @@ function Inner() {
                     ) : null}
                   </div>
                 </div>
-                {!goldenT?.themes?.length && secondFix && (
+                {secondFix && (
                   <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
                     <span style={{ borderRadius: 999, fontSize: 12, padding: "3px 9px", background: "#eef2f6", color: "#4d5a66", fontWeight: 600, flex: "none", marginTop: 1 }}>2</span>
                     <div style={{ fontSize: 14, lineHeight: 1.5, flex: 1 }}>
@@ -345,6 +329,71 @@ function Inner() {
               <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>What&apos;s breaking, ranked</span>
               <span style={{ fontSize: 12, color: MUT }}>share of this agent&apos;s <b style={{ color: INK }}>{a.calls} calls</b> a human reviewer flagged · click a row for evidence</span>
             </div>
+
+            {/* Where the findings actually land · every issue the panel logged
+                for this agent, split by category. The rows below count CALLS
+                affected; this counts FINDINGS, which is the honest answer to
+                "what is most of the work". */}
+            {(() => {
+              const slices = (a.l2 || []).filter((r) => r.occ > 0).sort((x, y) => y.occ - x.occ);
+              const tot = slices.reduce((s, r) => s + r.occ, 0);
+              if (!tot) return null;
+              const COLORS = [RED, AMBER, GREEN, "#5b8def", "#7c5cbf"];
+              let acc = 0;
+              const stops = slices.map((r, i) => {
+                const from = (acc / tot) * 360; acc += r.occ;
+                return `${COLORS[i % COLORS.length]} ${from}deg ${(acc / tot) * 360}deg`;
+              }).join(", ");
+              return (
+                <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", padding: "4px 0 14px", borderBottom: "1px solid #eef2f6", marginBottom: 2 }}>
+                  <div style={{ width: 108, height: 108, borderRadius: "50%", background: `conic-gradient(${stops})`, flex: "none", position: "relative" }}>
+                    <div style={{ position: "absolute", inset: 26, borderRadius: "50%", background: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                      <span className={grotesk.className} style={{ fontSize: 17, fontWeight: 700, lineHeight: 1 }}>{tot.toLocaleString()}</span>
+                      <span style={{ fontSize: 8.5, color: MUT }}>findings</span>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 210, display: "flex", flexDirection: "column", gap: 5 }}>
+                    {slices.map((r, i) => (
+                      <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                        <span style={{ width: 9, height: 9, borderRadius: 3, background: COLORS[i % COLORS.length], flex: "none" }} />
+                        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</span>
+                        <b className={mono.className} style={{ fontSize: 12 }}>{Math.round((r.occ / tot) * 100)}%</b>
+                        <span style={{ color: MUT, fontSize: 11, width: 62, textAlign: "right", flex: "none" }}>{r.occ.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* The patterns · how the leading issue actually goes wrong, from
+                this agent's own panel corrections. Lives here rather than in
+                "What to fix" because it explains the breakdown it sits above. */}
+            {patterns?.patterns?.length ? (
+              <div style={{ padding: "12px 0 4px", borderBottom: "1px solid #eef2f6", marginBottom: 2 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>
+                  The patterns <span style={{ color: MUT, fontWeight: 400 }}>· how transcription goes wrong, across {patterns.total.toLocaleString()} corrected segments</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                  {patterns.patterns.filter((p: any) => p.pct >= 3).map((p: any) => (
+                    <div key={p.title} style={{ background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 9, padding: "9px 11px" }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>{p.title}</span>
+                        <span className={mono.className} style={{ fontSize: 11, color: RED }}>{p.count} segments · {p.pct}%</span>
+                      </div>
+                      {p.example && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 6, fontSize: 12.5, flexWrap: "wrap" }}>
+                          <button onClick={() => play(p.example.call_id, p.example.ts)} style={{ width: 22, height: 22, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none" }}>▶</button>
+                          <span style={{ textDecoration: "line-through", color: RED }}>{p.example.asr}</span>
+                          <span style={{ color: MUT }}>→</span>
+                          <b style={{ color: GREEN }}>{p.example.golden}</b>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {(a.l2 || []).slice().sort((r1, r2) => r2.human_calls - r1.human_calls).map((r) => {
               const isOpen = open === r.key;
               const total = r.human_calls;

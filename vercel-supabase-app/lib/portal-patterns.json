@@ -1,0 +1,179 @@
+{
+ "generated_at": "2026-07-28",
+ "agents": {
+  "Cart Recovery · E-commerce B": {
+   "total": 807,
+   "patterns": [
+    {
+     "title": "Short utterances never captured",
+     "count": 364,
+     "pct": 45,
+     "example": {
+      "asr": "(missing from transcript)",
+      "golden": "जी जी",
+      "call_id": "55f7bb96-f9e8-485a-90bf-73f94d3a5a9d",
+      "ts": "00:11"
+     }
+    },
+    {
+     "title": "The wrong word heard",
+     "count": 330,
+     "pct": 41,
+     "example": {
+      "asr": "no no no actually i don't want right now",
+      "golden": "no actually i don't want right now",
+      "call_id": "55f7bb96-f9e8-485a-90bf-73f94d3a5a9d",
+      "ts": "00:30"
+     }
+    },
+    {
+     "title": "Whole turns never captured",
+     "count": 112,
+     "pct": 14,
+     "example": {
+      "asr": "(missing from transcript)",
+      "golden": "I dont want shoes",
+      "call_id": "c3569ecb-555f-4961-a6b1-9629b0d710bc",
+      "ts": "00:44"
+     }
+    },
+    {
+     "title": "Heard in the wrong language",
+     "count": 1,
+     "pct": 0,
+     "example": {
+      "asr": "yes",
+      "golden": "{noise}",
+      "call_id": "48cbd2e6-fc08-4fe5-9fb3-a15ea9103b25",
+      "ts": "00:18"
+     }
+    }
+   ]
+  },
+  "Cart Recovery · E-commerce A": {
+   "total": 1067,
+   "patterns": [
+    {
+     "title": "The wrong word heard",
+     "count": 452,
+     "pct": 42,
+     "example": {
+      "asr": "के बारे में बताता हूं",
+      "golden": "virgo के बारे मै",
+      "call_id": "e856e588-6214-4311-bb32-5a65b855ff6f",
+      "ts": "02:04"
+     }
+    },
+    {
+     "title": "Short utterances never captured",
+     "count": 418,
+     "pct": 39,
+     "example": {
+      "asr": "(missing from transcript)",
+      "golden": "cash on delivery",
+      "call_id": "fdb84373-333e-4291-8ebd-6d6e7a0b38e7",
+      "ts": "00:45"
+     }
+    },
+    {
+     "title": "Whole turns never captured",
+     "count": 197,
+     "pct": 18,
+     "example": {
+      "asr": "(missing from transcript)",
+      "golden": "क्या है न अपने",
+      "call_id": "fdb84373-333e-4291-8ebd-6d6e7a0b38e7",
+      "ts": "00:22"
+     }
+    }
+   ]
+  },
+  "Cart Recovery · Marketplace": {
+   "total": 886,
+   "patterns": [
+    {
+     "title": "Short utterances never captured",
+     "count": 496,
+     "pct": 56,
+     "example": {
+      "asr": "(missing from transcript)",
+      "golden": "hello",
+      "call_id": "eb1f89ab-f8dd-4242-80e9-a8b18289c9bb",
+      "ts": "00:00"
+     }
+    },
+    {
+     "title": "The wrong word heard",
+     "count": 293,
+     "pct": 33,
+     "example": {
+      "asr": "नहीं करना",
+      "golden": "नहीं नहीं करना",
+      "call_id": "17e7c406-0e73-4436-b791-cc40faab61b2",
+      "ts": "00:31"
+     }
+    },
+    {
+     "title": "Whole turns never captured",
+     "count": 97,
+     "pct": 11,
+     "example": {
+      "asr": "(missing from transcript)",
+      "golden": "मेरा बीवी use करता है न",
+      "call_id": "3070a891-03db-4714-9d31-e3dfe12856f2",
+      "ts": "01:12"
+     }
+    }
+   ]
+  },
+  "Seller Activation · B2B Marketplace": {
+   "total": 637,
+   "patterns": [
+    {
+     "title": "Short utterances never captured",
+     "count": 300,
+     "pct": 47,
+     "example": {
+      "asr": "(missing from transcript)",
+      "golden": "hello",
+      "call_id": "2c54dc69-7f43-4d5c-aa81-1daebcf42c14",
+      "ts": "00:06"
+     }
+    },
+    {
+     "title": "The wrong word heard",
+     "count": 267,
+     "pct": 42,
+     "example": {
+      "asr": "हां हां",
+      "golden": "ha ha",
+      "call_id": "7173c8cf-f5f4-44b8-ae34-e15ccfa3e88e",
+      "ts": "00:40"
+     }
+    },
+    {
+     "title": "Whole turns never captured",
+     "count": 67,
+     "pct": 11,
+     "example": {
+      "asr": "(missing from transcript)",
+      "golden": "ऐसा मेरा कोई बात नहीं मेरको मालूम होता",
+      "call_id": "f8f33d20-035c-44e2-a25c-365b984252d3",
+      "ts": "00:29"
+     }
+    },
+    {
+     "title": "Heard in the wrong language",
+     "count": 3,
+     "pct": 0,
+     "example": {
+      "asr": "भारत से लोग",
+      "golden": "hello",
+      "call_id": "46681ed7-22bc-42b4-b3d8-fd5e96c425de",
+      "ts": "00:01"
+     }
+    }
+   ]
+  }
+ }
+}
