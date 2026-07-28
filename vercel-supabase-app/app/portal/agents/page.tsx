@@ -232,44 +232,6 @@ function Inner() {
               : <span style={{ borderRadius: 999, background: "#e7f4ee", color: GREEN, fontSize: 12, fontWeight: 600, padding: "4px 11px" }}>healthy</span>}
           </div>
 
-          {/* Findings · the outcome-level read. The rows below this card name
-              issue TYPES ("wrong / missing transcription"); these name what it
-              cost the client ("a refusal the transcript lost"). Only exists for
-              agents in lib/portal-insights.json · deriving it needs a rule per
-              outcome, so it is written per agent rather than generated. */}
-          {insights && (
-            <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 13 }}>
-              <span className={mono.className} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.7, textTransform: "uppercase", color: MUT }}>
-                Findings · {insights.calls} calls
-              </span>
-              {insights.metrics.map((m: any) => (
-                <div key={m.label} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                    <span style={{ flex: 1, fontSize: 14 }}>{m.label}</span>
-                    <span className={grotesk.className} style={{ fontSize: 21, fontWeight: 700 }}>{m.value}</span>
-                  </div>
-                  <div style={{ height: 5, borderRadius: 3, background: "#eef2f6", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${Math.min(m.pct, 100)}%`, background: GREEN }} />
-                  </div>
-                  <span style={{ fontSize: 11, color: MUT }}>{m.note}</span>
-                </div>
-              ))}
-              {insights.most_common && (
-                <div style={{ borderTop: "1px solid #eef2f6", paddingTop: 11, display: "flex", flexDirection: "column", gap: 5 }}>
-                  <span className={mono.className} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.7, textTransform: "uppercase", color: MUT }}>Most common error</span>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, lineHeight: 1.6 }}>
-                    <button onClick={() => play(insights.most_common.call_id, insights.most_common.ts)}
-                      style={{ width: 22, height: 22, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none", marginTop: 3 }}>▶</button>
-                    <div>
-                      <div><span className={mono.className} style={{ color: MUT }}>Heard</span> <b>&ldquo;{insights.most_common.heard}&rdquo;</b> <span style={{ color: MUT }}>· {insights.most_common.heard_gloss}</span></div>
-                      <div><span className={mono.className} style={{ color: GREEN }}>Said</span> <b style={{ color: GREEN }}>&ldquo;{insights.most_common.said}&rdquo;</b> <span style={{ color: GREEN }}>· {insights.most_common.said_gloss}</span></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* metric chips */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <div style={{ ...card, flex: 1, minWidth: 150, padding: "13px 15px" }}>
@@ -295,161 +257,180 @@ function Inner() {
             )}
           </div>
 
-          {/* issue rows · human review + evidence. Human judgment only · the
-              machine judge stays internal, same as the intake. */}
-          <div style={{ ...card, padding: "16px 18px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, paddingBottom: 10, flexWrap: "wrap" }}>
-              <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>What&apos;s breaking, ranked</span>
-              <span style={{ fontSize: 12, color: MUT }}>share of this agent&apos;s <b style={{ color: INK }}>{a.calls} calls</b> a human reviewer flagged · click a row for evidence</span>
-            </div>
-
-            {/* Where the findings actually land · every issue the panel logged
-                for this agent, split by category. The rows below count CALLS
-                affected; this counts FINDINGS, which is the honest answer to
-                "what is most of the work". */}
-            {(() => {
-              // Transcription is ~90% of every agent's findings, so a donut of
-              // the five categories is one colour and says nothing. It is split
-              // into the patterns underneath it instead · same total, real
-              // structure. Pattern counts come from lib/portal-patterns.json and
-              // sum exactly to the transcription row's `occ`, because both are
-              // derived from the same reviews; they are still normalised here so
-              // a later regeneration of one file cannot silently skew the arcs.
-              const rows = (a.l2 || []).filter((r) => r.occ > 0).sort((x, y) => y.occ - x.occ);
-              const tot = rows.reduce((s, r) => s + r.occ, 0);
-              if (!tot) return null;
-              const TRANS = ["#c0392f", "#d6484f", "#e8827f"];   // one family · these are all transcription
-              const OTHER = [AMBER, "#5b8def", "#7c5cbf", GREEN];
-              let oi = 0;
-              const slices = rows.flatMap((r) => {
-                const pats = r.key === "transcription" ? (patterns?.patterns || []).filter((p: any) => p.count > 0) : [];
-                if (!pats.length) return [{ label: r.label, value: r.occ, color: OTHER[oi++ % OTHER.length], sub: false }];
-                const psum = pats.reduce((s: number, p: any) => s + p.count, 0) || 1;
-                return pats.map((p: any, i: number) => ({
-                  label: p.title, value: (p.count / psum) * r.occ, color: TRANS[i % TRANS.length], sub: true, raw: p.count,
-                }));
-              });
-              let acc = 0;
-              const stops = slices.map((s) => {
-                const from = (acc / tot) * 360; acc += s.value;
-                return `${s.color} ${from}deg ${(acc / tot) * 360}deg`;
-              }).join(", ");
-              return (
-                <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", padding: "4px 0 14px", borderBottom: "1px solid #eef2f6", marginBottom: 2 }}>
-                  <div style={{ width: 108, height: 108, borderRadius: "50%", background: `conic-gradient(${stops})`, flex: "none", position: "relative" }}>
-                    <div style={{ position: "absolute", inset: 26, borderRadius: "50%", background: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                      <span className={grotesk.className} style={{ fontSize: 17, fontWeight: 700, lineHeight: 1 }}>{tot.toLocaleString()}</span>
-                      <span style={{ fontSize: 8.5, color: MUT }}>findings</span>
+          {/* SS2 beside SS3 · the outcome card and the breakdown read
+              together, so they sit side by side rather than stacked. */}
+          <div style={{ display: "grid", gridTemplateColumns: insights ? "minmax(0,0.85fr) minmax(0,1.15fr)" : "1fr", gap: 13, alignItems: "start" }}>
+            {/* Findings · the outcome-level read. The rows below this card name
+                issue TYPES ("wrong / missing transcription"); these name what it
+                cost the client ("a refusal the transcript lost"). Only exists for
+                agents in lib/portal-insights.json · deriving it needs a rule per
+                outcome, so it is written per agent rather than generated. */}
+            {insights && (
+              <div style={{ ...card, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 13 }}>
+                <span className={mono.className} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.7, textTransform: "uppercase", color: MUT }}>
+                  Findings · {insights.calls} calls
+                </span>
+                {insights.metrics.map((m: any) => (
+                  <div key={m.label} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                      <span style={{ flex: 1, fontSize: 14 }}>{m.label}</span>
+                      <span className={grotesk.className} style={{ fontSize: 21, fontWeight: 700 }}>{m.value}</span>
+                    </div>
+                    <div style={{ height: 5, borderRadius: 3, background: "#eef2f6", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.min(m.pct, 100)}%`, background: GREEN }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: MUT }}>{m.note}</span>
+                  </div>
+                ))}
+                {insights.most_common && (
+                  <div style={{ borderTop: "1px solid #eef2f6", paddingTop: 11, display: "flex", flexDirection: "column", gap: 5 }}>
+                    <span className={mono.className} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.7, textTransform: "uppercase", color: MUT }}>Most common error</span>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, lineHeight: 1.6 }}>
+                      <button onClick={() => play(insights.most_common.call_id, insights.most_common.ts)}
+                        style={{ width: 22, height: 22, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none", marginTop: 3 }}>▶</button>
+                      <div>
+                        <div><span className={mono.className} style={{ color: MUT }}>Heard</span> <b>&ldquo;{insights.most_common.heard}&rdquo;</b> <span style={{ color: MUT }}>· {insights.most_common.heard_gloss}</span></div>
+                        <div><span className={mono.className} style={{ color: GREEN }}>Said</span> <b style={{ color: GREEN }}>&ldquo;{insights.most_common.said}&rdquo;</b> <span style={{ color: GREEN }}>· {insights.most_common.said_gloss}</span></div>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 230, display: "flex", flexDirection: "column", gap: 5 }}>
-                    {slices.map((s, i) => (
-                      <div key={s.label + i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
-                        <span style={{ width: 9, height: 9, borderRadius: 3, background: s.color, flex: "none" }} />
-                        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: s.sub ? "#4d5a66" : INK }}>
-                          {s.label}{s.sub ? <span style={{ color: MUT, fontSize: 10.5 }}> · transcription</span> : null}
-                        </span>
-                        <b className={mono.className} style={{ fontSize: 12 }}>{Math.round((s.value / tot) * 100)}%</b>
-                        <span style={{ color: MUT, fontSize: 11, width: 62, textAlign: "right", flex: "none" }}>{Math.round(s.raw ?? s.value).toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
+                )}
+              </div>
+            )}
 
-            {/* Grouped, not one flat list · transcription is its own section
-                with the patterns that explain it, then everything else. The
-                donut above splits the same way, so the two agree. */}
-            {(() => {
-              const rows = (a.l2 || []).slice().sort((r1, r2) => r2.human_calls - r1.human_calls);
-              const trans = rows.filter((r) => r.key === "transcription");
-              const other = rows.filter((r) => r.key !== "transcription");
+            {/* What's breaking · two donuts, transcription and everything
+                else, because one chart at ~90% transcription reads as a
+                solid disc. Transcription's patterns collapse inside it. */}
+            <div style={{ ...card, padding: "16px 18px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, paddingBottom: 4, flexWrap: "wrap" }}>
+                <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>What&apos;s breaking</span>
+                <span style={{ fontSize: 12, color: MUT }}>{a.reviewed} reviews · click a row for evidence</span>
+              </div>
 
-              const Row = ({ r }: { r: L2 }) => {
-                const isOpen = open === r.key;
-                const total = r.human_calls;
-                const none = total === 0;
-                return (
-                  <div style={{ borderTop: "1px solid #eef2f6", background: isOpen ? "#fbfcfd" : "transparent", margin: "0 -18px", padding: "0 18px" }}>
-                    <button onClick={() => !none && setOpen(isOpen ? "" : r.key)}
-                      style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, padding: "10px 0", width: "100%", background: "transparent", border: "none", cursor: none ? "default" : "pointer", textAlign: "left", color: none ? MUT : INK }}>
-                      <span style={{ width: 14, color: isOpen ? GREEN : MUT }}>{none ? "·" : isOpen ? "▾" : "▸"}</span>
-                      <span style={{ width: 210, fontWeight: 600, flex: "none" }}>{r.label}</span>
-                      <div style={{ flex: 1, display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "#eef2f6", minWidth: 90 }}>
-                        <div style={{ width: `${(r.human_calls / Math.max(a.reviewed, 1)) * 100}%`, background: GREEN }} />
+              {(() => {
+                const rows = (a.l2 || []).filter((r) => r.occ > 0);
+                const tRow = rows.find((r) => r.key === "transcription") || null;
+                const others = rows.filter((r) => r.key !== "transcription").sort((x, y) => y.occ - x.occ);
+                const TRANS = ["#c0392f", "#d6484f", "#e8827f", "#f0a9a6"];
+                const OTHER = [AMBER, "#5b8def", "#7c5cbf", GREEN];
+
+                const Donut = ({ slices, total, unit }: { slices: any[]; total: number; unit: string }) => {
+                  let acc = 0;
+                  const stops = slices.map((s) => {
+                    const from = (acc / Math.max(total, 1)) * 360; acc += s.value;
+                    return `${s.color} ${from}deg ${(acc / Math.max(total, 1)) * 360}deg`;
+                  }).join(", ");
+                  return (
+                    <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+                      <div style={{ width: 92, height: 92, borderRadius: "50%", background: `conic-gradient(${stops})`, flex: "none", position: "relative" }}>
+                        <div style={{ position: "absolute", inset: 23, borderRadius: "50%", background: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                          <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}>{total.toLocaleString()}</span>
+                          <span style={{ fontSize: 8, color: MUT }}>{unit}</span>
+                        </div>
                       </div>
-                      <span style={{ width: 152, textAlign: "right", lineHeight: 1.25, fontSize: 12.5, flex: "none" }}>
-                        {none ? <span style={{ color: MUT }}>nothing flagged</span> : <>
-                          <b>{total} of {a.reviewed} calls</b><br />
-                          <span style={{ fontSize: 11, color: GREEN }}>{r.occ} findings</span>
-                        </>}
-                      </span>
-                    </button>
-                    {isOpen && !none && (
-                      <div style={{ padding: "2px 0 12px 24px", display: "flex", flexDirection: "column", gap: 7 }}>
-                        {r.subtypes?.length > 0 && (
-                          <div style={{ display: "flex", gap: 8, fontSize: 12, flexWrap: "wrap" }}>
-                            {r.subtypes.map(([st, n], i) => (
-                              <span key={st} style={{ borderRadius: 999, padding: "4px 11px", fontSize: 11.5, fontWeight: i === 0 ? 600 : 400, background: i === 0 ? "#fbeaea" : "#eef2f6", color: i === 0 ? RED : "#4d5a66" }}>{st} · {n}</span>
-                            ))}
-                          </div>
-                        )}
-                        {(r.evidence || []).map((e2: any, i: number) => (
-                          <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "1px solid #e2e8ee", borderRadius: 8, padding: "8px 10px", fontSize: 12.5 }}>
-                            <button onClick={() => play(e2.call_id, e2.ts)} style={{ width: 24, height: 24, borderRadius: 12, background: GREEN, color: "#fff", border: "none", fontSize: 9, cursor: "pointer", flex: "none" }}>▶</button>
-                            <span className={mono.className} style={{ fontSize: 11.5, flex: "none" }}>{String(e2.call_id).slice(0, 8)} @{e2.ts}</span>
-                            <span style={{ borderRadius: 999, fontSize: 10, background: "#e7f4ee", color: GREEN, padding: "2px 8px", flex: "none" }}>human</span>
-                            <span style={{ color: MUT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e2.note}</span>
+                      <div style={{ flex: 1, minWidth: 175, display: "flex", flexDirection: "column", gap: 4 }}>
+                        {slices.map((s, i) => (
+                          <div key={s.label + i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: 2.5, background: s.color, flex: "none" }} />
+                            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</span>
+                            <b className={mono.className} style={{ fontSize: 11.5 }}>{Math.round((s.value / Math.max(total, 1)) * 100)}%</b>
+                            <span style={{ color: MUT, fontSize: 10.5, width: 46, textAlign: "right", flex: "none" }}>{Math.round(s.value).toLocaleString()}</span>
                           </div>
                         ))}
-                        <a href={`/portal/issues?type=${L2_ISSUE_ROUTE[r.key] || "pronunciation"}`} style={{ fontSize: 12, color: GREEN, textDecoration: "none" }}>all {total} calls with evidence →</a>
                       </div>
-                    )}
+                    </div>
+                  );
+                };
+
+                const Head = ({ t, s2 }: { t: string; s2: string }) => (
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "14px 0 9px", flexWrap: "wrap" }}>
+                    <span className={grotesk.className} style={{ fontSize: 13, fontWeight: 600 }}>{t}</span>
+                    <span style={{ fontSize: 11, color: MUT }}>{s2}</span>
                   </div>
                 );
-              };
 
-              const GroupHead = ({ t, s2 }: { t: string; s2?: string }) => (
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "13px 0 3px", flexWrap: "wrap" }}>
-                  <span className={grotesk.className} style={{ fontSize: 13, fontWeight: 600 }}>{t}</span>
-                  {s2 && <span style={{ fontSize: 11.5, color: MUT }}>{s2}</span>}
-                </div>
-              );
+                const pats = (patterns?.patterns || []).filter((p: any) => p.count > 0);
+                const psum = pats.reduce((s: number, p: any) => s + p.count, 0) || 1;
+                const tSlices = tRow && pats.length
+                  ? pats.map((p: any, i: number) => ({ label: p.title, value: (p.count / psum) * tRow.occ, color: TRANS[i % TRANS.length] }))
+                  : tRow ? [{ label: tRow.label, value: tRow.occ, color: TRANS[0] }] : [];
+                const oTot = others.reduce((s, r) => s + r.occ, 0);
+                const oSlices = others.map((r, i) => ({ label: r.label, value: r.occ, color: OTHER[i % OTHER.length] }));
+                const openT = open === "transcription";
 
-              return (
-                <>
-                  <GroupHead t="Transcription" s2={patterns?.total ? `${patterns.total.toLocaleString()} corrected segments · the patterns are below` : undefined} />
-                  {trans.map((r) => <Row key={r.key} r={r} />)}
-
-                  {/* the patterns sit under transcription, because transcription
-                      is what they break down */}
-                  {patterns?.patterns?.length ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 7, padding: "10px 0 2px 24px" }}>
-                      {patterns.patterns.filter((p: any) => p.pct >= 3).map((p: any) => (
-                        <div key={p.title} style={{ background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 9, padding: "9px 11px" }}>
-                          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>{p.title}</span>
-                            <span className={mono.className} style={{ fontSize: 11, color: RED }}>{p.count} segments · {p.pct}%</span>
+                return (
+                  <>
+                    {tRow && (
+                      <div style={{ borderTop: "1px solid #eef2f6", marginTop: 8 }}>
+                        <Head t="Transcription" s2={`${tRow.occ.toLocaleString()} findings · ${tRow.human_calls} of ${a.reviewed} calls`} />
+                        <Donut slices={tSlices} total={tRow.occ} unit="findings" />
+                        {/* the L2 detail lives inside transcription, collapsed */}
+                        <button onClick={() => setOpen(openT ? "" : "transcription")}
+                          style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, color: GREEN, padding: 0 }}>
+                          <span style={{ fontSize: 10 }}>{openT ? "▾" : "▸"}</span>
+                          {openT ? "hide the examples" : `see how it breaks · ${pats.length} patterns`}
+                        </button>
+                        {openT && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 7, padding: "9px 0 2px" }}>
+                            {pats.map((p: any) => (
+                              <div key={p.title} style={{ background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 9, padding: "9px 11px" }}>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 600 }}>{p.title}</span>
+                                  <span className={mono.className} style={{ fontSize: 10.5, color: RED }}>{p.count} segments · {p.pct}%</span>
+                                </div>
+                                {p.example && (
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12, flexWrap: "wrap" }}>
+                                    <button onClick={() => play(p.example.call_id, p.example.ts)} style={{ width: 21, height: 21, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none" }}>▶</button>
+                                    <span style={{ textDecoration: "line-through", color: RED }}>{p.example.asr}</span>
+                                    <span style={{ color: MUT }}>→</span>
+                                    <b style={{ color: GREEN }}>{p.example.golden}</b>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                            <a href="/portal/issues?type=asr" style={{ fontSize: 11.5, color: GREEN, textDecoration: "none" }}>all {tRow.human_calls} calls with evidence →</a>
                           </div>
-                          {p.example && (
-                            <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 6, fontSize: 12.5, flexWrap: "wrap" }}>
-                              <button onClick={() => play(p.example.call_id, p.example.ts)} style={{ width: 22, height: 22, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none" }}>▶</button>
-                              <span style={{ textDecoration: "line-through", color: RED }}>{p.example.asr}</span>
-                              <span style={{ color: MUT }}>→</span>
-                              <b style={{ color: GREEN }}>{p.example.golden}</b>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
+                        )}
+                      </div>
+                    )}
 
-                  <GroupHead t="Everything else" s2="what the panel flagged outside transcription · click a row for evidence" />
-                  {other.map((r) => <Row key={r.key} r={r} />)}
-                </>
-              );
-            })()}
+                    {oTot > 0 && (
+                      <div style={{ borderTop: "1px solid #eef2f6", marginTop: 14 }}>
+                        <Head t="Everything else" s2={`${oTot.toLocaleString()} findings outside transcription`} />
+                        <Donut slices={oSlices} total={oTot} unit="findings" />
+                        <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 10 }}>
+                          {others.map((r) => {
+                            const isOpen = open === r.key;
+                            return (
+                              <div key={r.key}>
+                                <button onClick={() => setOpen(isOpen ? "" : r.key)}
+                                  style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, padding: "5px 0", textAlign: "left", color: INK }}>
+                                  <span style={{ fontSize: 10, color: isOpen ? GREEN : MUT, width: 10 }}>{isOpen ? "▾" : "▸"}</span>
+                                  <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</span>
+                                  <span style={{ color: MUT, fontSize: 11, flex: "none" }}>{r.human_calls} of {a.reviewed} calls</span>
+                                </button>
+                                {isOpen && (
+                                  <div style={{ padding: "2px 0 9px 18px", display: "flex", flexDirection: "column", gap: 6 }}>
+                                    {(r.evidence || []).map((e2: any, i: number) => (
+                                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 8, padding: "7px 9px", fontSize: 12 }}>
+                                        <button onClick={() => play(e2.call_id, e2.ts)} style={{ width: 21, height: 21, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none" }}>▶</button>
+                                        <span className={mono.className} style={{ fontSize: 10.5, color: MUT, flex: "none" }}>{String(e2.call_id).slice(0, 8)} @{e2.ts}</span>
+                                        <span style={{ color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e2.note}</span>
+                                      </div>
+                                    ))}
+                                    <a href={`/portal/issues?type=${L2_ISSUE_ROUTE[r.key] || "pronunciation"}`} style={{ fontSize: 11.5, color: GREEN, textDecoration: "none" }}>all {r.human_calls} calls with evidence →</a>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
           </div>
 
           {/* the transcript vs the customer · golden output for this agent */}
