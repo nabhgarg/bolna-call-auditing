@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-26T04:54:04.975812+00:00",
+ "generated_at": "2026-07-28T20:00:06.780519+00:00",
  "agents": [
   {
    "agent": "Field Support · Appliances",
@@ -176,17 +176,17 @@
    "agent": "Cart Recovery · Marketplace",
    "avg": 2.7,
    "dist": [
-    16,
-    27,
-    29,
-    29
+    18,
+    25,
+    30,
+    28
    ],
-   "calls": 89,
-   "avg_raters": 1.9,
-   "issues_per_100": 212,
-   "reviewed": 175,
-   "calls_with_issue": 88,
-   "bad_pct": 38,
+   "calls": 125,
+   "avg_raters": 2.2,
+   "issues_per_100": 387,
+   "reviewed": 245,
+   "calls_with_issue": 144,
+   "bad_pct": 36,
    "trend": {
     "first": 2.6,
     "last": 2.8
@@ -206,15 +206,30 @@
      "d": "07-25",
      "avg": 2.8,
      "n": 15
+    },
+    {
+     "d": "07-26",
+     "avg": 3.0,
+     "n": 28
+    },
+    {
+     "d": "07-27",
+     "avg": 2.4,
+     "n": 49
+    },
+    {
+     "d": "07-28",
+     "avg": 2.7,
+     "n": 35
     }
    ],
    "l2": [
     {
      "key": "transcription",
      "label": "Wrong / missing transcription",
-     "human_calls": 73,
+     "human_calls": 127,
      "llm_calls": 0,
-     "occ": 335,
+     "occ": 904,
      "evidence": [
       {
        "call_id": "eb1f89ab-f8dd-4242-80e9-a8b18289c9bb",
@@ -232,9 +247,9 @@
     {
      "key": "response",
      "label": "Response appropriateness",
-     "human_calls": 14,
-     "llm_calls": 159,
-     "occ": 33,
+     "human_calls": 15,
+     "llm_calls": 0,
+     "occ": 35,
      "evidence": [
       {
        "call_id": "215bc692-1bc6-4107-9611-e61ea238bdca",
@@ -254,7 +269,7 @@
       ],
       [
        "User input capture errors",
-       9
+       11
       ],
       [
        "Language errors",
@@ -265,10 +280,21 @@
     {
      "key": "pronunciation",
      "label": "Pronunciation misses",
-     "human_calls": 0,
+     "human_calls": 5,
      "llm_calls": 0,
-     "occ": 0,
-     "evidence": [],
+     "occ": 6,
+     "evidence": [
+      {
+       "call_id": "6f55f1d0-5185-4cb9-8ef1-1711d2f50fe5",
+       "ts": "00:23",
+       "note": "mispronounced “Wrong pronounced ” (General)"
+      },
+      {
+       "call_id": "87e9a9bd-15e7-4d05-a113-c978c5166d7b",
+       "ts": "00:24",
+       "note": "mispronounced “Latency ” (General)"
+      }
+     ],
      "subtypes": []
     },
     {
@@ -308,33 +334,33 @@
     },
     {
      "title": "User input capture errors",
-     "count": 9
+     "count": 11
     },
     {
      "title": "Language errors",
      "count": 8
     }
    ],
-   "evaluated": 89
+   "evaluated": 125
   },
   {
    "agent": "Cart Recovery · E-commerce B",
    "avg": 2.9,
    "dist": [
-    16,
-    20,
+    17,
+    18,
     24,
     40
    ],
-   "calls": 104,
-   "avg_raters": 1.7,
-   "issues_per_100": 183,
-   "reviewed": 183,
-   "calls_with_issue": 84,
-   "bad_pct": 37,
+   "calls": 136,
+   "avg_raters": 2.1,
+   "issues_per_100": 367,
+   "reviewed": 240,
+   "calls_with_issue": 140,
+   "bad_pct": 32,
    "trend": {
-    "first": 2.5,
-    "last": 3.3
+    "first": 2.7,
+    "last": 3.0
    },
    "daily": [
     {
@@ -351,15 +377,30 @@
      "d": "07-25",
      "avg": 2.8,
      "n": 14
+    },
+    {
+     "d": "07-26",
+     "avg": 2.4,
+     "n": 19
+    },
+    {
+     "d": "07-27",
+     "avg": 2.9,
+     "n": 55
+    },
+    {
+     "d": "07-28",
+     "avg": 3.0,
+     "n": 38
     }
    ],
    "l2": [
     {
      "key": "transcription",
      "label": "Wrong / missing transcription",
-     "human_calls": 69,
+     "human_calls": 119,
      "llm_calls": 0,
-     "occ": 306,
+     "occ": 837,
      "evidence": [
       {
        "call_id": "55f7bb96-f9e8-485a-90bf-73f94d3a5a9d",
@@ -377,9 +418,9 @@
     {
      "key": "response",
      "label": "Response appropriateness",
-     "human_calls": 13,
-     "llm_calls": 168,
-     "occ": 26,
+     "human_calls": 17,
+     "llm_calls": 0,
+     "occ": 32,
      "evidence": [
       {
        "call_id": "d2215de8-19b4-4e73-a1b3-97caf99c9ea7",
@@ -399,20 +440,20 @@
       ],
       [
        "Language errors",
-       8
+       11
       ],
       [
        "User input capture errors",
-       5
+       8
       ]
      ]
     },
     {
      "key": "pronunciation",
      "label": "Pronunciation misses",
-     "human_calls": 2,
+     "human_calls": 6,
      "llm_calls": 0,
-     "occ": 3,
+     "occ": 9,
      "evidence": [
       {
        "call_id": "d4b6692d-3fb7-4af6-9517-d8b456dbe80d",
@@ -439,10 +480,21 @@
     {
      "key": "proper_noun",
      "label": "Proper nouns & city names",
-     "human_calls": 0,
+     "human_calls": 3,
      "llm_calls": 0,
-     "occ": 0,
-     "evidence": [],
+     "occ": 3,
+     "evidence": [
+      {
+       "call_id": "d7acc8e3-ad40-4140-9e28-c37b8b2c1480",
+       "ts": "00:03",
+       "note": "mispronounced “User name wrong pronounced ” (Proper Noun)"
+      },
+      {
+       "call_id": "0b40d0a0-e496-400c-b265-fd4463b070ff",
+       "ts": "00:03",
+       "note": "mispronounced “User name wrong pronounced ” (Proper Noun)"
+      }
+     ],
      "subtypes": []
     }
    ],
@@ -453,14 +505,14 @@
     },
     {
      "title": "Language errors",
-     "count": 8
+     "count": 11
     },
     {
      "title": "User input capture errors",
-     "count": 5
+     "count": 8
     }
    ],
-   "evaluated": 104
+   "evaluated": 136
   },
   {
    "agent": "Cart Recovery · D2C Brand A",
@@ -533,7 +585,7 @@
      "key": "response",
      "label": "Response appropriateness",
      "human_calls": 7,
-     "llm_calls": 5,
+     "llm_calls": 0,
      "occ": 22,
      "evidence": [
       {
@@ -621,20 +673,20 @@
    "agent": "Seller Activation · B2B Marketplace",
    "avg": 2.9,
    "dist": [
-    17,
-    22,
-    13,
-    48
+    19,
+    19,
+    18,
+    44
    ],
-   "calls": 91,
-   "avg_raters": 1.8,
-   "issues_per_100": 130,
-   "reviewed": 182,
-   "calls_with_issue": 82,
-   "bad_pct": 31,
+   "calls": 122,
+   "avg_raters": 2.4,
+   "issues_per_100": 273,
+   "reviewed": 246,
+   "calls_with_issue": 137,
+   "bad_pct": 34,
    "trend": {
-    "first": 2.6,
-    "last": 3.3
+    "first": 2.8,
+    "last": 2.9
    },
    "daily": [
     {
@@ -651,15 +703,30 @@
      "d": "07-25",
      "avg": 3.3,
      "n": 11
+    },
+    {
+     "d": "07-26",
+     "avg": 3.5,
+     "n": 26
+    },
+    {
+     "d": "07-27",
+     "avg": 2.8,
+     "n": 57
+    },
+    {
+     "d": "07-28",
+     "avg": 2.5,
+     "n": 48
     }
    ],
    "l2": [
     {
      "key": "transcription",
      "label": "Wrong / missing transcription",
-     "human_calls": 75,
+     "human_calls": 129,
      "llm_calls": 0,
-     "occ": 221,
+     "occ": 655,
      "evidence": [
       {
        "call_id": "f8f33d20-035c-44e2-a25c-365b984252d3",
@@ -677,9 +744,9 @@
     {
      "key": "response",
      "label": "Response appropriateness",
-     "human_calls": 7,
-     "llm_calls": 169,
-     "occ": 14,
+     "human_calls": 8,
+     "llm_calls": 0,
+     "occ": 15,
      "evidence": [
       {
        "call_id": "6e3a2690-7b04-48c0-99d2-34f95f5b06b7",
@@ -699,7 +766,7 @@
       ],
       [
        "User input capture errors",
-       5
+       6
       ],
       [
        "Repetition",
@@ -748,159 +815,14 @@
     },
     {
      "title": "User input capture errors",
-     "count": 5
+     "count": 6
     },
     {
      "title": "Repetition",
      "count": 1
     }
    ],
-   "evaluated": 91
-  },
-  {
-   "agent": "Cart Recovery · E-commerce A",
-   "avg": 2.9,
-   "dist": [
-    13,
-    22,
-    24,
-    41
-   ],
-   "calls": 90,
-   "avg_raters": 1.6,
-   "issues_per_100": 240,
-   "reviewed": 172,
-   "calls_with_issue": 95,
-   "bad_pct": 30,
-   "trend": {
-    "first": 2.5,
-    "last": 3.4
-   },
-   "daily": [
-    {
-     "d": "07-23",
-     "avg": 2.9,
-     "n": 52
-    },
-    {
-     "d": "07-24",
-     "avg": 3.0,
-     "n": 76
-    },
-    {
-     "d": "07-25",
-     "avg": 2.6,
-     "n": 14
-    }
-   ],
-   "l2": [
-    {
-     "key": "transcription",
-     "label": "Wrong / missing transcription",
-     "human_calls": 79,
-     "llm_calls": 0,
-     "occ": 376,
-     "evidence": [
-      {
-       "call_id": "89795efa-6d6a-4c74-a00f-3d2770532198",
-       "ts": "00:06",
-       "note": "ASR: “(missing from transcript)” → heard: “hello”"
-      },
-      {
-       "call_id": "89795efa-6d6a-4c74-a00f-3d2770532198",
-       "ts": "00:27",
-       "note": "ASR: “(missing from transcript)” → heard: “नहीं”"
-      }
-     ],
-     "subtypes": []
-    },
-    {
-     "key": "response",
-     "label": "Response appropriateness",
-     "human_calls": 14,
-     "llm_calls": 156,
-     "occ": 31,
-     "evidence": [
-      {
-       "call_id": "57a56c51-7c89-4e5b-b007-cf99876e0806",
-       "ts": "00:33",
-       "note": "the agent continuesd with its script "
-      },
-      {
-       "call_id": "ce46c900-2ce1-458f-a349-26c81eb35716",
-       "ts": "02:09",
-       "note": "कि आज ही order complete कर लें, क्योंकि ये bracelet जल्दी out of stock हो जाता ह"
-      }
-     ],
-     "subtypes": [
-      [
-       "Irrelevant response / others",
-       18
-      ],
-      [
-       "User input capture errors",
-       6
-      ],
-      [
-       "Repetition",
-       5
-      ]
-     ]
-    },
-    {
-     "key": "pronunciation",
-     "label": "Pronunciation misses",
-     "human_calls": 0,
-     "llm_calls": 0,
-     "occ": 0,
-     "evidence": [],
-     "subtypes": []
-    },
-    {
-     "key": "naturalness",
-     "label": "Naturalness of the call",
-     "human_calls": 0,
-     "llm_calls": 0,
-     "occ": 0,
-     "evidence": [],
-     "subtypes": []
-    },
-    {
-     "key": "proper_noun",
-     "label": "Proper nouns & city names",
-     "human_calls": 4,
-     "llm_calls": 0,
-     "occ": 5,
-     "evidence": [
-      {
-       "call_id": "a1f7a578-5e13-4655-8ffc-21d30e17684f",
-       "ts": "00:04",
-       "note": "mispronounced “didn't get neeraj right instea” (Proper Noun)"
-      },
-      {
-       "call_id": "832eb604-95d9-46ed-b01b-ae87a42844b3",
-       "ts": "00:06",
-       "note": "mispronounced “Mrinal” (Proper Noun)"
-      }
-     ],
-     "subtypes": []
-    }
-   ],
-   "fixes": [
-    {
-     "title": "Irrelevant response / others",
-     "count": 18
-    },
-    {
-     "title": "User input capture errors",
-     "count": 6
-    },
-    {
-     "title": "Repetition",
-     "count": 5
-    }
-   ],
-   "evaluated": 90
+   "evaluated": 122
   },
   {
    "agent": "Hiring & Onboarding",
@@ -1058,6 +980,177 @@
    "evaluated": 11
   },
   {
+   "agent": "Cart Recovery · E-commerce A",
+   "avg": 3.0,
+   "dist": [
+    15,
+    18,
+    23,
+    44
+   ],
+   "calls": 127,
+   "avg_raters": 2.1,
+   "issues_per_100": 464,
+   "reviewed": 249,
+   "calls_with_issue": 165,
+   "bad_pct": 28,
+   "trend": {
+    "first": 2.9,
+    "last": 3.0
+   },
+   "daily": [
+    {
+     "d": "07-23",
+     "avg": 2.9,
+     "n": 52
+    },
+    {
+     "d": "07-24",
+     "avg": 3.0,
+     "n": 76
+    },
+    {
+     "d": "07-25",
+     "avg": 2.6,
+     "n": 14
+    },
+    {
+     "d": "07-26",
+     "avg": 3.0,
+     "n": 27
+    },
+    {
+     "d": "07-27",
+     "avg": 3.1,
+     "n": 58
+    },
+    {
+     "d": "07-28",
+     "avg": 3.0,
+     "n": 44
+    }
+   ],
+   "l2": [
+    {
+     "key": "transcription",
+     "label": "Wrong / missing transcription",
+     "human_calls": 145,
+     "llm_calls": 0,
+     "occ": 1107,
+     "evidence": [
+      {
+       "call_id": "fdb84373-333e-4291-8ebd-6d6e7a0b38e7",
+       "ts": "00:22",
+       "note": "ASR: “(missing from transcript)” → heard: “क्या है न अपने”"
+      },
+      {
+       "call_id": "fdb84373-333e-4291-8ebd-6d6e7a0b38e7",
+       "ts": "00:45",
+       "note": "ASR: “(missing from transcript)” → heard: “cash on delivery”"
+      }
+     ],
+     "subtypes": []
+    },
+    {
+     "key": "response",
+     "label": "Response appropriateness",
+     "human_calls": 16,
+     "llm_calls": 0,
+     "occ": 37,
+     "evidence": [
+      {
+       "call_id": "57a56c51-7c89-4e5b-b007-cf99876e0806",
+       "ts": "00:33",
+       "note": "the agent continuesd with its script "
+      },
+      {
+       "call_id": "ce46c900-2ce1-458f-a349-26c81eb35716",
+       "ts": "02:09",
+       "note": "कि आज ही order complete कर लें, क्योंकि ये bracelet जल्दी out of stock हो जाता ह"
+      }
+     ],
+     "subtypes": [
+      [
+       "Irrelevant response / others",
+       18
+      ],
+      [
+       "User input capture errors",
+       11
+      ],
+      [
+       "Repetition",
+       6
+      ]
+     ]
+    },
+    {
+     "key": "pronunciation",
+     "label": "Pronunciation misses",
+     "human_calls": 6,
+     "llm_calls": 0,
+     "occ": 6,
+     "evidence": [
+      {
+       "call_id": "6950b14e-e5c8-49a4-91f0-92a51276eb32",
+       "ts": "00:04",
+       "note": "mispronounced “Too Robotic ” (General)"
+      },
+      {
+       "call_id": "832eb604-95d9-46ed-b01b-ae87a42844b3",
+       "ts": "00:39",
+       "note": "mispronounced “Bargin issue ” (General)"
+      }
+     ],
+     "subtypes": []
+    },
+    {
+     "key": "naturalness",
+     "label": "Naturalness of the call",
+     "human_calls": 0,
+     "llm_calls": 0,
+     "occ": 0,
+     "evidence": [],
+     "subtypes": []
+    },
+    {
+     "key": "proper_noun",
+     "label": "Proper nouns & city names",
+     "human_calls": 5,
+     "llm_calls": 0,
+     "occ": 6,
+     "evidence": [
+      {
+       "call_id": "a1f7a578-5e13-4655-8ffc-21d30e17684f",
+       "ts": "00:04",
+       "note": "mispronounced “didn't get neeraj right instea” (Proper Noun)"
+      },
+      {
+       "call_id": "832eb604-95d9-46ed-b01b-ae87a42844b3",
+       "ts": "00:06",
+       "note": "mispronounced “Mrinal” (Proper Noun)"
+      }
+     ],
+     "subtypes": []
+    }
+   ],
+   "fixes": [
+    {
+     "title": "Irrelevant response / others",
+     "count": 18
+    },
+    {
+     "title": "User input capture errors",
+     "count": 11
+    },
+    {
+     "title": "Repetition",
+     "count": 6
+    }
+   ],
+   "evaluated": 127
+  },
+  {
    "agent": "Lead Qualification · EdTech",
    "avg": 3.1,
    "dist": [
@@ -1128,7 +1221,7 @@
      "key": "response",
      "label": "Response appropriateness",
      "human_calls": 8,
-     "llm_calls": 3,
+     "llm_calls": 0,
      "occ": 24,
      "evidence": [
       {
@@ -1288,7 +1381,7 @@
      "key": "response",
      "label": "Response appropriateness",
      "human_calls": 2,
-     "llm_calls": 1,
+     "llm_calls": 0,
      "occ": 5,
      "evidence": [
       {

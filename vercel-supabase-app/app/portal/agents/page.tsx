@@ -335,14 +335,31 @@ function Inner() {
                 affected; this counts FINDINGS, which is the honest answer to
                 "what is most of the work". */}
             {(() => {
-              const slices = (a.l2 || []).filter((r) => r.occ > 0).sort((x, y) => y.occ - x.occ);
-              const tot = slices.reduce((s, r) => s + r.occ, 0);
+              // Transcription is ~90% of every agent's findings, so a donut of
+              // the five categories is one colour and says nothing. It is split
+              // into the patterns underneath it instead · same total, real
+              // structure. Pattern counts come from lib/portal-patterns.json and
+              // sum exactly to the transcription row's `occ`, because both are
+              // derived from the same reviews; they are still normalised here so
+              // a later regeneration of one file cannot silently skew the arcs.
+              const rows = (a.l2 || []).filter((r) => r.occ > 0).sort((x, y) => y.occ - x.occ);
+              const tot = rows.reduce((s, r) => s + r.occ, 0);
               if (!tot) return null;
-              const COLORS = [RED, AMBER, GREEN, "#5b8def", "#7c5cbf"];
+              const TRANS = ["#c0392f", "#d6484f", "#e8827f"];   // one family · these are all transcription
+              const OTHER = [AMBER, "#5b8def", "#7c5cbf", GREEN];
+              let oi = 0;
+              const slices = rows.flatMap((r) => {
+                const pats = r.key === "transcription" ? (patterns?.patterns || []).filter((p: any) => p.count > 0) : [];
+                if (!pats.length) return [{ label: r.label, value: r.occ, color: OTHER[oi++ % OTHER.length], sub: false }];
+                const psum = pats.reduce((s: number, p: any) => s + p.count, 0) || 1;
+                return pats.map((p: any, i: number) => ({
+                  label: p.title, value: (p.count / psum) * r.occ, color: TRANS[i % TRANS.length], sub: true, raw: p.count,
+                }));
+              });
               let acc = 0;
-              const stops = slices.map((r, i) => {
-                const from = (acc / tot) * 360; acc += r.occ;
-                return `${COLORS[i % COLORS.length]} ${from}deg ${(acc / tot) * 360}deg`;
+              const stops = slices.map((s) => {
+                const from = (acc / tot) * 360; acc += s.value;
+                return `${s.color} ${from}deg ${(acc / tot) * 360}deg`;
               }).join(", ");
               return (
                 <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", padding: "4px 0 14px", borderBottom: "1px solid #eef2f6", marginBottom: 2 }}>
@@ -352,13 +369,15 @@ function Inner() {
                       <span style={{ fontSize: 8.5, color: MUT }}>findings</span>
                     </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 210, display: "flex", flexDirection: "column", gap: 5 }}>
-                    {slices.map((r, i) => (
-                      <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
-                        <span style={{ width: 9, height: 9, borderRadius: 3, background: COLORS[i % COLORS.length], flex: "none" }} />
-                        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</span>
-                        <b className={mono.className} style={{ fontSize: 12 }}>{Math.round((r.occ / tot) * 100)}%</b>
-                        <span style={{ color: MUT, fontSize: 11, width: 62, textAlign: "right", flex: "none" }}>{r.occ.toLocaleString()}</span>
+                  <div style={{ flex: 1, minWidth: 230, display: "flex", flexDirection: "column", gap: 5 }}>
+                    {slices.map((s, i) => (
+                      <div key={s.label + i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                        <span style={{ width: 9, height: 9, borderRadius: 3, background: s.color, flex: "none" }} />
+                        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: s.sub ? "#4d5a66" : INK }}>
+                          {s.label}{s.sub ? <span style={{ color: MUT, fontSize: 10.5 }}> · transcription</span> : null}
+                        </span>
+                        <b className={mono.className} style={{ fontSize: 12 }}>{Math.round((s.value / tot) * 100)}%</b>
+                        <span style={{ color: MUT, fontSize: 11, width: 62, textAlign: "right", flex: "none" }}>{Math.round(s.raw ?? s.value).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
