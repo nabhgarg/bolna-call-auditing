@@ -99,15 +99,18 @@ export default function Connect() {
                 <span style={{ fontSize: 13, lineHeight: 1.6 }}>Our appliance support agent keeps mishearing the model number customers read out, and it sometimes quotes a warranty period that is not in our policy doc. Put humans on it.</span>
               </div>
               <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 9 }}>
-                {[["list_agents", "found Field Support · Appliances"], ["resolve_use_case", "2 checks · ₹18,630 / wk"], ["create_use_case", "in the pipeline, screening starts today"]].map(([t, r], i) => (
+                {[["list_agents", "found Field Support · Appliances"], ["resolve_use_case", "2 checks, priced per call"], ["create_use_case", "in the pipeline, screening starts today"]].map(([t, r], i) => (
                   <div key={t} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12 }}>
                     <span className={mono.className} style={{ fontSize: 10.5, color: PURPLE, background: "#f3eefc", borderRadius: 6, padding: "3px 8px", flex: "none" }}>{i + 1} · {t}</span>
                     <span style={{ color: MUT }}>{r}</span>
                   </div>
                 ))}
                 <div style={{ borderTop: "1px solid #eef2f6", paddingTop: 10, fontSize: 12.5, lineHeight: 1.65, color: "#4d5a66" }}>
-                  <b style={{ color: INK }}>Transcription accuracy</b> · 100% human · ₹34 per call · <span className={mono.className} style={{ fontSize: 11 }}>360 calls / wk at a 40% sample</span><br />
-                  <b style={{ color: INK }}>Factual accuracy</b> · machine judge + human verified · ₹4 + ₹31 verified · <span className={mono.className} style={{ fontSize: 11 }}>90 verified / wk</span><br />
+                  {/* rates only · the weekly volumes here came from a call count
+                      nobody gave us, the same invented figure the intake stopped
+                      quoting. A per-call rate is true whatever the volume is. */}
+                  <b style={{ color: INK }}>Transcription accuracy</b> · 100% human · <span className={mono.className} style={{ fontSize: 11 }}>₹34 per call</span><br />
+                  <b style={{ color: INK }}>Factual accuracy</b> · human verified · <span className={mono.className} style={{ fontSize: 11 }}>₹4 + ₹31 per verified call</span><br />
                   <span style={{ color: MUT }}>Screening starts today on this agent&apos;s own recordings. First findings land in Agent insights on day 4.</span>
                 </div>
               </div>
