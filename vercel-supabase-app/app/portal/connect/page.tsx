@@ -67,7 +67,7 @@ export default function Connect() {
         <span style={{ fontSize: 12.5, color: MUT }}>onboard a use case from your terminal · as easy as running an LLM judge</span>
       </div>
     }>
-      <div className={instrument.className} style={{ display: "grid", gridTemplateColumns: "1.25fr 400px", gap: 16, padding: "16px 22px 30px", alignItems: "start", color: INK }}>
+      <div className={instrument.className} style={{ display: "grid", gridTemplateColumns: "minmax(0, 820px)", gap: 16, padding: "16px 22px 30px", alignItems: "start", color: INK }}>
 
         {/* LEFT */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -135,36 +135,6 @@ export default function Connect() {
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 16 }}>
-          <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 11, borderLeft: `4px solid ${GREEN}` }}>
-            <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Same pipeline, either way</span>
-            <div style={{ fontSize: 12.5, color: "#4d5a66", lineHeight: 1.6 }}>
-              A use case created from a terminal is identical to one created on the <a href="/portal/new-use-case" style={{ color: GREEN }}>New use case</a> screen: the same resolver picks the checks, the same server-side price table costs them, and the same screened panel does the work.
-            </div>
-            <div style={{ fontSize: 12, color: MUT, lineHeight: 1.6, borderTop: "1px solid #eef2f6", paddingTop: 10 }}>
-              The model never sets a price. It chooses which checks apply and quotes your own words back; every rate, sample rate and volume comes from our catalog.
-            </div>
-          </div>
-
-          <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 11 }}>
-            <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>What happens when a use case lands</span>
-            {[
-              ["today", "A calibration set is built from that agent's own recordings and reviewers are screened on it."],
-              ["day 3", "Only reviewers who match our experts get the work. Panel reliability goes live."],
-              ["day 4", "First findings land in Agent insights, each with a timestamp you can play."],
-              ["ongoing", "Expert-rated calls stay seeded unmarked, so reliability keeps being checked."],
-            ].map(([d, t]) => (
-              <div key={d} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span className={mono.className} style={{ fontSize: 10.5, color: GREEN, width: 48, flex: "none", paddingTop: 2 }}>{d}</span>
-                <span style={{ fontSize: 12, color: "#4d5a66", lineHeight: 1.55 }}>{t}</span>
-              </div>
-            ))}
-            <a href="/portal/agents" style={{ height: 42, borderRadius: 9, background: GREEN, color: "#fff", fontWeight: 600, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", marginTop: 4 }}>
-              See findings in Agent insights →
-            </a>
-          </div>
-        </div>
 
       </div>
     </PortalShell>
