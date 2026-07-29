@@ -298,19 +298,6 @@ function Inner() {
                     <span style={{ fontSize: 11, color: MUT }}>{m.note}</span>
                   </div>
                 ))}
-                {insights.most_common && (
-                  <div style={{ borderTop: "1px solid #eef2f6", paddingTop: 11, display: "flex", flexDirection: "column", gap: 5 }}>
-                    <span className={mono.className} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.7, textTransform: "uppercase", color: MUT }}>Most common error</span>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, lineHeight: 1.6 }}>
-                      <button onClick={() => play(insights.most_common.call_id, insights.most_common.ts)}
-                        style={{ width: 22, height: 22, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none", marginTop: 3 }}>▶</button>
-                      <div>
-                        <div><span className={mono.className} style={{ color: MUT }}>Heard</span> <b>&ldquo;{insights.most_common.heard}&rdquo;</b> <span style={{ color: MUT }}>· {insights.most_common.heard_gloss}</span></div>
-                        <div><span className={mono.className} style={{ color: GREEN }}>Said</span> <b style={{ color: GREEN }}>&ldquo;{insights.most_common.said}&rdquo;</b> <span style={{ color: GREEN }}>· {insights.most_common.said_gloss}</span></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
