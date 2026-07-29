@@ -112,18 +112,17 @@ export default function Connect() {
                 </div>
               </div>
             </div>
+            <div style={{ borderTop: "1px solid #eef2f6", paddingTop: 12, marginTop: 2 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 4 }}>The tools it called, and the rest it can<span style={{ color: MUT, fontWeight: 400 }}> · reads are safe to run, creates ask first</span></div>
+              {TOOLS.map(([n, d, kind]) => (
+                <div key={n} style={{ display: "flex", alignItems: "flex-start", gap: 10, borderTop: "1px solid #eef2f6", paddingTop: 9 }}>
+                  <code className={mono.className} style={{ fontSize: 11.5, color: INK, width: 152, flex: "none" }}>{n}</code>
+                  <span style={{ fontSize: 12.5, color: "#4d5a66", flex: 1, lineHeight: 1.5 }}>{d}</span>
+                  <span style={{ borderRadius: 999, fontSize: 10, fontWeight: 600, padding: "3px 8px", flex: "none", background: kind === "write" ? "#fdf4e3" : "#eef2f6", color: kind === "write" ? "#b07a15" : MUT }}>{kind === "write" ? "creates" : "reads"}</span>
+                </div>
+              ))}
+            </div>
             <div style={{ fontSize: 11.5, color: MUT }}>The agent is told to show you the estimate before it creates anything · nothing runs until your engineer approves it.</div>
-          </div>
-
-          <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
-            <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>What your engineers can call</span>
-            {TOOLS.map(([n, d, kind]) => (
-              <div key={n} style={{ display: "flex", alignItems: "flex-start", gap: 10, borderTop: "1px solid #eef2f6", paddingTop: 9 }}>
-                <code className={mono.className} style={{ fontSize: 11.5, color: INK, width: 152, flex: "none" }}>{n}</code>
-                <span style={{ fontSize: 12.5, color: "#4d5a66", flex: 1, lineHeight: 1.5 }}>{d}</span>
-                <span style={{ borderRadius: 999, fontSize: 10, fontWeight: 600, padding: "3px 8px", flex: "none", background: kind === "write" ? "#fdf4e3" : "#eef2f6", color: kind === "write" ? "#b07a15" : MUT }}>{kind === "write" ? "creates" : "reads"}</span>
-              </div>
-            ))}
           </div>
 
           <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 11 }}>
