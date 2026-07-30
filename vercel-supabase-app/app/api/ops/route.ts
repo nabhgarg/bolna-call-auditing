@@ -243,6 +243,29 @@ export async function GET() {
       }
       const topUse = [...byUse.entries()].sort((a, b) => b[1] - a[1])[0];
       const m = perDay.get(w) || new Map();
+      // Assigned-per-day is derived from imported_at on the queue rows, so the
+      // daily history is reconstructible for any past day without a snapshot
+      // table · nothing extra has to be stored for this view.
+      const asgByDay = new Map<string, number>();
+      for (const q of rows) {
+        const d0 = day(q.imported_at);
+        if (d0) asgByDay.set(d0, (asgByDay.get(d0) || 0) + 1);
+      }
+      const daily = days14.map((d) => ({
+        label: d.slice(8),
+        assigned: asgByDay.get(d) || 0,
+        done: m.get(d) || 0
+      }));
+      const days56 = lastNDays(56, today);
+      const weekly: { label: string; assigned: number; done: number }[] = [];
+      for (let i = 0; i < 56; i += 7) {
+        const wk = days56.slice(i, i + 7);
+        weekly.push({
+          label: wk[0].slice(5),
+          assigned: wk.reduce((s, d) => s + (asgByDay.get(d) || 0), 0),
+          done: wk.reduce((s, d) => s + (m.get(d) || 0), 0)
+        });
+      }
       reviewersOut.push({
         email: w,
         name: nameOf.get(w) || w.split("@")[0],
@@ -254,7 +277,8 @@ export async function GET() {
         last: last ? (day(last) === today ? last.slice(11, 16) : day(last).slice(5)) : "never",
         lastIso: last,
         idleDays: last ? idleDays : -1,
-        history: days14.map((d) => ({ label: d.slice(8), value: m.get(d) || 0 }))
+        history: days14.map((d) => ({ label: d.slice(8), value: m.get(d) || 0 })),
+        daily, weekly
       });
     }
     reviewersOut.sort((a, b) => b.pendingTotal - a.pendingTotal);

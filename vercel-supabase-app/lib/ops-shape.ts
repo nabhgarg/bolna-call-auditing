@@ -18,6 +18,8 @@ export type OpsClient = {
   revenueInr: number;
 };
 
+export type OpsDayStat = { label: string; assigned: number; done: number };
+
 export type OpsReviewer = {
   email: string;
   name: string;
@@ -32,6 +34,10 @@ export type OpsReviewer = {
   lastIso: string;
   idleDays: number;
   history: { label: string; value: number }[];
+  /** last 14 days · assigned = queue rows imported that day, done = reviews submitted that day */
+  daily: OpsDayStat[];
+  /** last 8 weeks, same definitions summed per week · label is the week's first day */
+  weekly: OpsDayStat[];
 };
 
 export type OpsAlert = {

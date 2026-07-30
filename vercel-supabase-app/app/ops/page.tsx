@@ -71,6 +71,27 @@ function Line({ series, lo, hi, threshold, height = 150 }: {
   );
 }
 
+// Paired bars · assigned as the light full bar, done overlaid in colour, so a
+// gap between the two is visible per day rather than only in totals.
+function PairBars({ stats, h = 26, wide = false }: { stats: { label: string; assigned: number; done: number }[]; h?: number; wide?: boolean }) {
+  const max = Math.max(1, ...stats.map((s) => Math.max(s.assigned, s.done)));
+  return (
+    <span style={{ display: "flex", alignItems: "flex-end", gap: wide ? 6 : 3, height: h, width: "100%" }}>
+      {stats.map((s, i) => {
+        const aH = Math.round((h - 2) * (s.assigned / max));
+        const dH = Math.round((h - 2) * (s.done / max));
+        const over = s.done > 0 && s.assigned === 0;
+        return (
+          <span key={i} style={{ flex: 1, minWidth: wide ? 10 : 4, position: "relative", height: h, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+            <span style={{ width: "100%", height: Math.max(s.assigned ? 3 : 0, aH), background: LINE, borderRadius: 2 }} />
+            <span style={{ position: "absolute", bottom: 0, width: "62%", height: Math.max(s.done ? 3 : 0, dH), background: over ? SLATE : s.done >= s.assigned ? GREEN : AMBER_BAR, borderRadius: 2 }} />
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 function Sparkline({ dev }: { dev: number[] }) {
   const CW = 120, CH = 30, mid = CH / 2, scale = CH / 2;
   const pts = dev.map((v, i) => `${(i * (CW / (dev.length - 1))).toFixed(1)},${(mid - v * scale).toFixed(1)}`).join(" ");
@@ -93,6 +114,7 @@ export default function Ops() {
   const [modal, setModal] = useState(false);
   const [pick, setPick] = useState(0);
   const [weekly, setWeekly] = useState(false);
+  const [period, setPeriod] = useState<"daily" | "weekly">("daily");
 
   useEffect(() => { setAllowed(isExpert()); }, []);
   useEffect(() => {
@@ -199,54 +221,77 @@ export default function Ops() {
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
               {/* reviewer table */}
               <div style={{ ...card, flex: "1 1 640px", minWidth: 0, overflow: "hidden" }}>
-                <div style={{ padding: "15px 18px", display: "flex", alignItems: "baseline", gap: 10, borderBottom: `1px solid ${LINE}`, flexWrap: "wrap" }}>
-                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Open assignment vs actuals</span>
-                  <span style={{ fontSize: 12, color: MUT }}>{d.reviewers.length} reviewers with work · of slots assigned</span>
-                  <span style={{ flex: 1 }} />
-                  <span className={mono.className} style={{ fontSize: 12 }}>{d.totals.done} / {d.totals.assigned} done · {donePct}%</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
-                  <span style={{ width: 130, flex: "none" }}>Reviewer</span>
-                  <span style={{ flex: 1, minWidth: 0 }}>Work</span>
-                  <span style={{ width: 66, flex: "none", textAlign: "right" }}>Assigned</span>
-                  <span style={{ width: 52, flex: "none", textAlign: "right" }}>Done</span>
-                  <span style={{ width: 172, flex: "none" }}>Pace</span>
-                  <span style={{ width: 88, flex: "none" }}>7-day</span>
-                  <span style={{ width: 74, flex: "none", textAlign: "right" }}>Last</span>
-                </div>
-                {d.reviewers.map((r) => (
-                  <div key={r.email} style={{ borderBottom: `1px solid #f2f5f8`, background: expanded === r.email ? "#fbfcfd" : "#fff" }}>
-                    <div onClick={() => setExpanded(expanded === r.email ? null : r.email)}
-                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 18px", cursor: "pointer" }}>
-                      <span style={{ width: 130, flex: "none", fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "#4b5762", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.useCase}</span>
-                      <span className={mono.className} style={{ width: 66, flex: "none", textAlign: "right", fontSize: 12, color: MUT }}>{r.assigned}</span>
-                      <span className={mono.className} style={{ width: 52, flex: "none", textAlign: "right", fontSize: 12 }}>{r.done}</span>
-                      <span style={{ width: 172, flex: "none", display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ flex: 1, height: 7, borderRadius: 4, background: LINE, overflow: "hidden", display: "flex" }}>
-                          <span style={{ width: `${r.pacePct}%`, background: paceColor(r) }} />
-                        </span>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: paceColor(r), width: 52, flex: "none" }}>{r.state}</span>
-                      </span>
-                      <span style={{ width: 88, flex: "none" }}><Bars vals={r.spark} /></span>
-                      <span className={mono.className} style={{ width: 74, flex: "none", textAlign: "right", fontSize: 11, color: r.idleDays >= 3 ? RED_BAR : MUT }}>{r.last}</span>
-                    </div>
-                    {expanded === r.email && (
-                      <div style={{ padding: "2px 18px 16px 160px", display: "flex", flexDirection: "column", gap: 9 }}>
-                        <div style={head}>Day over day · reviews submitted, last 14 days</div>
-                        <Bars vals={r.history.map((h) => h.value)} h={52} color={(v) => v === 0 ? "#e6ebf0" : SLATE} />
-                        <div style={{ display: "flex", gap: 5 }}>
-                          {r.history.map((h) => (
-                            <span key={h.label} className={mono.className} style={{ flex: 1, textAlign: "center", fontSize: 9.5, color: FAINT }}>{h.label}</span>
+                {(() => {
+                  const cur = (r: OpsReviewer) => {
+                    const s = period === "daily" ? r.daily : r.weekly;
+                    return s[s.length - 1] || { label: "", assigned: 0, done: 0 };
+                  };
+                  const totA = d.reviewers.reduce((s, r) => s + cur(r).assigned, 0);
+                  const totD = d.reviewers.reduce((s, r) => s + cur(r).done, 0);
+                  const bucketLabel = period === "daily" ? "today" : "this week";
+                  return (
+                    <>
+                      <div style={{ padding: "15px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: `1px solid ${LINE}`, flexWrap: "wrap" }}>
+                        <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Assigned vs done</span>
+                        <span style={{ fontSize: 12, color: MUT }}>per {period === "daily" ? "day · assigned when the batch landed, done when submitted" : "week · same counts, summed"}</span>
+                        <span style={{ flex: 1 }} />
+                        <span style={{ display: "flex", background: "#f2f5f8", borderRadius: 7, padding: 3 }}>
+                          {(["daily", "weekly"] as const).map((p) => (
+                            <span key={p} onClick={() => setPeriod(p)}
+                              style={{ fontSize: 11.5, fontWeight: 600, background: period === p ? "#fff" : "transparent", color: period === p ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer", textTransform: "capitalize", boxShadow: period === p ? "0 1px 2px rgba(16,24,31,.06)" : "none" }}>{p}</span>
                           ))}
-                        </div>
-                        <div style={{ fontSize: 12, color: MUT }}>
-                          {r.pendingTotal} pending · last submission {r.lastIso ? new Date(r.lastIso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "never"}
-                        </div>
+                        </span>
+                        <span className={mono.className} style={{ fontSize: 12 }}>{totD} done / {totA} assigned {bucketLabel}</span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
+                        <span style={{ width: 130, flex: "none" }}>Reviewer</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>Work</span>
+                        <span style={{ width: 74, flex: "none", textAlign: "right" }}>Assigned {period === "daily" ? "today" : "this wk"}</span>
+                        <span style={{ width: 62, flex: "none", textAlign: "right" }}>Done</span>
+                        <span style={{ width: 52, flex: "none", textAlign: "right" }}>Open</span>
+                        <span style={{ width: 150, flex: "none" }}>{period === "daily" ? "14 days" : "8 weeks"} · assigned vs done</span>
+                        <span style={{ width: 74, flex: "none", textAlign: "right" }}>Last</span>
+                      </div>
+                      {d.reviewers.map((r) => {
+                        const b = cur(r);
+                        const series = period === "daily" ? r.daily : r.weekly;
+                        return (
+                          <div key={r.email} style={{ borderBottom: `1px solid #f2f5f8`, background: expanded === r.email ? "#fbfcfd" : "#fff" }}>
+                            <div onClick={() => setExpanded(expanded === r.email ? null : r.email)}
+                              style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 18px", cursor: "pointer" }}>
+                              <span style={{ width: 130, flex: "none", fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+                              <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "#4b5762", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.useCase}</span>
+                              <span className={mono.className} style={{ width: 74, flex: "none", textAlign: "right", fontSize: 12, color: MUT }}>{b.assigned}</span>
+                              <span className={mono.className} style={{ width: 62, flex: "none", textAlign: "right", fontSize: 12, color: b.done === 0 && b.assigned > 0 ? AMBER : INK }}>{b.done}</span>
+                              <span className={mono.className} style={{ width: 52, flex: "none", textAlign: "right", fontSize: 12, color: r.pendingTotal ? paceColor(r) : MUT }}>{r.pendingTotal}</span>
+                              <span style={{ width: 150, flex: "none" }}><PairBars stats={series} /></span>
+                              <span className={mono.className} style={{ width: 74, flex: "none", textAlign: "right", fontSize: 11, color: r.idleDays >= 3 ? RED_BAR : MUT }}>{r.last}</span>
+                            </div>
+                            {expanded === r.email && (
+                              <div style={{ padding: "2px 18px 16px 160px", display: "flex", flexDirection: "column", gap: 9 }}>
+                                <div style={head}>{period === "daily" ? "Last 14 days" : "Last 8 weeks"} · light bar assigned, colour bar done</div>
+                                <PairBars stats={series} h={56} wide />
+                                <div style={{ display: "flex", gap: 6 }}>
+                                  {series.map((s) => (
+                                    <span key={s.label} className={mono.className} style={{ flex: 1, textAlign: "center", fontSize: 9.5, color: FAINT }}>{s.label}</span>
+                                  ))}
+                                </div>
+                                <div style={{ display: "flex", gap: 6 }}>
+                                  {series.map((s, i) => (
+                                    <span key={i} className={mono.className} style={{ flex: 1, textAlign: "center", fontSize: 9.5, color: s.done < s.assigned ? AMBER : MUT }}>{s.done}/{s.assigned}</span>
+                                  ))}
+                                </div>
+                                <div style={{ fontSize: 12, color: MUT }}>
+                                  {r.pendingTotal} open across all batches · lifetime {r.done} done of {r.assigned} assigned · last submission {r.lastIso ? new Date(r.lastIso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "never"}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
               </div>
 
               {/* alerts */}
