@@ -11,7 +11,11 @@ export const dynamic = "force-dynamic";
 // as done (reviewers keep credit for calls they already scored). Batch 3 was a
 // re-review batch; its rows are archived now, but the rule is kept for history.
 const REREVIEW_RULES: Array<{ re: RegExp; cutoff: string }> = [
-  { re: /::b3/, cutoff: "2026-07-21T14:06:00.000Z" }
+  { re: /::b3/, cutoff: "2026-07-21T14:06:00.000Z" },
+  // b9i is issue logging on calls the same panel already vibe-scored, and both
+  // run in response_vibe mode — without a cutoff those old scores would mark
+  // the whole batch done on arrival (40 of Muskan's 70 showed done at assign).
+  { re: /::b9i/, cutoff: "2026-07-30T08:30:00.000Z" }
 ];
 function rereviewCutoff(auditMode: string) {
   return REREVIEW_RULES.find((r) => r.re.test(auditMode))?.cutoff || "";
