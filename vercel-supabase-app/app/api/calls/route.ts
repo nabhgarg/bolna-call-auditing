@@ -56,6 +56,47 @@ function reviewerMatches(assignedReviewer: unknown, reviewerEmail: string, email
   return Boolean(reviewerEmail) && resolveReviewerEmail(assignedReviewer, emailMap) === reviewerEmail;
 }
 
+// A PostgREST `or` filter selecting the review rows that could belong to this
+// reviewer — their email, plus every display name that maps to it, because
+// older rows carry a name and sometimes a personal address instead. It only has
+// to be a SUPERSET: the in-memory filter below stays the authority on ownership.
+function reviewerOrFilter(reviewerEmail: string, emailMap: Map<string, string>) {
+  if (!reviewerEmail) return "";
+  const aliases = new Set<string>([reviewerEmail]);
+  emailMap.forEach((email, name) => { if (email === reviewerEmail) aliases.add(name); });
+  const quote = (v: string) => `"${v.replace(/["\\]/g, "\\$&")}"`;
+  return [
+    `reviewer_email.eq.${quote(reviewerEmail)}`,
+    ...[...aliases].map((a) => `reviewer_name.ilike.${quote(a)}`)
+  ].join(",");
+}
+
+// Supabase returns at most 1000 rows per response and a very long `in` list
+// makes an unwieldy URL, so read in id-chunks and page within each chunk.
+// Without this a single query truncates silently: the reviews lookup below asks
+// for every reviewer's rows on a reviewer's own calls, which passed 1000 rows
+// once several batches were assigned. The dropped rows were unordered, so a
+// reviewer's finished calls flipped back to pending at random and were redone.
+const PAGE_SIZE = 1000;
+const ID_CHUNK = 300;
+async function selectAllByIds(
+  build: () => any,
+  column: string,
+  ids: string[]
+): Promise<{ data: any[]; error: any }> {
+  const rows: any[] = [];
+  for (let i = 0; i < ids.length; i += ID_CHUNK) {
+    const chunk = ids.slice(i, i + ID_CHUNK);
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await build().in(column, chunk).range(from, from + PAGE_SIZE - 1);
+      if (error) return { data: rows, error };
+      rows.push(...(data || []));
+      if (!data || data.length < PAGE_SIZE) break;
+    }
+  }
+  return { data: rows, error: null };
+}
+
 export async function GET(request: Request) {
   // The YC partner demo is a client-facing surface, and these two fields carry
   // the one thing such a surface must never carry · who the client is. org_name
@@ -100,20 +141,32 @@ export async function GET(request: Request) {
       return NextResponse.json({ calls: [] }, { headers: { "Cache-Control": "no-store" } });
     }
 
-    const reviewsQuery = supabase
-      .from("reviews")
-      .select("call_id,reviewer_name,reviewer_email,review_mode,submitted_at")
-      .in("call_id", callIds)
-      .eq("review_mode", auditMode);
+    // Narrowed to this reviewer where possible · a reviewer's own rows are a
+    // fifth of the rows on their calls, the rest belonging to co-raters and
+    // discarded a few lines below.
+    const orFilter = reviewerOrFilter(reviewer, emailMap);
 
     const [{ data: calls, error: callsError }, { data: allReviews, error: reviewsError }] = await Promise.all([
-      supabase
-        .from("calls")
-        .select(
-          "execution_id,org_name,agent_name,duration_sec,created_at_ist,status,transcriber_language,recording_url,source_sheet"
-        )
-        .in("execution_id", callIds),
-      reviewsQuery
+      selectAllByIds(
+        () => supabase
+          .from("calls")
+          .select(
+            "execution_id,org_name,agent_name,duration_sec,created_at_ist,status,transcriber_language,recording_url,source_sheet"
+          ),
+        "execution_id",
+        callIds
+      ),
+      selectAllByIds(
+        () => {
+          const q = supabase
+            .from("reviews")
+            .select("call_id,reviewer_name,reviewer_email,review_mode,submitted_at")
+            .eq("review_mode", auditMode);
+          return orFilter ? q.or(orFilter) : q;
+        },
+        "call_id",
+        callIds
+      )
     ]);
 
     const error = callsError || reviewsError;
