@@ -53,11 +53,13 @@ export type OpsBatchOption = { key: string; name: string; pool: number };
 
 export type OpsDelivery = {
   name: string;
-  date: string;
-  expected: number | null;
-  actual: number;
-  work: { name: string; pct: number }[];
-  remainder: number;
+  /** unique calls in this group */
+  calls: number;
+  vibeScored: number;
+  low: number;          // rated 1 or 2 in vibe · the issue-logging universe
+  issueLogged: number;  // of `low`
+  transcribed: number;
+  neverReviewed: number;
 };
 
 export type OpsAgent = { name: string; calls: number; score: number | null; topIssue: string };

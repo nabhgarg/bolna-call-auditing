@@ -496,39 +496,46 @@ export default function Ops() {
         {level.view === "client" && detail && level.tab === "Coverage" && (
           <div style={{ ...card, overflow: "hidden" }}>
             <div style={{ padding: "15px 18px", display: "flex", alignItems: "baseline", gap: 10, borderBottom: `1px solid ${LINE}` }}>
-              <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Coverage per delivery</span>
-              <span style={{ fontSize: 12, color: MUT }}>one row per call dump · % of its calls a human has actually reviewed</span>
+              <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Coverage</span>
+              <span style={{ fontSize: 12, color: MUT }}>per unique call · a review from any past batch counts it done</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
-              <span style={{ flex: 1, minWidth: 0 }}>Delivery</span>
-              <span style={{ width: 74, flex: "none", textAlign: "right" }}>Calls</span>
-              <span style={{ width: 300, flex: "none" }}>Reviewed · quality &amp; transcript</span>
+              <span style={{ flex: 1, minWidth: 0 }}>Calls</span>
+              <span style={{ width: 80, flex: "none", textAlign: "right" }}>Total</span>
+              <span style={{ width: 130, flex: "none", textAlign: "right" }}>Vibe scored</span>
+              <span style={{ width: 90, flex: "none", textAlign: "right" }}>Rated 1–2</span>
+              <span style={{ width: 130, flex: "none", textAlign: "right" }}>Issue logged</span>
+              <span style={{ width: 130, flex: "none", textAlign: "right" }}>Transcribed</span>
               <span style={{ width: 110, flex: "none", textAlign: "right" }}>Never reviewed</span>
             </div>
-            {detail.deliveries.map((dl) => (
-              <div key={dl.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: `1px solid #f2f5f8` }}>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dl.name}</span>
-                <span className={mono.className} style={{ width: 74, flex: "none", textAlign: "right", fontSize: 11.5 }}>{dl.actual.toLocaleString()}</span>
-                <span style={{ width: 300, flex: "none", display: "flex", gap: 12 }}>
-                  {dl.work.map((w) => (
-                    <span key={w.name} style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                      <span style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                        <span style={{ fontSize: 11, color: MUT, flex: 1 }}>{w.name}</span>
-                        <span className={mono.className} style={{ fontSize: 11, color: w.pct >= 95 ? GREEN : w.pct >= 60 ? AMBER : RED_BAR }}>{w.pct}%</span>
-                      </span>
-                      <span style={{ height: 5, borderRadius: 3, background: LINE, overflow: "hidden", display: "flex" }}>
-                        <span style={{ width: `${w.pct}%`, background: w.pct >= 95 ? GREEN : w.pct >= 60 ? AMBER : RED_BAR }} />
-                      </span>
-                    </span>
-                  ))}
-                </span>
-                <span className={mono.className} style={{ width: 110, flex: "none", textAlign: "right", fontSize: 11.5, color: dl.remainder ? AMBER : MUT }}>
-                  {dl.remainder === 0 ? "none" : `${dl.remainder} calls`}
-                </span>
-              </div>
-            ))}
-            <div style={{ padding: "11px 18px", fontSize: 11.5, color: MUT, lineHeight: 1.55 }}>
-              A call counts as reviewed once any reviewer has submitted for it, whether or not that batch is still open · the two percentages overlap where a call had both kinds of work. Expected counts are not recorded on import yet, so completeness against what the client says they sent cannot be checked.
+            {detail.deliveries.map((dl) => {
+              const cell = (n: number, of: number) => {
+                const pct = of ? Math.round((n / of) * 100) : 0;
+                return (
+                  <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                    <span className={mono.className} style={{ fontSize: 13 }}>{n.toLocaleString()}</span>
+                    <span className={mono.className} style={{ fontSize: 10.5, color: pct >= 90 ? GREEN : pct >= 50 ? MUT : AMBER }}>{pct}% of {of.toLocaleString()}</span>
+                  </span>
+                );
+              };
+              const [title, sub] = dl.name.split(" · ");
+              return (
+                <div key={dl.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderBottom: `1px solid #f2f5f8` }}>
+                  <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+                    <span className={mono.className} style={{ fontSize: 12.5, fontWeight: 500 }}>{title}</span>
+                    <span style={{ fontSize: 11, color: FAINT }}>{sub}</span>
+                  </span>
+                  <span className={mono.className} style={{ width: 80, flex: "none", textAlign: "right", fontSize: 13 }}>{dl.calls.toLocaleString()}</span>
+                  <span style={{ width: 130, flex: "none", display: "flex", justifyContent: "flex-end" }}>{cell(dl.vibeScored, dl.calls)}</span>
+                  <span className={mono.className} style={{ width: 90, flex: "none", textAlign: "right", fontSize: 13, color: MUT }}>{dl.low.toLocaleString()}</span>
+                  <span style={{ width: 130, flex: "none", display: "flex", justifyContent: "flex-end" }}>{cell(dl.issueLogged, dl.low)}</span>
+                  <span style={{ width: 130, flex: "none", display: "flex", justifyContent: "flex-end" }}>{cell(dl.transcribed, dl.calls)}</span>
+                  <span className={mono.className} style={{ width: 110, flex: "none", textAlign: "right", fontSize: 13, color: dl.neverReviewed ? AMBER : MUT }}>{dl.neverReviewed.toLocaleString()}</span>
+                </div>
+              );
+            })}
+            <div style={{ padding: "12px 18px", fontSize: 11.5, color: MUT, lineHeight: 1.6 }}>
+              Every column is a count of distinct calls. <b>Vibe scored</b> and <b>Transcribed</b> are shares of that group&apos;s total; they overlap, since a call can have both. <b>Issue logged</b> is a share of the calls <b>rated 1–2</b>, not of all calls — those are the ones issue logging is meant to cover. <b>Never reviewed</b> means neither vibe-scored nor transcribed by anyone.
             </div>
           </div>
         )}

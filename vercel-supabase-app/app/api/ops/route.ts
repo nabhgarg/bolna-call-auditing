@@ -599,41 +599,51 @@ export async function GET() {
         gtCalls: expertSum.size
       };
 
-      // coverage per delivery
-      const bySheet = new Map<string, any[]>();
+      // Coverage, at CALL level · execution_id is unique across the whole calls
+      // table (2,549 rows, 2,549 ids), so a call is counted once and a review
+      // from ANY past batch counts it done. Measuring open assignments instead
+      // made finished deliveries read as untouched the moment their batches
+      // were archived. Two groups only: the current dump, and everything older.
+      const vibeScored = new Set<string>();
+      const lowRated = new Set<string>();
+      const issueLogged = new Set<string>();
+      const transcribed = new Set<string>();
+      for (const r of live) {
+        if (r.review_mode === "response_vibe") {
+          const v = Number(String(r.vibe_score || "").trim());
+          if (v >= 1 && v <= 4) {
+            vibeScored.add(r.call_id);
+            if (v <= 2) lowRated.add(r.call_id);
+          }
+          if (issueCategories(r.issues_json).some((k) => k !== "transcription")) issueLogged.add(r.call_id);
+        } else if (r.review_mode === "timing_transcription") {
+          transcribed.add(r.call_id);
+        }
+      }
+      const CURRENT = "Calls_Annotation_B5";
+      const groups: Array<[string, Set<string>]> = [
+        ["Calls_Annotation_B5 · current dump", new Set<string>()],
+        ["Earlier calls · everything before it", new Set<string>()]
+      ];
       for (const x of calls) {
         if (clientOf(x.source_sheet).key !== c.key) continue;
-        const k = String(x.source_sheet || "—");
-        if (!bySheet.has(k)) bySheet.set(k, []);
-        (bySheet.get(k) as any[]).push(x);
+        groups[String(x.source_sheet) === CURRENT ? 0 : 1][1].add(x.execution_id);
       }
-      // Coverage means WORK DONE, not "has an open assignment". Measuring the
-      // active queue made finished deliveries read as untouched the moment
-      // their batches were archived · Calls_Response_Vibe showed 0% quality
-      // and 131 untouched when 80% of it had been reviewed and only 26 calls
-      // had never been looked at.
-      const qrCovered = new Set(live.filter((r: any) => r.review_mode === "response_vibe").map((r: any) => r.call_id));
-      const trCovered = new Set(live.filter((r: any) => r.review_mode === "timing_transcription").map((r: any) => r.call_id));
-      const deliveries = [...bySheet.entries()]
-        .map(([name, xs]) => {
-          const ids = xs.map((x: any) => x.execution_id);
-          const pct = (s: Set<string>) => Math.round((ids.filter((i) => s.has(i)).length / ids.length) * 100);
-          const untouched = ids.filter((i) => !qrCovered.has(i) && !trCovered.has(i)).length;
-          const firstSeen = xs.map((x: any) => String(x.created_at_ist || "")).filter(Boolean).sort()[0] || "";
+      const deliveries = groups
+        .filter(([, ids]) => ids.size > 0)
+        .map(([name, ids]) => {
+          const inSet = (s: Set<string>) => [...ids].filter((i) => s.has(i)).length;
+          const low = inSet(lowRated);
           return {
             name,
-            date: firstSeen ? day(firstSeen) : "—",
-            expected: null,
-            actual: ids.length,
-            work: [
-              { name: "Quality", pct: pct(qrCovered) },
-              { name: "Transcript", pct: pct(trCovered) }
-            ],
-            remainder: untouched
+            calls: ids.size,
+            vibeScored: inSet(vibeScored),
+            low,
+            issueLogged: [...ids].filter((i) => lowRated.has(i) && issueLogged.has(i)).length,
+            transcribed: inSet(transcribed),
+            neverReviewed: [...ids].filter((i) => !vibeScored.has(i) && !transcribed.has(i)).length
           };
-        })
-        .sort((a, b) => b.actual - a.actual)
-        .slice(0, 6);
+        });
 
       // agents
       const byAgent = new Map<string, { calls: Set<string>; scores: number[]; cats: Map<string, number> }>();
