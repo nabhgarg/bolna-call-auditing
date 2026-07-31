@@ -19,7 +19,11 @@ const REREVIEW_RULES: Array<{ re: RegExp; cutoff: string }> = [
   // Priority listening sets (::prio_*) are always a fresh listen — two of
   // Manavi's 24 had old reviews under her pre-migration gmail that would have
   // marked them done on arrival.
-  { re: /::prio/, cutoff: "2026-07-30T12:00:00.000Z" }
+  { re: /::prio/, cutoff: "2026-07-30T12:00:00.000Z" },
+  // b10i is issue logging on calls that were ALREADY vibe-scored (that is how
+  // they were picked · every one is rated 1 or 2). Issue logging shares
+  // response_vibe mode, so without this every row would arrive done.
+  { re: /::b10i/, cutoff: "2026-07-31T06:00:00.000Z" }
 ];
 function rereviewCutoff(auditMode: string) {
   return REREVIEW_RULES.find((r) => r.re.test(auditMode))?.cutoff || "";
