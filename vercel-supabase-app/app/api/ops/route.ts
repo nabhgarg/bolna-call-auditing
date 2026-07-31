@@ -561,6 +561,7 @@ export async function GET() {
             .sort((x, y) => x.name.localeCompare(y.name));
           return {
             batch: tag,
+            assignedOn: row.latest ? String(row.latest).slice(0, 10) : "—",
             per,
             assigned: per.reduce((s, p) => s + p.assigned, 0),
             done: per.reduce((s, p) => s + p.done, 0)
@@ -700,6 +701,48 @@ export async function GET() {
       // ---- transcription agreement (script-insensitive) ----
       // Bucketed by (day, call) up front · the previous shape re-scanned every
       // transcription review for each call on each of 14 days.
+      // ---- issue-logging agreement · did two people flag the same categories
+      // on the same call? Jaccard overlap of category sets (transcription
+      // excluded), only on calls where at least one side logged something ·
+      // comparing empty-vs-empty would reward not doing the work.
+      const issueSets = new Map<string, Map<string, Set<string>>>();
+      for (const r of qr) {
+        const cats = issueCategories(r.issues_json).filter((c) => c !== "transcription");
+        if (!issueSets.has(r.call_id)) issueSets.set(r.call_id, new Map());
+        const m = issueSets.get(r.call_id) as Map<string, Set<string>>;
+        const w = (r as any)._who;
+        if (!m.has(w)) m.set(w, new Set());
+        cats.forEach((c) => (m.get(w) as Set<string>).add(c));
+      }
+      // Both sides must have logged something · issue logging has only ever
+      // been SOME reviewers' task on a call, so an empty set usually means
+      // "wasn't asked", not "found nothing". Comparing against those read 4%.
+      const jac = (a: Set<string>, b: Set<string>) => {
+        if (!a.size || !b.size) return null;
+        const uni = new Set([...a, ...b]);
+        let inter = 0;
+        for (const x of a) if (b.has(x)) inter++;
+        return inter / uni.size;
+      };
+      let ipScore = 0, ipN = 0, igScore = 0, igN = 0;
+      for (const [, m] of issueSets) {
+        const entries = [...m.entries()];
+        const panel = entries.filter(([w]) => !EXPERT_IDS.has(w));
+        const experts = entries.filter(([w]) => EXPERT_IDS.has(w));
+        for (let i = 0; i < panel.length; i++) for (let j = i + 1; j < panel.length; j++) {
+          const s = jac(panel[i][1], panel[j][1]);
+          if (s !== null) { ipScore += s; ipN++; }
+        }
+        for (const [, ps] of panel) for (const [, es] of experts) {
+          const s = jac(ps, es);
+          if (s !== null) { igScore += s; igN++; }
+        }
+      }
+      const issueAgreement = {
+        vsPeers: { pct: ipN ? Math.round((ipScore / ipN) * 100) : null, n: ipN },
+        vsGT: { pct: igN ? Math.round((igScore / igN) * 100) : null, n: igN }
+      };
+
       // ---- vibe vs peers · within ±1 of each co-rater on shared calls ----
       const peerHit = new Map<string, { hit: number; n: number }>();
       for (const [, m] of byCall) {
@@ -874,7 +917,7 @@ export async function GET() {
         ],
         funnel,
         funnelBacklog: { count: backlogCalls.length, oldestDays },
-        issueMix, issueTrend, vibeMatrix, vibeVsGT, vibeVsPeers,
+        issueMix, issueTrend, issueAgreement, vibeMatrix, vibeVsGT, vibeVsPeers,
         deliveries, agents, agreement,
         transcription: {
           panel: trDaily, gt: [],

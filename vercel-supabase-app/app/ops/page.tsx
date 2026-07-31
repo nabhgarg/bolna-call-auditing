@@ -436,24 +436,37 @@ export default function Ops() {
                 <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Calls done · batch × reviewer</span>
                 <span style={{ fontSize: 12, color: MUT }}>done / assigned per person · newest batch first</span>
               </div>
-              {detail.vibeMatrix.map((row) => (
-                <div key={row.batch} style={{ display: "flex", alignItems: "center", gap: 14, padding: "11px 18px", borderBottom: `1px solid #f2f5f8`, flexWrap: "wrap" }}>
-                  <span className={mono.className} style={{ width: 96, flex: "none", fontSize: 12, fontWeight: 500 }}>{row.batch}</span>
-                  <span className={mono.className} style={{ width: 88, flex: "none", fontSize: 11.5, color: row.done >= row.assigned ? GREEN : MUT }}>{row.done}/{row.assigned}</span>
-                  <span style={{ flex: 1, minWidth: 0, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {row.per.map((p) => (
-                      <span key={p.name} style={{
-                        display: "flex", alignItems: "center", gap: 6, borderRadius: 7,
-                        border: `1px solid ${p.done >= p.assigned ? "#cfe6db" : "#f0e2c4"}`,
-                        background: p.done >= p.assigned ? "#f2faf6" : "#fdfaf3", padding: "3px 9px"
-                      }}>
-                        <span style={{ fontSize: 11.5 }}>{p.name.split(" ")[0]}</span>
-                        <span className={mono.className} style={{ fontSize: 10.5, color: p.done >= p.assigned ? GREEN : AMBER }}>{p.done}/{p.assigned}</span>
-                      </span>
-                    ))}
-                  </span>
-                </div>
-              ))}
+              {detail.vibeMatrix.map((row) => {
+                // first names alone collide (two Muskans) · add a surname
+                // initial only where needed, so chips stay short but unambiguous
+                const firsts = row.per.map((p) => p.name.split(" ")[0]);
+                const chip = (p: { name: string }) => {
+                  const [first, ...rest] = p.name.split(" ");
+                  return firsts.filter((f) => f === first).length > 1 && rest.length
+                    ? `${first} ${rest[0][0]}` : first;
+                };
+                return (
+                  <div key={row.batch} style={{ display: "flex", alignItems: "center", gap: 14, padding: "11px 18px", borderBottom: `1px solid #f2f5f8`, flexWrap: "wrap" }}>
+                    <span style={{ width: 150, flex: "none", display: "flex", flexDirection: "column", gap: 1 }}>
+                      <span className={mono.className} style={{ fontSize: 12, fontWeight: 500 }}>{row.batch}</span>
+                      <span className={mono.className} style={{ fontSize: 10, color: FAINT }}>assigned {row.assignedOn}</span>
+                    </span>
+                    <span className={mono.className} style={{ width: 88, flex: "none", fontSize: 11.5, color: row.done >= row.assigned ? GREEN : MUT }}>{row.done}/{row.assigned}</span>
+                    <span style={{ flex: 1, minWidth: 0, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {row.per.map((p) => (
+                        <span key={p.name} style={{
+                          display: "flex", alignItems: "center", gap: 6, borderRadius: 7,
+                          border: `1px solid ${p.done >= p.assigned ? "#cfe6db" : "#f0e2c4"}`,
+                          background: p.done >= p.assigned ? "#f2faf6" : "#fdfaf3", padding: "3px 9px"
+                        }}>
+                          <span style={{ fontSize: 11.5 }}>{chip(p)}</span>
+                          <span className={mono.className} style={{ fontSize: 10.5, color: p.done >= p.assigned ? GREEN : AMBER }}>{p.done}/{p.assigned}</span>
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* per-person calibration */}
@@ -596,71 +609,59 @@ export default function Ops() {
                 })()}
               </div>
 
-              <div style={{ ...card, width: 460, flex: "none", padding: "17px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issue mix</span>
-                  <span style={{ fontSize: 12, color: MUT }}>by category, last 14 days · transcription excluded</span>
-                </div>
-                {detail.issueMix.map((m) => (
-                  <div key={m.name} style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                    <span style={{ width: 128, flex: "none", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
-                    <span style={{ flex: 1, minWidth: 0 }}><Bars vals={m.bars} h={26} color={(v, i, n) => i === n - 1 ? (m.deltaPct !== null && m.deltaPct > 0 ? "#d99aa0" : "#9dc4b3") : SLATE} /></span>
-                    <span className={mono.className} style={{ width: 52, flex: "none", textAlign: "right", fontSize: 11.5 }}>{m.total.toLocaleString()}</span>
-                    <span className={mono.className} style={{ width: 44, flex: "none", textAlign: "right", fontSize: 11, color: m.deltaPct === null ? FAINT : m.deltaPct > 0 ? RED_BAR : GREEN }}>
-                      {m.deltaPct === null ? "—" : `${m.deltaPct > 0 ? "▲" : "▼"} ${Math.abs(m.deltaPct)}%`}
-                    </span>
-                  </div>
-                ))}
-                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 10, fontSize: 11.5, color: MUT, lineHeight: 1.55 }}>
-                  One bar per day · delta compares the last 7 days with the 7 before.
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
-              <div style={{ ...card, flex: "1 1 420px", minWidth: 0, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Flag and uncodeable rate</span>
-                  <span style={{ fontSize: 12, color: MUT }}>weekly · of reviews submitted</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 14, height: 96 }}>
-                  {detail.flagRate.map((f, i) => {
-                    const max = Math.max(1, ...detail.flagRate.map((x) => x.pct));
-                    return (
-                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
-                        <span className={mono.className} style={{ fontSize: 11, color: f.pct > 5 ? AMBER : MUT }}>{f.pct}%</span>
-                        <span style={{ width: "100%", borderRadius: "3px 3px 0 0", height: Math.round(6 + 62 * (f.pct / max)), background: f.pct > 5 ? AMBER_BAR : SLATE }} />
-                        <span className={mono.className} style={{ fontSize: 10, color: FAINT }}>{f.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 11, fontSize: 11.5, color: MUT, lineHeight: 1.6 }}>
-                  A rising flag rate is a rubric problem, not a reviewer problem.
-                </div>
-              </div>
-
               <div style={{ ...card, width: 520, flex: "none", overflow: "hidden" }}>
                 <div style={{ padding: "15px 18px", display: "flex", alignItems: "baseline", gap: 10, borderBottom: `1px solid ${LINE}` }}>
-                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Resubmissions</span>
-                  <span style={{ fontSize: 12, color: MUT }}>of that reviewer&apos;s submitted reviews</span>
+                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issue mix by day</span>
+                  <span style={{ fontSize: 12, color: MUT }}>findings per category · transcription excluded</span>
                 </div>
-                {detail.resub.length === 0 && <div style={{ padding: "18px", fontSize: 12, color: MUT }}>No resubmissions recorded.</div>}
-                {detail.resub.map((r) => (
-                  <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 18px", borderBottom: `1px solid #f2f5f8` }}>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-                    <span style={{ width: 120, flex: "none", height: 6, borderRadius: 3, background: LINE, overflow: "hidden", display: "flex" }}>
-                      <span style={{ width: `${Math.min(100, r.pct / 14 * 100)}%`, background: r.pct > 8 ? AMBER_BAR : MUT }} />
-                    </span>
-                    <span className={mono.className} style={{ width: 52, flex: "none", textAlign: "right", fontSize: 11.5, color: r.pct > 8 ? AMBER : MUT }}>{r.pct}%</span>
-                    <span className={mono.className} style={{ width: 84, flex: "none", textAlign: "right", fontSize: 11, color: FAINT }}>{r.n}</span>
-                  </div>
-                ))}
-                <div style={{ padding: "11px 18px", fontSize: 11.5, color: MUT, lineHeight: 1.55 }}>
-                  Above 8% usually means the call list is ambiguous, not that the reviewer is careless.
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
+                  <span style={{ width: 44, flex: "none" }}>Day</span>
+                  {detail.issueMix.slice(0, 4).map((m) => (
+                    <span key={m.name} style={{ flex: 1, minWidth: 0, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name.split(" ")[0]}</span>
+                  ))}
+                  <span style={{ width: 48, flex: "none", textAlign: "right" }}>Total</span>
+                </div>
+                {detail.issueTrend.daily.slice().reverse().map((d0, ri) => {
+                  const di = detail.issueTrend.daily.length - 1 - ri;
+                  const rowTotal = detail.issueMix.reduce((s, m) => s + (m.bars[di] || 0), 0);
+                  if (!rowTotal) return null;
+                  return (
+                    <div key={d0.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 18px", borderBottom: `1px solid #f2f5f8` }}>
+                      <span className={mono.className} style={{ width: 44, flex: "none", fontSize: 11.5 }}>{d0.label}</span>
+                      {detail.issueMix.slice(0, 4).map((m) => (
+                        <span key={m.name} className={mono.className} style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 11.5, color: m.bars[di] ? INK : FAINT }}>{m.bars[di] || "·"}</span>
+                      ))}
+                      <span className={mono.className} style={{ width: 48, flex: "none", textAlign: "right", fontSize: 11.5, fontWeight: 500 }}>{rowTotal}</span>
+                    </div>
+                  );
+                })}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 18px", background: "#fbfcfd" }}>
+                  <span className={mono.className} style={{ width: 44, flex: "none", fontSize: 11, color: MUT }}>14d</span>
+                  {detail.issueMix.slice(0, 4).map((m) => (
+                    <span key={m.name} className={mono.className} style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 11.5, fontWeight: 500 }}>{m.total.toLocaleString()}</span>
+                  ))}
+                  <span className={mono.className} style={{ width: 48, flex: "none", textAlign: "right", fontSize: 11.5, fontWeight: 500 }}>{detail.issueMix.reduce((s, m) => s + m.total, 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
+
+            {/* issue-logging agreement */}
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              {[
+                { name: "Issue agreement · against the panel", v: detail.issueAgreement.vsPeers, cap: "Same categories flagged on the same call, two panel reviewers · category-set overlap." },
+                { name: "Issue agreement · against ground truth", v: detail.issueAgreement.vsGT, cap: "Panel's categories against the expert's on shared calls · pairs where neither logged anything are excluded." }
+              ].map((c) => (
+                <div key={c.name} style={{ ...card, flex: "1 1 300px", minWidth: 0, padding: "17px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <span className={grotesk.className} style={{ fontSize: 14.5, fontWeight: 600 }}>{c.name}</span>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                    <span className={mono.className} style={{ fontSize: 30, color: c.v.pct === null ? FAINT : c.v.pct >= 60 ? INK : AMBER }}>{c.v.pct === null ? "—" : `${c.v.pct}%`}</span>
+                    <span className={mono.className} style={{ fontSize: 11, color: FAINT }}>{c.v.n.toLocaleString()} call-pairs</span>
+                  </div>
+                  <span style={{ fontSize: 11.5, color: MUT, lineHeight: 1.55 }}>{c.cap}</span>
+                </div>
+              ))}
+            </div>
+
           </>
         )}
 
@@ -672,16 +673,20 @@ export default function Ops() {
                   <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Panel reliability · against each other</span>
                   <span style={{ fontSize: 12, color: MUT }}>script-insensitive word agreement · same timestamp, same call</span>
                 </div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <div className={mono.className} style={{ width: 30, flex: "none", display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: 10, color: FAINT, height: 140, textAlign: "right" }}>
-                    <span>100%</span><span>67%</span><span>33%</span><span>0%</span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Line series={detail.transcription.panel} lo={0} hi={100} height={140} />
-                  </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+                  {detail.transcription.panel.map((p) => (
+                    <div key={p.label} style={{
+                      border: `1px solid ${p.value ? BORDER : LINE}`, borderRadius: 8,
+                      background: p.value ? "#fbfcfd" : "#fff",
+                      padding: "9px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 3
+                    }}>
+                      <span className={mono.className} style={{ fontSize: 16, color: p.value ? (p.value >= 75 ? INK : AMBER) : FAINT }}>{p.value ? `${p.value}%` : "·"}</span>
+                      <span className={mono.className} style={{ fontSize: 9.5, color: FAINT }}>{p.label}</span>
+                    </div>
+                  ))}
                 </div>
                 <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 11, fontSize: 11.5, color: MUT, lineHeight: 1.6 }}>
-                  Daily, over every segment two or more reviewers both transcribed. Days without shared segments are blank, not zero.
+                  One number per day, over every segment two or more reviewers both transcribed · a dot means no shared segments that day, not zero. Under 75% shows amber.
                 </div>
               </div>
 

@@ -74,6 +74,8 @@ export type OpsCalib = { name: string; value: number; dev: number[]; flag: boole
 
 export type OpsMatrixRow = {
   batch: string;
+  /** date the batch's queue rows were written */
+  assignedOn: string;
   per: { name: string; assigned: number; done: number }[];
   assigned: number;
   done: number;
@@ -91,6 +93,8 @@ export type OpsClientDetail = {
   funnel: { label: string; reviewed: number; low: number; logged: number }[];
   funnelBacklog: { count: number; oldestDays: number };
   issueMix: { name: string; bars: number[]; total: number; deltaPct: number | null }[];
+  /** issue-logging agreement · Jaccard of category sets on shared calls */
+  issueAgreement: { vsPeers: { pct: number | null; n: number }; vsGT: { pct: number | null; n: number } };
   /** issue findings captured per day (14d) and per week (8w), transcription excluded */
   issueTrend: { daily: { label: string; value: number }[]; weekly: { label: string; value: number }[] };
   /** vibe-work batches × reviewers · calls done of assigned */
