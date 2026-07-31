@@ -72,6 +72,15 @@ export type OpsAgreement = {
 
 export type OpsCalib = { name: string; value: number; dev: number[]; flag: boolean };
 
+export type OpsMatrixRow = {
+  batch: string;
+  per: { name: string; assigned: number; done: number }[];
+  assigned: number;
+  done: number;
+};
+
+export type OpsGtRow = { name: string; pct: number | null; n: number };
+
 export type OpsClientDetail = {
   key: string;
   name: string;
@@ -82,10 +91,26 @@ export type OpsClientDetail = {
   funnel: { label: string; reviewed: number; low: number; logged: number }[];
   funnelBacklog: { count: number; oldestDays: number };
   issueMix: { name: string; bars: number[]; total: number; deltaPct: number | null }[];
+  /** issue findings captured per day (14d) and per week (8w), transcription excluded */
+  issueTrend: { daily: { label: string; value: number }[]; weekly: { label: string; value: number }[] };
+  /** vibe-work batches × reviewers · calls done of assigned */
+  vibeMatrix: OpsMatrixRow[];
+  /** per reviewer · % of their scores within ±1 of the expert score on shared calls */
+  vibeVsGT: { rows: OpsGtRow[]; overall: number | null; gtCalls: number };
+  /** per reviewer · % of their scores within ±1 of each co-rater on shared calls */
+  vibeVsPeers: OpsGtRow[];
   deliveries: OpsDelivery[];
   agents: OpsAgent[];
   agreement: OpsAgreement[];
-  transcription: { panel: { label: string; value: number }[]; gt: { i: number; value: number }[]; lastCalibrated: string };
+  transcription: {
+    panel: { label: string; value: number }[];
+    gt: { i: number; value: number }[];
+    lastCalibrated: string;
+    /** segment-level word agreement of the panel against expert transcriptions */
+    gtAgreement: number | null;
+    gtSegments: number;
+    gtCalls: number;
+  };
   calib: OpsCalib[];
   flagRate: { label: string; pct: number }[];
   resub: { name: string; pct: number; n: string }[];

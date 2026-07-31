@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
-import { INK, MUT, GREEN, PURPLE, RED } from "../../lib/ui";
+import { INK, MUT, GREEN, RED } from "../../lib/ui";
 import { isExpert } from "../../lib/role";
 import type { OpsPayload, OpsClientDetail, OpsReviewer } from "../../lib/ops-shape";
 
@@ -171,12 +171,12 @@ export default function Ops() {
 
       {level.view === "client" && detail && (
         <div style={{ background: "#fff", borderBottom: `1px solid ${BORDER}`, padding: "0 28px", display: "flex", gap: 20 }}>
-          {["Quality", "Coverage", "Reliability", "Agents"].map((t) => (
+          {["Vibe", "Issues", "Transcription", "Coverage", "Agents"].map((t) => (
             <span key={t} onClick={() => setLevel({ ...level, tab: t })}
               style={{
-                fontSize: 12.5, fontWeight: (level.tab || "Quality") === t ? 600 : 400,
-                color: (level.tab || "Quality") === t ? INK : MUT, padding: "10px 0",
-                borderBottom: `2px solid ${(level.tab || "Quality") === t ? INK : "transparent"}`, cursor: "pointer"
+                fontSize: 12.5, fontWeight: (level.tab || "Vibe") === t ? 600 : 400,
+                color: (level.tab || "Vibe") === t ? INK : MUT, padding: "10px 0",
+                borderBottom: `2px solid ${(level.tab || "Vibe") === t ? INK : "transparent"}`, cursor: "pointer"
               }}>{t}</span>
           ))}
         </div>
@@ -189,7 +189,7 @@ export default function Ops() {
           <>
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
               {d.clients.map((c) => (
-                <div key={c.key} onClick={() => setLevel({ view: "client", client: c.key, tab: "Quality" })}
+                <div key={c.key} onClick={() => setLevel({ view: "client", client: c.key, tab: "Vibe" })}
                   style={{ ...card, flex: "1 1 260px", minWidth: 0, padding: "15px 17px", display: "flex", flexDirection: "column", gap: 11, cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>{c.name}</span>
@@ -343,7 +343,7 @@ export default function Ops() {
         )}
 
         {/* ---------------- LEVEL 2 / 3 ---------------- */}
-        {level.view === "client" && detail && (level.tab || "Quality") === "Quality" && (
+        {level.view === "client" && detail && (level.tab || "Vibe") === "Vibe" && (
           <>
             <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
               <div style={{ ...card, flex: "1 1 620px", minWidth: 0, padding: "17px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -383,61 +383,98 @@ export default function Ops() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
-              <div style={{ ...card, flex: "1 1 560px", minWidth: 0, padding: "17px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Low-rated funnel</span>
-                  <span style={{ fontSize: 12, color: MUT }}>calls reviewed → rated 1–2 → issue logged, per day</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 9, height: 130 }}>
-                  {detail.funnel.map((f, i) => {
-                    const max = Math.max(1, ...detail.funnel.map((x) => x.reviewed));
-                    const scale = 118 / max;
-                    return (
-                      <div key={i} style={{ flex: 1, minWidth: 0, position: "relative", height: 130, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-                        <div style={{ width: "100%", height: Math.round(f.reviewed * scale), background: LINE, borderRadius: "3px 3px 0 0" }} />
-                        <div style={{ position: "absolute", bottom: 0, width: "56%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                          <div style={{ height: Math.round((f.low - f.logged) * scale), background: AMBER_BAR, borderRadius: "3px 3px 0 0" }} />
-                          <div style={{ height: Math.round(f.logged * scale), background: RED_BAR }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{ display: "flex", gap: 9 }}>
-                  {detail.funnel.map((f, i) => (
-                    <span key={i} className={mono.className} style={{ flex: 1, textAlign: "center", fontSize: 9.5, color: FAINT }}>{f.label}</span>
-                  ))}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 11.5, color: MUT, borderTop: `1px solid ${LINE}`, paddingTop: 11, flexWrap: "wrap" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: LINE }} />reviewed</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: RED_BAR }} />1–2, issue logged</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: AMBER_BAR }} />1–2, not yet logged</span>
-                  <span style={{ flex: 1 }} />
-                  {detail.funnelBacklog.count > 0 && (
-                    <span style={{ color: AMBER, fontWeight: 600 }}>{detail.funnelBacklog.count} calls waiting on issue logging · oldest {detail.funnelBacklog.oldestDays} days</span>
-                  )}
-                </div>
+            {/* agreement three ways */}
+            <div style={{ ...card, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Vibe agreement</span>
+                <span style={{ fontSize: 12, color: MUT }}>every call rated by two or more reviewers · 1–4 scale</span>
               </div>
-
-              <div style={{ ...card, width: 420, flex: "none", padding: "17px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issue mix</span>
-                  <span style={{ fontSize: 12, color: MUT }}>by category, six weeks</span>
-                </div>
-                {detail.issueMix.map((m) => (
-                  <div key={m.name} style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                    <span style={{ width: 118, flex: "none", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
-                    <span style={{ flex: 1, minWidth: 0 }}><Bars vals={m.bars} h={26} color={(v, i, n) => i === n - 1 ? (m.deltaPct !== null && m.deltaPct > 0 ? "#d99aa0" : "#9dc4b3") : SLATE} /></span>
-                    <span className={mono.className} style={{ width: 52, flex: "none", textAlign: "right", fontSize: 11.5 }}>{m.total.toLocaleString()}</span>
-                    <span className={mono.className} style={{ width: 44, flex: "none", textAlign: "right", fontSize: 11, color: m.deltaPct === null ? FAINT : m.deltaPct > 0 ? RED_BAR : GREEN }}>
-                      {m.deltaPct === null ? "—" : `${m.deltaPct > 0 ? "▲" : "▼"} ${Math.abs(m.deltaPct)}%`}
-                    </span>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                {detail.agreement.map((a) => (
+                  <div key={a.name} style={{
+                    flex: "1 1 220px", minWidth: 0, background: a.tone === "warn" ? "#fdfaf3" : "#fbfcfd",
+                    border: `1px solid ${a.tone === "warn" ? "#f0e2c4" : BORDER}`, borderRadius: 11, padding: "15px 17px",
+                    display: "flex", flexDirection: "column", gap: 7
+                  }}>
+                    <span className={mono.className} style={{ fontSize: 28, color: a.tone === "warn" ? AMBER : INK }}>{a.value}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{a.name}</span>
+                    <span style={{ fontSize: 11.5, color: MUT, lineHeight: 1.55 }}>{a.caption}</span>
                   </div>
                 ))}
-                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 10, fontSize: 11.5, color: MUT, lineHeight: 1.55 }}>
-                  Counts are findings, not calls · transcription dominates because every corrected segment counts once.
+              </div>
+            </div>
+
+            {/* ±1 vs GT and vs peers, per reviewer */}
+            <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
+              {[
+                { title: "Within ±1 of ground truth", sub: `expert-scored calls · ${detail.vibeVsGT.gtCalls} GT calls · overall ${detail.vibeVsGT.overall ?? "—"}%`, rows: detail.vibeVsGT.rows },
+                { title: "Within ±1 of co-raters", sub: "per reviewer, against every other score on shared calls", rows: detail.vibeVsPeers }
+              ].map((blk) => (
+                <div key={blk.title} style={{ ...card, flex: "1 1 380px", minWidth: 0, overflow: "hidden" }}>
+                  <div style={{ padding: "15px 18px", display: "flex", alignItems: "baseline", gap: 10, borderBottom: `1px solid ${LINE}`, flexWrap: "wrap" }}>
+                    <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>{blk.title}</span>
+                    <span style={{ fontSize: 12, color: MUT }}>{blk.sub}</span>
+                  </div>
+                  {blk.rows.length === 0 && <div style={{ padding: 18, fontSize: 12, color: MUT }}>No shared calls yet.</div>}
+                  {blk.rows.map((r) => (
+                    <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px", borderBottom: `1px solid #f2f5f8` }}>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+                      <span style={{ width: 150, flex: "none", height: 6, borderRadius: 3, background: LINE, overflow: "hidden", display: "flex" }}>
+                        <span style={{ width: `${r.pct ?? 0}%`, background: (r.pct ?? 0) >= 80 ? GREEN : (r.pct ?? 0) >= 60 ? AMBER_BAR : RED_BAR }} />
+                      </span>
+                      <span className={mono.className} style={{ width: 46, flex: "none", textAlign: "right", fontSize: 12, color: (r.pct ?? 0) >= 80 ? INK : AMBER }}>{r.pct === null ? "—" : `${r.pct}%`}</span>
+                      <span className={mono.className} style={{ width: 74, flex: "none", textAlign: "right", fontSize: 10.5, color: FAINT }}>{r.n} scores</span>
+                    </div>
+                  ))}
                 </div>
+              ))}
+            </div>
+
+            {/* batch × reviewer done matrix */}
+            <div style={{ ...card, overflow: "hidden" }}>
+              <div style={{ padding: "15px 18px", display: "flex", alignItems: "baseline", gap: 10, borderBottom: `1px solid ${LINE}` }}>
+                <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Calls done · batch × reviewer</span>
+                <span style={{ fontSize: 12, color: MUT }}>done / assigned per person · newest batch first</span>
+              </div>
+              {detail.vibeMatrix.map((row) => (
+                <div key={row.batch} style={{ display: "flex", alignItems: "center", gap: 14, padding: "11px 18px", borderBottom: `1px solid #f2f5f8`, flexWrap: "wrap" }}>
+                  <span className={mono.className} style={{ width: 96, flex: "none", fontSize: 12, fontWeight: 500 }}>{row.batch}</span>
+                  <span className={mono.className} style={{ width: 88, flex: "none", fontSize: 11.5, color: row.done >= row.assigned ? GREEN : MUT }}>{row.done}/{row.assigned}</span>
+                  <span style={{ flex: 1, minWidth: 0, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {row.per.map((p) => (
+                      <span key={p.name} style={{
+                        display: "flex", alignItems: "center", gap: 6, borderRadius: 7,
+                        border: `1px solid ${p.done >= p.assigned ? "#cfe6db" : "#f0e2c4"}`,
+                        background: p.done >= p.assigned ? "#f2faf6" : "#fdfaf3", padding: "3px 9px"
+                      }}>
+                        <span style={{ fontSize: 11.5 }}>{p.name.split(" ")[0]}</span>
+                        <span className={mono.className} style={{ fontSize: 10.5, color: p.done >= p.assigned ? GREEN : AMBER }}>{p.done}/{p.assigned}</span>
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* per-person calibration */}
+            <div style={{ ...card, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Per-person calibration</span>
+                <span style={{ fontSize: 12, color: MUT }}>deviation from panel consensus, 7 days · grey band is ±0.5</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(110px,1fr))", gap: 12 }}>
+                {detail.calib.map((p) => (
+                  <div key={p.name} style={{
+                    border: `1px solid ${p.flag ? "#f0cfd1" : LINE}`, background: p.flag ? "#fdf5f5" : "#fbfcfd",
+                    borderRadius: 9, padding: "9px 10px", display: "flex", flexDirection: "column", gap: 6
+                  }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                      <span className={mono.className} style={{ fontSize: 10.5, color: p.flag ? RED_BAR : MUT }}>{p.value > 0 ? "+" : ""}{p.value.toFixed(1)}</span>
+                    </div>
+                    <Sparkline dev={p.dev} />
+                  </div>
+                ))}
               </div>
             </div>
           </>
@@ -483,75 +520,99 @@ export default function Ops() {
           </div>
         )}
 
-        {level.view === "client" && detail && level.tab === "Reliability" && (
+        {level.view === "client" && detail && level.tab === "Issues" && (
           <>
-            <div style={{ ...card, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+            {/* funnel + pending */}
+            <div style={{ ...card, padding: "17px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Vibe agreement</span>
-                <span style={{ fontSize: 12, color: MUT }}>every call rated by two or more reviewers · 1–4 scale</span>
+                <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Low-rated funnel</span>
+                <span style={{ fontSize: 12, color: MUT }}>calls reviewed → rated 1–2 → issue logged, per day</span>
+                <span style={{ flex: 1 }} />
+                <a href="/api/ops/remarks" download style={{ fontSize: 12, fontWeight: 600, color: GREEN, border: `1px solid #cfe6db`, background: "#f2faf6", borderRadius: 7, padding: "6px 12px", textDecoration: "none" }}>
+                  ↓ Written remarks (CSV)
+                </a>
               </div>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                {detail.agreement.map((a) => (
-                  <div key={a.name} style={{
-                    flex: "1 1 220px", minWidth: 0, background: a.tone === "warn" ? "#fdfaf3" : "#fbfcfd",
-                    border: `1px solid ${a.tone === "warn" ? "#f0e2c4" : BORDER}`, borderRadius: 11, padding: "15px 17px",
-                    display: "flex", flexDirection: "column", gap: 7
-                  }}>
-                    <span className={mono.className} style={{ fontSize: 28, color: a.tone === "warn" ? AMBER : INK }}>{a.value}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{a.name}</span>
-                    <span style={{ fontSize: 11.5, color: MUT, lineHeight: 1.55 }}>{a.caption}</span>
-                  </div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 9, height: 130 }}>
+                {detail.funnel.map((f, i) => {
+                  const max = Math.max(1, ...detail.funnel.map((x) => x.reviewed));
+                  const scale = 118 / max;
+                  return (
+                    <div key={i} style={{ flex: 1, minWidth: 0, position: "relative", height: 130, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                      <div style={{ width: "100%", height: Math.round(f.reviewed * scale), background: LINE, borderRadius: "3px 3px 0 0" }} />
+                      <div style={{ position: "absolute", bottom: 0, width: "56%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                        <div style={{ height: Math.round((f.low - f.logged) * scale), background: AMBER_BAR, borderRadius: "3px 3px 0 0" }} />
+                        <div style={{ height: Math.round(f.logged * scale), background: RED_BAR }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 9 }}>
+                {detail.funnel.map((f, i) => (
+                  <span key={i} className={mono.className} style={{ flex: 1, textAlign: "center", fontSize: 9.5, color: FAINT }}>{f.label}</span>
                 ))}
               </div>
-              <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 11, fontSize: 12, color: MUT, lineHeight: 1.6 }}>
-                ±1 saturates on a four-point scale — two reviewers who disagree at random still land within 1 much of the time. Watch exact match and alpha; report ±1 only alongside them.
+              <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 11.5, color: MUT, borderTop: `1px solid ${LINE}`, paddingTop: 11, flexWrap: "wrap" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: LINE }} />reviewed</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: RED_BAR }} />1–2, issue logged</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: AMBER_BAR }} />1–2, not yet logged</span>
+                <span style={{ flex: 1 }} />
+                {detail.funnelBacklog.count > 0 && (
+                  <span style={{ color: AMBER, fontWeight: 600 }}>{detail.funnelBacklog.count} calls pending issue logging · oldest {detail.funnelBacklog.oldestDays} days</span>
+                )}
               </div>
             </div>
 
+            {/* issues captured trend + mix */}
             <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
-              <div style={{ ...card, flex: "1 1 520px", minWidth: 0, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Transcription reliability</span>
-                  <span style={{ fontSize: 12, color: MUT }}>script-insensitive · same timestamp, same call</span>
+              <div style={{ ...card, flex: "1 1 480px", minWidth: 0, padding: "17px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issues captured</span>
+                  <span style={{ fontSize: 12, color: MUT }}>findings logged · transcription excluded</span>
+                  <span style={{ flex: 1 }} />
+                  <span style={{ display: "flex", background: "#f2f5f8", borderRadius: 7, padding: 3 }}>
+                    {[["Daily", false], ["Weekly", true]].map(([l, w]) => (
+                      <span key={String(l)} onClick={() => setWeekly(w as boolean)}
+                        style={{ fontSize: 11.5, fontWeight: 600, background: weekly === w ? "#fff" : "transparent", color: weekly === w ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer" }}>{l}</span>
+                    ))}
+                  </span>
                 </div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <div className={mono.className} style={{ width: 30, flex: "none", display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: 10, color: FAINT, height: 140, textAlign: "right" }}>
-                    <span>100%</span><span>67%</span><span>33%</span><span>0%</span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Line series={detail.transcription.panel} lo={0} hi={100} height={140} />
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 11.5, color: MUT, flexWrap: "wrap" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 2, background: INK }} />panel pairwise, daily</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: 5, background: PURPLE }} />vs expert ground truth</span>
-                </div>
-                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 11, fontSize: 11.5, color: AMBER, lineHeight: 1.6 }}>
-                  No expert ground truth exists yet — no calibration batch has been run, so the purple series is empty. Until then panel agreement is the only reliability figure, and it cannot tell you whether the panel is collectively wrong.
-                </div>
+                {(() => {
+                  const series = weekly ? detail.issueTrend.weekly : detail.issueTrend.daily;
+                  const max = Math.max(1, ...series.map((s) => s.value));
+                  return (
+                    <>
+                      <div style={{ display: "flex", alignItems: "flex-end", gap: weekly ? 14 : 8, height: 110 }}>
+                        {series.map((s, i) => (
+                          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
+                            <span className={mono.className} style={{ fontSize: 10, color: s.value ? MUT : FAINT }}>{s.value || ""}</span>
+                            <span style={{ width: "100%", borderRadius: "3px 3px 0 0", height: Math.max(s.value ? 3 : 1, Math.round(78 * (s.value / max))), background: s.value ? "#9dc4b3" : LINE }} />
+                            <span className={mono.className} style={{ fontSize: 9.5, color: FAINT }}>{s.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
-              <div style={{ ...card, width: 520, flex: "none", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
+              <div style={{ ...card, width: 460, flex: "none", padding: "17px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Per-person calibration</span>
-                  <span style={{ fontSize: 12, color: MUT }}>deviation from panel consensus, 7 days</span>
+                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issue mix</span>
+                  <span style={{ fontSize: 12, color: MUT }}>by category, last 14 days · transcription excluded</span>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(110px,1fr))", gap: 12 }}>
-                  {detail.calib.map((p) => (
-                    <div key={p.name} style={{
-                      border: `1px solid ${p.flag ? "#f0cfd1" : LINE}`, background: p.flag ? "#fdf5f5" : "#fbfcfd",
-                      borderRadius: 9, padding: "9px 10px", display: "flex", flexDirection: "column", gap: 6
-                    }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                        <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
-                        <span className={mono.className} style={{ fontSize: 10.5, color: p.flag ? RED_BAR : MUT }}>{p.value > 0 ? "+" : ""}{p.value.toFixed(1)}</span>
-                      </div>
-                      <Sparkline dev={p.dev} />
-                    </div>
-                  ))}
-                </div>
-                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 11, fontSize: 11.5, color: MUT, lineHeight: 1.6 }}>
-                  Grey band is ±0.5, the point where a rescore conversation is worth having.
+                {detail.issueMix.map((m) => (
+                  <div key={m.name} style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                    <span style={{ width: 128, flex: "none", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}><Bars vals={m.bars} h={26} color={(v, i, n) => i === n - 1 ? (m.deltaPct !== null && m.deltaPct > 0 ? "#d99aa0" : "#9dc4b3") : SLATE} /></span>
+                    <span className={mono.className} style={{ width: 52, flex: "none", textAlign: "right", fontSize: 11.5 }}>{m.total.toLocaleString()}</span>
+                    <span className={mono.className} style={{ width: 44, flex: "none", textAlign: "right", fontSize: 11, color: m.deltaPct === null ? FAINT : m.deltaPct > 0 ? RED_BAR : GREEN }}>
+                      {m.deltaPct === null ? "—" : `${m.deltaPct > 0 ? "▲" : "▼"} ${Math.abs(m.deltaPct)}%`}
+                    </span>
+                  </div>
+                ))}
+                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 10, fontSize: 11.5, color: MUT, lineHeight: 1.55 }}>
+                  One bar per day · delta compares the last 7 days with the 7 before.
                 </div>
               </div>
             </div>
@@ -599,6 +660,61 @@ export default function Ops() {
                   Above 8% usually means the call list is ambiguous, not that the reviewer is careless.
                 </div>
               </div>
+            </div>
+          </>
+        )}
+
+        {level.view === "client" && detail && level.tab === "Transcription" && (
+          <>
+            <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
+              <div style={{ ...card, flex: "1 1 560px", minWidth: 0, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Panel reliability · against each other</span>
+                  <span style={{ fontSize: 12, color: MUT }}>script-insensitive word agreement · same timestamp, same call</span>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <div className={mono.className} style={{ width: 30, flex: "none", display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: 10, color: FAINT, height: 140, textAlign: "right" }}>
+                    <span>100%</span><span>67%</span><span>33%</span><span>0%</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Line series={detail.transcription.panel} lo={0} hi={100} height={140} />
+                  </div>
+                </div>
+                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 11, fontSize: 11.5, color: MUT, lineHeight: 1.6 }}>
+                  Daily, over every segment two or more reviewers both transcribed. Days without shared segments are blank, not zero.
+                </div>
+              </div>
+
+              <div style={{ ...card, width: 380, flex: "none", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+                <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Against ground truth</span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <span className={mono.className} style={{ fontSize: 34, color: detail.transcription.gtAgreement === null ? FAINT : INK }}>
+                    {detail.transcription.gtAgreement === null ? "—" : `${detail.transcription.gtAgreement}%`}
+                  </span>
+                  <span style={{ fontSize: 12, color: MUT }}>word agreement with expert transcription</span>
+                </div>
+                <div style={{ fontSize: 12, color: MUT, lineHeight: 1.6 }}>
+                  {detail.transcription.gtAgreement === null
+                    ? "No expert transcriptions overlap the panel's yet."
+                    : `Measured on ${detail.transcription.gtSegments.toLocaleString()} segment comparisons across ${detail.transcription.gtCalls} calls the experts also transcribed.`}
+                </div>
+                <div className={mono.className} style={{ fontSize: 11, color: FAINT }}>last expert transcription · {detail.transcription.lastCalibrated}</div>
+                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 12, fontSize: 11.5, color: MUT, lineHeight: 1.6 }}>
+                  Panel-vs-panel says whether reviewers agree; this says whether they are right. A standing weekly expert batch (~20 calls) keeps it fresh.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ ...card, padding: "18px 20px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 240 }}>
+                <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Golden transcription dataset</div>
+                <div style={{ fontSize: 12, color: MUT, marginTop: 4, lineHeight: 1.6 }}>
+                  One row per call in the format Abhijit&apos;s file used · call, word counts, ASR original and golden human transcript as timestamped lines, recording link. Expert transcription wins where one exists; otherwise the latest panel pass.
+                </div>
+              </div>
+              <a href="/api/ops/golden" download style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", background: GREEN, borderRadius: 8, padding: "10px 16px", textDecoration: "none", flex: "none" }}>
+                ↓ Download golden dataset (CSV)
+              </a>
             </div>
           </>
         )}

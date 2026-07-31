@@ -3,8 +3,15 @@ import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { sameWord } from "../../../lib/script-match";
 import type {
   OpsPayload, OpsClient, OpsReviewer, OpsAlert, OpsCheck,
-  OpsClientDetail, OpsAgreement, OpsCalib
+  OpsClientDetail, OpsAgreement, OpsCalib, OpsMatrixRow, OpsGtRow
 } from "../../../lib/ops-shape";
+
+// GT = the founders' own reviews · the "expert" role in the reviewers table
+// plus their pre-migration identities that still stamp old rows.
+const EXPERT_IDS = new Set([
+  "manavi@realloop.in", "manavi.garg1399@gmail.com",
+  "nabh@realloop.in", "nabhgarg@gmail.com", "manavi", "nabh"
+]);
 
 export const dynamic = "force-dynamic";
 
@@ -482,34 +489,114 @@ export async function GET() {
         if (t) oldestDays = Math.max(oldestDays, Math.floor((Date.parse(nowIso) - Date.parse(t)) / 86400000));
       }
 
-      // issue mix, 6 weeks
+      // Issue mix at DAY level, transcription excluded · transcription findings
+      // are a different process with their own tab, and at 30k findings they
+      // flattened every other category into invisibility.
       const weeks: string[][] = [];
       for (let w = 5; w >= 0; w--) {
         weeks.push(lastNDays(7, lastNDays(w * 7 + 1, today)[0]));
       }
-      const weekOf = new Map<string, number>();
-      weeks.forEach((wk, i) => wk.forEach((d) => weekOf.set(d, i)));
+      const dayIdx = new Map(d14.map((d, i) => [d, i]));
       const catTotals = new Map<string, number[]>();
       for (const r of mine) {
-        const cats = issueCategories(r.issues_json);
-        const wi = weekOf.get(day(r.submitted_at));
-        if (wi === undefined) continue;
-        for (const cat of cats) {
-          if (!catTotals.has(cat)) catTotals.set(cat, new Array(6).fill(0));
-          (catTotals.get(cat) as number[])[wi]++;
+        const di = dayIdx.get(day(r.submitted_at));
+        if (di === undefined) continue;
+        for (const cat of issueCategories(r.issues_json)) {
+          if (cat === "transcription") continue;
+          if (!catTotals.has(cat)) catTotals.set(cat, new Array(d14.length).fill(0));
+          (catTotals.get(cat) as number[])[di]++;
         }
       }
       const issueMix = [...catTotals.entries()]
         .map(([k, bars]) => {
           const total = bars.reduce((s, n) => s + n, 0);
-          const prev = bars[4], last = bars[5];
+          const last7 = bars.slice(7).reduce((s, n) => s + n, 0);
+          const prev7 = bars.slice(0, 7).reduce((s, n) => s + n, 0);
           return {
             name: ISSUE_LABEL[k] || k,
             bars, total,
-            deltaPct: prev > 0 ? Math.round(((last - prev) / prev) * 100) : null
+            deltaPct: prev7 > 0 ? Math.round(((last7 - prev7) / prev7) * 100) : null
           };
         })
         .sort((a, b) => b.total - a.total);
+
+      // issues captured per day / per week, transcription excluded
+      const days56 = lastNDays(56, today);
+      const issueDayCount = new Map<string, number>();
+      for (const r of mine) {
+        const dd = day(r.submitted_at);
+        const n = issueCategories(r.issues_json).filter((c) => c !== "transcription").length;
+        if (n) issueDayCount.set(dd, (issueDayCount.get(dd) || 0) + n);
+      }
+      const issueTrend = {
+        daily: d14.map((dd) => ({ label: dd.slice(8), value: issueDayCount.get(dd) || 0 })),
+        weekly: Array.from({ length: 8 }, (_, i) => {
+          const wk = days56.slice(i * 7, i * 7 + 7);
+          return { label: wk[0].slice(5), value: wk.reduce((s, dd) => s + (issueDayCount.get(dd) || 0), 0) };
+        })
+      };
+
+      // ---- vibe · batch × reviewer done matrix ----
+      const mxAgg = new Map<string, { latest: string; per: Map<string, { a: number; d: number }> }>();
+      for (const q of active) {
+        if (workType(q.audit_mode) !== "quality_review" || !callIds.has(q.call_id)) continue;
+        const tag = batchOf(q.audit_mode);
+        if (/^[0-9a-f]{8}-/i.test(tag) || tag.length < 2) continue;
+        const w = (q as any)._who;
+        if (!w) continue;
+        if (!mxAgg.has(tag)) mxAgg.set(tag, { latest: "", per: new Map() });
+        const row = mxAgg.get(tag) as any;
+        const t = String(q.imported_at || "");
+        if (t > row.latest) row.latest = t;
+        if (!row.per.has(w)) row.per.set(w, { a: 0, d: 0 });
+        const cell = row.per.get(w);
+        cell.a++;
+        if ((q as any)._done) cell.d++;
+      }
+      const vibeMatrix: OpsMatrixRow[] = [...mxAgg.entries()]
+        .sort((a, b) => (a[1].latest < b[1].latest ? 1 : -1))
+        .map(([tag, row]) => {
+          const per = [...row.per.entries()]
+            .map(([w, c]: [string, any]) => ({ name: nameOf.get(w) || w.split("@")[0], assigned: c.a, done: c.d }))
+            .sort((x, y) => x.name.localeCompare(y.name));
+          return {
+            batch: tag,
+            per,
+            assigned: per.reduce((s, p) => s + p.assigned, 0),
+            done: per.reduce((s, p) => s + p.done, 0)
+          };
+        });
+
+      // ---- vibe vs GT · panel scores within ±1 of the expert mean ----
+      const expertSum = new Map<string, { sum: number; n: number }>();
+      for (const r of qr) {
+        const v = Number(r.vibe_score);
+        if (!(v >= 1 && v <= 4) || !EXPERT_IDS.has((r as any)._who)) continue;
+        const e = expertSum.get(r.call_id) || { sum: 0, n: 0 };
+        e.sum += v; e.n++;
+        expertSum.set(r.call_id, e);
+      }
+      const gtHit = new Map<string, { hit: number; n: number }>();
+      let gtHitAll = 0, gtNAll = 0;
+      for (const r of qr) {
+        const v = Number(r.vibe_score);
+        const w = (r as any)._who;
+        if (!(v >= 1 && v <= 4) || EXPERT_IDS.has(w)) continue;
+        const e = expertSum.get(r.call_id);
+        if (!e) continue;
+        const hit = Math.abs(v - e.sum / e.n) <= 1 ? 1 : 0;
+        const g = gtHit.get(w) || { hit: 0, n: 0 };
+        g.hit += hit; g.n++;
+        gtHit.set(w, g);
+        gtHitAll += hit; gtNAll++;
+      }
+      const vibeVsGT = {
+        rows: [...gtHit.entries()]
+          .map(([w, g]): OpsGtRow => ({ name: nameOf.get(w) || w.split("@")[0], pct: g.n ? Math.round((g.hit / g.n) * 100) : null, n: g.n }))
+          .sort((a, b) => (a.pct ?? 0) - (b.pct ?? 0)),
+        overall: gtNAll ? Math.round((gtHitAll / gtNAll) * 100) : null,
+        gtCalls: expertSum.size
+      };
 
       // coverage per delivery
       const bySheet = new Map<string, any[]>();
@@ -613,6 +700,23 @@ export async function GET() {
       // ---- transcription agreement (script-insensitive) ----
       // Bucketed by (day, call) up front · the previous shape re-scanned every
       // transcription review for each call on each of 14 days.
+      // ---- vibe vs peers · within ±1 of each co-rater on shared calls ----
+      const peerHit = new Map<string, { hit: number; n: number }>();
+      for (const [, m] of byCall) {
+        const entries = [...m.entries()].filter(([w]) => !EXPERT_IDS.has(w));
+        for (let i = 0; i < entries.length; i++) for (let j = 0; j < entries.length; j++) {
+          if (i === j) continue;
+          const [w, v] = entries[i];
+          const hit = Math.abs(v - entries[j][1]) <= 1 ? 1 : 0;
+          const g = peerHit.get(w) || { hit: 0, n: 0 };
+          g.hit += hit; g.n++;
+          peerHit.set(w, g);
+        }
+      }
+      const vibeVsPeers: OpsGtRow[] = [...peerHit.entries()]
+        .map(([w, g]): OpsGtRow => ({ name: nameOf.get(w) || w.split("@")[0], pct: g.n ? Math.round((g.hit / g.n) * 100) : null, n: g.n }))
+        .sort((a, b) => (a.pct ?? 0) - (b.pct ?? 0));
+
       // The transcript is not free text · each transcription review carries a
       // list of timestamped segments in issues_json, and `audio_said` is what
       // the reviewer heard. So agreement is measured segment by segment on the
@@ -648,6 +752,38 @@ export async function GET() {
         }
         return { label: d.slice(8), value: n ? Math.round((score / n) * 100) : 0 };
       });
+
+      // ---- transcription vs GT · panel segments against expert segments on
+      // the same timestamp of the same call, all time (GT is sparse) ----
+      const segsOf = (r: any) => (Array.isArray(r.issues_json) ? r.issues_json : [])
+        .map((s: any) => ({ ts: String(s?.timestamp || "").trim(), heard: String(s?.audio_said || "").trim() }))
+        .filter((s: any) => s.ts && s.heard && !s.heard.startsWith("("));
+      const expertSeg = new Map<string, string[]>();
+      let lastExpertTr = "";
+      for (const r of tr) {
+        if (!EXPERT_IDS.has((r as any)._who)) continue;
+        const t = String(r.submitted_at || "");
+        if (t > lastExpertTr) lastExpertTr = t;
+        for (const s of segsOf(r)) {
+          const key = `${r.call_id}@${s.ts}`;
+          if (!expertSeg.has(key)) expertSeg.set(key, []);
+          (expertSeg.get(key) as string[]).push(s.heard);
+        }
+      }
+      let gtScore = 0, gtN = 0;
+      const gtCallSet = new Set<string>();
+      for (const r of tr) {
+        if (EXPERT_IDS.has((r as any)._who)) continue;
+        for (const s of segsOf(r)) {
+          const gts = expertSeg.get(`${r.call_id}@${s.ts}`);
+          if (!gts) continue;
+          for (const g of gts) {
+            gtN++;
+            gtScore += wordAgreement(s.heard, g);
+            gtCallSet.add(r.call_id);
+          }
+        }
+      }
 
       // ---- per-person calibration: deviation from panel consensus ----
       // Leave-one-out consensus · including a reviewer in the average they are
@@ -732,18 +868,25 @@ export async function GET() {
           },
           { value: String(backlogCalls.length), delta: "", label: "low-rated calls not yet issue-logged", tone: backlogCalls.length ? "warn" : "plain" },
           {
-            value: byCall.size ? `${(qr.length / Math.max(1, byCall.size)).toFixed(1)}×` : "—",
-            delta: "", label: "reviews per call · why review counts exceed call counts", tone: "plain"
+            value: vibeVsGT.overall === null ? "—" : `${vibeVsGT.overall}%`,
+            delta: "", label: `of panel scores within ±1 of the expert score · ${vibeVsGT.gtCalls} GT calls`, tone: "plain"
           }
         ],
         funnel,
         funnelBacklog: { count: backlogCalls.length, oldestDays },
-        issueMix, deliveries, agents, agreement,
-        transcription: { panel: trDaily, gt: [], lastCalibrated: "never" },
+        issueMix, issueTrend, vibeMatrix, vibeVsGT, vibeVsPeers,
+        deliveries, agents, agreement,
+        transcription: {
+          panel: trDaily, gt: [],
+          lastCalibrated: lastExpertTr ? day(lastExpertTr) : "never",
+          gtAgreement: gtN ? Math.round((gtScore / gtN) * 100) : null,
+          gtSegments: gtN,
+          gtCalls: gtCallSet.size
+        },
         calib, flagRate, resub
       };
     }
-    problems.push("Expert ground truth for transcription does not exist yet · no calibration batch has been run.");
+    problems.push("Transcription GT comes from expert reviews already in the reviews table · a standing weekly calibration batch would keep it fresh.");
     problems.push("Delivery `expected` count is not recorded on import, so completeness cannot be checked.");
 
     const payload: OpsPayload = {
