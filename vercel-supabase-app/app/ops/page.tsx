@@ -497,13 +497,13 @@ export default function Ops() {
           <div style={{ ...card, overflow: "hidden" }}>
             <div style={{ padding: "15px 18px", display: "flex", alignItems: "baseline", gap: 10, borderBottom: `1px solid ${LINE}` }}>
               <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Coverage per delivery</span>
-              <span style={{ fontSize: 12, color: MUT }}>one row per call dump · % of calls received</span>
+              <span style={{ fontSize: 12, color: MUT }}>one row per call dump · % of its calls a human has actually reviewed</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
               <span style={{ flex: 1, minWidth: 0 }}>Delivery</span>
               <span style={{ width: 74, flex: "none", textAlign: "right" }}>Calls</span>
-              <span style={{ width: 300, flex: "none" }}>Quality · transcript</span>
-              <span style={{ width: 90, flex: "none", textAlign: "right" }}>Untouched</span>
+              <span style={{ width: 300, flex: "none" }}>Reviewed · quality &amp; transcript</span>
+              <span style={{ width: 110, flex: "none", textAlign: "right" }}>Never reviewed</span>
             </div>
             {detail.deliveries.map((dl) => (
               <div key={dl.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: `1px solid #f2f5f8` }}>
@@ -522,13 +522,13 @@ export default function Ops() {
                     </span>
                   ))}
                 </span>
-                <span className={mono.className} style={{ width: 90, flex: "none", textAlign: "right", fontSize: 11.5, color: dl.remainder ? AMBER : MUT }}>
+                <span className={mono.className} style={{ width: 110, flex: "none", textAlign: "right", fontSize: 11.5, color: dl.remainder ? AMBER : MUT }}>
                   {dl.remainder === 0 ? "none" : `${dl.remainder} calls`}
                 </span>
               </div>
             ))}
             <div style={{ padding: "11px 18px", fontSize: 11.5, color: MUT, lineHeight: 1.55 }}>
-              Expected counts are not recorded on import yet, so completeness against what the client says they sent cannot be checked.
+              A call counts as reviewed once any reviewer has submitted for it, whether or not that batch is still open · the two percentages overlap where a call had both kinds of work. Expected counts are not recorded on import yet, so completeness against what the client says they sent cannot be checked.
             </div>
           </div>
         )}

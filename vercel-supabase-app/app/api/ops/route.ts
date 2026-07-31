@@ -607,8 +607,13 @@ export async function GET() {
         if (!bySheet.has(k)) bySheet.set(k, []);
         (bySheet.get(k) as any[]).push(x);
       }
-      const qrCovered = new Set(active.filter((q: any) => workType(q.audit_mode) === "quality_review").map((q: any) => q.call_id));
-      const trCovered = new Set(active.filter((q: any) => workType(q.audit_mode) === "transcription").map((q: any) => q.call_id));
+      // Coverage means WORK DONE, not "has an open assignment". Measuring the
+      // active queue made finished deliveries read as untouched the moment
+      // their batches were archived · Calls_Response_Vibe showed 0% quality
+      // and 131 untouched when 80% of it had been reviewed and only 26 calls
+      // had never been looked at.
+      const qrCovered = new Set(live.filter((r: any) => r.review_mode === "response_vibe").map((r: any) => r.call_id));
+      const trCovered = new Set(live.filter((r: any) => r.review_mode === "timing_transcription").map((r: any) => r.call_id));
       const deliveries = [...bySheet.entries()]
         .map(([name, xs]) => {
           const ids = xs.map((x: any) => x.execution_id);
