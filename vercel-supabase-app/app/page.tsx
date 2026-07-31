@@ -290,7 +290,10 @@ export default function Page() {
   }
 
   const isPriority = (call: CallSummary) => String(call.source_sheet || "").includes("★");
-  const isIssueAssignment = (id?: string | null) => /^[sb]\di_/.test(String(id || ""));
+  // \d+ , not \d · batch numbers reached double digits at b10i and a
+  // single-digit pattern silently dropped those calls into the vibe tab,
+  // so the whole issue batch was invisible under "Issue logging".
+  const isIssueAssignment = (id?: string | null) => /^[sb]\d+i_/.test(String(id || ""));
   // queue_id alone is shared across a person's whole batch (e.g. b4v_aditya),
   // so rows are identified by queue_id + call id.
   const rowKey = (call: CallSummary) => `${call.queue_id || ""}:${call.execution_id}`;
