@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans } from "next/font/google";
 import PortalShell from "../shell";
 import { INK, MUT, GREEN, PURPLE, card } from "../../../lib/ui";
-import { isPortalUser } from "../../../lib/role";
+import { isPortalUser, canSeeCallDetail } from "../../../lib/role";
 
 // N2 · issue drill-down, evidence-backed. Every count on the portal home
 // opens here as playable rows: call + timestamp + finding + who caught it.
@@ -23,13 +23,18 @@ function Inner() {
   const type = params.get("type") || "asr";
   const [data, setData] = useState<any>(null);
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [detail, setDetail] = useState<boolean>(true);
   const [playing, setPlaying] = useState<string>("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setAllowed(isPortalUser());
+    setDetail(canSeeCallDetail());
   }, []);
   useEffect(() => {
+    // A numbers-only seat never fetches call-level evidence · the recording
+    // URLs live in this response, so we don't even pull them.
+    if (!canSeeCallDetail()) return;
     setData(null);
     fetch(`/api/portal/issues?type=${encodeURIComponent(type)}`).then((r) => r.json()).then(setData).catch(() => {});
   }, [type]);
@@ -46,6 +51,10 @@ function Inner() {
   }
 
   if (allowed === false) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The portal is available to your team. <a href="/portal/login?next=/portal/issues" style={{ color: GREEN }}>Log in</a> to see this program, or <a href="/portal/new-use-case" style={{ color: GREEN }}>start a use case</a>.</main>;
+
+  // Numbers-only seat: the call-level evidence, playable recordings and
+  // transcripts on this page are exactly what it is not allowed to open.
+  if (allowed && !detail) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>Call-level evidence isn&apos;t part of your access. You can see the quality numbers on <a href="/portal/agents" style={{ color: GREEN }}>Agent insights</a> and <a href="/portal/reliability" style={{ color: GREEN }}>Reliability</a>.</main>;
 
   return (
     <PortalShell right={

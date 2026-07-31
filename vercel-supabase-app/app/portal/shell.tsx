@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN } from "../../lib/ui";
-import { isPortalUser } from "../../lib/role";
+import { isPortalUser, canSeeCallDetail } from "../../lib/role";
 import { isDemo, demoHref } from "../../lib/demo";
 
 // Portal shell · Raindrop-style left nav. Four stable destinations:
@@ -71,6 +71,9 @@ export default function PortalShell({ children, right, solo }: { children: React
   // Anonymous until proven otherwise · a visitor arriving cold from the landing
   // page must never see a live client's name in the program pill.
   const [expert, setExpert] = useState(false);
+  // A numbers-only seat keeps the dashboards but loses Datasets · that tab is
+  // call transcripts, which is call-level detail it may not open.
+  const [detail, setDetail] = useState(true);
   // Collapsed on first open · the nav is nearly empty for a new visitor, so it
   // should not take a fifth of the screen before they have typed anything.
   // Once someone toggles it, their choice is what sticks.
@@ -82,6 +85,7 @@ export default function PortalShell({ children, right, solo }: { children: React
     try {
       const signedIn = isPortalUser();
       setExpert(signedIn);
+      setDetail(canSeeCallDetail());
       const saved = window.localStorage.getItem("rlNavCollapsed");
       // The YC demo always opens expanded · the tour below walks the nav item
       // by item, and a saved preference from some earlier visit must not be
@@ -154,7 +158,7 @@ export default function PortalShell({ children, right, solo }: { children: React
         </div>
         {/* every NAV item reads a live client's program, so all of them are
             gated · the one public destination is FOOT, pinned below */}
-        {(expert && !solo ? NAV : []).map((n) => {
+        {(expert && !solo ? NAV.filter((n) => detail || n.href !== "/portal/datasets") : []).map((n) => {
           const active = path === n.href;
           return (
             <a key={n.href} href={n.href} title={n.label} style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 8, padding: "9px 10px", margin: "1px 0", textDecoration: "none", background: active ? "#e7f4ee" : "transparent", color: active ? GREEN : INK, fontWeight: active ? 600 : 400, fontSize: 13.5, border: active ? "1px solid #cde8db" : "1px solid transparent" }}>

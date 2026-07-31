@@ -5,7 +5,7 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import PortalShell from "../shell";
 import { PAGE, INK, MUT, GREEN, RED, card } from "../../../lib/ui";
 import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
-import { isPortalUser } from "../../../lib/role";
+import { isPortalUser, canSeeCallDetail } from "../../../lib/role";
 
 // Datasets (wireframe 8a) · what the reviews already generated (golden
 // transcripts hero + issue-labeled calls), plus request-more cards with
@@ -54,11 +54,14 @@ export default function Datasets() {
 
   useEffect(() => {
     setAllowed(isPortalUser());
+    if (!canSeeCallDetail()) return;
     fetch("/api/portal/judge").then((r) => r.json()).then(setJudge).catch(() => {});
     fetch("/api/portal/overview").then((r) => r.json()).then(setOv).catch(() => {});
   }, []);
 
   if (allowed === false) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The portal is available to your team. <a href="/portal/login?next=/portal/datasets" style={{ color: GREEN }}>Log in</a> to see this program, or <a href="/portal/new-use-case" style={{ color: GREEN }}>start a use case</a>.</main>;
+
+  if (allowed && !canSeeCallDetail()) return <main className={instrument.className} style={{ maxWidth: 560, margin: "80px auto", textAlign: "center", color: MUT }}>The dataset of call transcripts isn&apos;t part of your access. You can see the quality numbers on <a href="/portal/agents" style={{ color: GREEN }}>Agent insights</a> and <a href="/portal/reliability" style={{ color: GREEN }}>Reliability</a>.</main>;
 
   const gd = (judge && judge.golden_dataset) || {};
   const s = (ov && ov.summary) || {};

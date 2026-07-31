@@ -69,7 +69,7 @@ export default function PortalLogin() {
     // "client" is the outside-facing role, "expert" is ours. A reviewer's
     // account is valid but belongs in the audit tool, so say that rather than
     // looping them through a gate that just repeats "log in".
-    if (role !== "expert" && role !== "client") { setStep("no_access"); return; }
+    if (role !== "expert" && role !== "client" && role !== "viewer") { setStep("no_access"); return; }
     window.location.replace(next);
   }
 

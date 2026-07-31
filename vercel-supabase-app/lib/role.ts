@@ -60,11 +60,23 @@ export function isPortalUser(): boolean {
   // · and every write path checks isDemoRequest() separately before persisting.
   if (isDemo()) return true;
   const role = readRole();
-  return role === "expert" || role === "client";
+  return role === "expert" || role === "client" || role === "viewer";
 }
 
 export function isClient(): boolean {
   return readRole() === "client";
+}
+
+/** "viewer" is a numbers-only portal seat · dashboards and reliability figures,
+ *  but no call-level detail: no recording playback, no evidence drill-down, no
+ *  transcripts. Everything sensitive on a call is gated behind this. NOTE: this
+ *  is a UI gate only. The portal APIs are unauthenticated, so it hides every
+ *  in-product path to audio, not the raw endpoint · true enforcement needs the
+ *  server-side auth from the schema migration. */
+export function canSeeCallDetail(): boolean {
+  if (isDemo()) return true;
+  const role = readRole();
+  return role === "expert" || role === "client";
 }
 
 /** Called on login · writes both stores. */

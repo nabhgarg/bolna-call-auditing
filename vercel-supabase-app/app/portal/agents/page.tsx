@@ -9,7 +9,7 @@ import TRANSCRIPTS from "../../../lib/portal-transcripts.json";
 import RELIABILITY from "../../../lib/portal-reliability.json";
 import PATTERNS from "../../../lib/portal-patterns.json";
 import INSIGHTS from "../../../lib/portal-insights.json";
-import { isPortalUser } from "../../../lib/role";
+import { isPortalUser, canSeeCallDetail } from "../../../lib/role";
 import DemoReady from "../../../lib/DemoReady";
 import ReportPrint from "./report";
 import { isDemo } from "../../../lib/demo";
@@ -106,6 +106,9 @@ function Inner() {
   // read after mount, never during render · the server has no window and a
   // mismatch here would blow up hydration
   const [demo, setDemo] = useState(false);
+  // A numbers-only seat keeps every chart and count but loses the call-level
+  // proof · playable recordings and the golden transcript pairs.
+  const [detail, setDetail] = useState(true);
   // Only used by the printed report · the screen never shows these figures, so
   // a failed fetch degrades the report's method note rather than the page.
   const [panelRel, setPanelRel] = useState<{ inter_panel: number; vs_gt: number; calls: number } | null>(null);
@@ -114,6 +117,7 @@ function Inner() {
   useEffect(() => {
     setAllowed(isPortalUser());
     setDemo(isDemo());
+    setDetail(canSeeCallDetail());
     fetch("/api/portal/reliability").then((r) => r.json()).then((d) => setPanelRel(d?.overall || null)).catch(() => {});
     fetch("/api/portal/byagent").then((r) => r.json()).then((d) => {
       setData(d);
@@ -381,7 +385,7 @@ function Inner() {
                                   <span style={{ fontSize: 12.5, fontWeight: 600 }}>{p.title}</span>
                                   <span className={mono.className} style={{ fontSize: 10.5, color: RED }}>{p.count} segments · {p.pct}%</span>
                                 </div>
-                                {p.example && (
+                                {detail && p.example && (
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12, flexWrap: "wrap" }}>
                                     <button onClick={() => play(p.example.call_id, p.example.ts)} style={{ width: 21, height: 21, borderRadius: 11, background: GREEN, color: "#fff", border: "none", fontSize: 8, cursor: "pointer", flex: "none" }}>▶</button>
                                     <span style={{ textDecoration: "line-through", color: RED }}>{p.example.asr}</span>
@@ -391,7 +395,7 @@ function Inner() {
                                 )}
                               </div>
                             ))}
-                            <a href="/portal/issues?type=asr" style={{ fontSize: 11.5, color: GREEN, textDecoration: "none" }}>all {tRow.human_calls} calls with evidence →</a>
+                            {detail && <a href="/portal/issues?type=asr" style={{ fontSize: 11.5, color: GREEN, textDecoration: "none" }}>all {tRow.human_calls} calls with evidence →</a>}
                           </div>
                         )}
                       </div>
@@ -412,7 +416,7 @@ function Inner() {
                                   <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</span>
                                   <span style={{ color: MUT, fontSize: 11, flex: "none" }}>{r.human_calls} of {a.reviewed} calls</span>
                                 </button>
-                                {isOpen && (
+                                {isOpen && detail && (
                                   <div style={{ padding: "2px 0 9px 18px", display: "flex", flexDirection: "column", gap: 6 }}>
                                     {(r.evidence || []).map((e2: any, i: number) => (
                                       <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fbfcfd", border: "1px solid #e2e8ee", borderRadius: 8, padding: "7px 9px", fontSize: 12 }}>
@@ -436,8 +440,9 @@ function Inner() {
             </div>
           </div>
 
-          {/* the transcript vs the customer · golden output for this agent */}
-          {(() => {
+          {/* the transcript vs the customer · golden output for this agent.
+              Call-level content, so a numbers-only seat never sees it. */}
+          {detail && (() => {
             const t = (TRANSCRIPTS.agents as any[]).find((x) => x.agent === a.agent);
             if (!t || !t.pairs?.length) return null;
             return (
@@ -468,7 +473,7 @@ function Inner() {
             {v.key && leadCalls > 0
               ? <>{leadCalls} of this agent&apos;s issues trace back to <b style={{ color: INK, textTransform: "capitalize" }}>{v.label}</b> · one fix, most of the list clears. </>
               : <>Clean across the taxonomy. </>}
-            Golden transcripts for this agent are under <a href="/portal/datasets" style={{ color: GREEN }}>Datasets</a>.
+            {detail && <>Golden transcripts for this agent are under <a href="/portal/datasets" style={{ color: GREEN }}>Datasets</a>.</>}
           </div>
         </div>
       </div>
