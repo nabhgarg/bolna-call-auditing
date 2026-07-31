@@ -34,6 +34,33 @@ const RESPONSE_VIBE_MODE: AuditMode = "response_vibe";
 // the Transcript panel; response appropriateness returns to Review later.
 const combinedIssueTypes = ["transcription", "response_appropriateness", "pronunciation"];
 void combinedIssueTypes;
+// Oolka collections tagging. Each call gets one comprehension, one intent and
+// one reason code, each with a free-text box. Options are derived from what
+// actually occurs in the Oolka call set, not a generic collections taxonomy.
+const COL_COMPREHENSION = [
+  "Full Comprehension",
+  "Partial - understood debt exists but not offers",
+  "No comprehension",
+  "Language issue"
+];
+const COL_INTENT = [
+  "Claims already paid",
+  "Firm promise to pay",
+  "Passive acknowledgment / no commitment",
+  "Installment asked",
+  "Cant pay - no money",
+  "Dispute / Fraud",
+  "Wont pay (clear no)"
+];
+const COL_REASON = [
+  "Money awaited",
+  "Already paid",
+  "Other debts too",
+  "No money",
+  "Emergency / unemployment",
+  "Technical error"
+];
+
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
 // Shown when correcting an existing turn.
 const CORRECTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
@@ -167,6 +194,13 @@ export default function Page() {
   const [metricRatings, setMetricRatings] = useState<Record<string, MetricRating>>(emptyMetricRatings);
   const [vibeScore, setVibeScore] = useState("");
   const [vibeReason, setVibeReason] = useState("");
+  // Oolka collections tagging (only shown for Oolka calls)
+  const [colComp, setColComp] = useState("");
+  const [colCompNote, setColCompNote] = useState("");
+  const [colIntent, setColIntent] = useState("");
+  const [colIntentNote, setColIntentNote] = useState("");
+  const [colReason, setColReason] = useState("");
+  const [colReasonNote, setColReasonNote] = useState("");
   const [missingIssueFields, setMissingIssueFields] = useState<string[]>([]);
   const [missingRatingFields, setMissingRatingFields] = useState<string[]>([]);
   const [startedAt, setStartedAt] = useState("");
@@ -319,6 +353,13 @@ export default function Page() {
     ? calls.find((call) => rowKey(call) === currentQueueId) || null
     : null;
   const currentCallSubmitted = Boolean(currentCallSummary?.reviewed || (currentCall && submittedCallId === currentQueueId));
+  // Oolka calls carry their own collections tagging instead of Bolna's rubric.
+  const isOolkaCall = Boolean(
+    currentCall &&
+    (String((currentCall as any).org_name || "").toLowerCase() === "oolka" ||
+      String(currentQueueId || "").toLowerCase().includes("oolka") ||
+      String(currentCallSummary?.audit_mode || "").toLowerCase().includes("oolka"))
+  );
   // Role decides the screen. Transcription is NOT an issue type · it lives in
   // the Transcript panel (correct text + mark audio clarity + timestamp).
   //   vibe reviewer  -> vibe score only
@@ -352,6 +393,9 @@ export default function Page() {
     setMetricRatings(emptyMetricRatings());
     setVibeScore("");
     setVibeReason("");
+    setColComp(""); setColCompNote("");
+    setColIntent(""); setColIntentNote("");
+    setColReason(""); setColReasonNote("");
     setMissingIssueFields([]);
     setMissingRatingFields([]);
     setStatusMessage("");
@@ -368,6 +412,9 @@ export default function Page() {
     setMetricRatings(emptyMetricRatings());
     setVibeScore("");
     setVibeReason("");
+    setColComp(""); setColCompNote("");
+    setColIntent(""); setColIntentNote("");
+    setColReason(""); setColReasonNote("");
     setMissingIssueFields([]);
     setMissingRatingFields([]);
     setCapturedTime("00:00");
@@ -1000,7 +1047,15 @@ export default function Page() {
           llm_rating: "",
           llm_error_type: "",
           notes: auditMode === RESPONSE_VIBE_MODE ? vibeReason : notes,
-          issues: [...issues, ...ratingIssues, ...flagIssues],
+          issues: [...issues, ...ratingIssues, ...flagIssues, ...(isOolkaCall ? [{
+            type: "collections",
+            comprehension: colComp,
+            comprehension_note: colCompNote,
+            intent: colIntent,
+            intent_note: colIntentNote,
+            reason_code: colReason,
+            reason_note: colReasonNote
+          }] : [])],
           started_at: startedAt,
           duration_taken_sec: durationTaken
         })
@@ -1330,6 +1385,39 @@ export default function Page() {
                     </div>
                   </section>
                 </>
+              )}
+
+              {isOolkaCall && (
+                <section className="vibe-calibration">
+                  <div className="panel-title small">
+                    <h3>Collections tagging</h3>
+                    <span>Oolka</span>
+                  </div>
+                  <p className="helper-copy">
+                    Tag what the customer understood, what they intend to do about the payment, and why. Add a line of context for each.
+                  </p>
+                  {([
+                    ["Comprehension", COL_COMPREHENSION, colComp, setColComp, colCompNote, setColCompNote, "What did they understand / miss?"],
+                    ["Intent", COL_INTENT, colIntent, setColIntent, colIntentNote, setColIntentNote, "What exactly did they commit to or refuse?"],
+                    ["Reason code", COL_REASON, colReason, setColReason, colReasonNote, setColReasonNote, "Why are they in this position?"]
+                  ] as const).map(([label, options, value, setValue, note, setNote, placeholder]) => (
+                    <div className={`rating-card ${!value ? "missing" : ""}`} key={label}>
+                      <label className={!value ? "field-missing" : ""}>
+                        {label}
+                        <select value={value} onChange={(event) => setValue(event.target.value)}>
+                          <option value="">Select {label.toLowerCase()}</option>
+                          {options.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        {label} note
+                        <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} placeholder={placeholder} />
+                      </label>
+                    </div>
+                  ))}
+                </section>
               )}
 
               {showVibe && auditMode === RESPONSE_VIBE_MODE && (
