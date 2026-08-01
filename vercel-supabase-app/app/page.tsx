@@ -165,6 +165,7 @@ export default function Page() {
   // Calls waiting for this reviewer in the transcription tool (/transcribe).
   const [txPending, setTxPending] = useState(0);
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
+  const [agentView, setAgentView] = useState<"all" | "ai" | "human">("all");
   // Set-4 dual assignment: vibe reviewers carry a vibe queue (s4v_*) AND an
   // issue-logging queue (s4i_*). Tabs split the two; the review panel adapts
   // to whichever kind of call is open.
@@ -337,18 +338,33 @@ export default function Page() {
     if (!hasIssueQueue) return calls;
     return calls.filter((call) => isIssueAssignment(call.queue_id) === (assignView === "issues"));
   }, [calls, hasIssueQueue, assignView]);
+  // Oolka batches carry both an AI-agent and a human-agent set; let the
+  // reviewer work one at a time. Hidden unless both kinds are actually assigned.
+  const agentKind = (call: CallSummary) => {
+    const q = String(call.queue_id || "").toLowerCase();
+    if (q.includes("oolka_ai")) return "ai";
+    if (q.includes("oolka_hum")) return "human";
+    return "";
+  };
+  const aiCount = tabCalls.filter((call) => agentKind(call) === "ai").length;
+  const humanCount = tabCalls.filter((call) => agentKind(call) === "human").length;
+  const showAgentFilter = aiCount > 0 && humanCount > 0;
   const filteredCalls = useMemo(() => {
     return tabCalls
       .filter((call) => {
         if (queueView === "pending" && call.reviewed) return false;
         if (queueView === "submitted" && !call.reviewed) return false;
+        if (showAgentFilter && agentView !== "all" && agentKind(call) !== agentView) return false;
         return true;
       })
       // priority (★) calls float to the top, then by id
       .sort((a, b) => (Number(isPriority(b)) - Number(isPriority(a))) || a.execution_id.localeCompare(b.execution_id));
-  }, [tabCalls, queueView]);
-  const reviewedCount = tabCalls.filter((call) => call.reviewed).length;
-  const pendingCount = tabCalls.length - reviewedCount;
+  }, [tabCalls, queueView, agentView, showAgentFilter]);
+  const agentScopedCalls = showAgentFilter && agentView !== "all"
+    ? tabCalls.filter((call) => agentKind(call) === agentView)
+    : tabCalls;
+  const reviewedCount = agentScopedCalls.filter((call) => call.reviewed).length;
+  const pendingCount = agentScopedCalls.length - reviewedCount;
   const currentCallSummary = currentCall
     ? calls.find((call) => rowKey(call) === currentQueueId) || null
     : null;
@@ -1191,6 +1207,20 @@ export default function Page() {
               </button>
             </div>
           )}
+          {showAgentFilter && (
+            <div className="queue-tabs" role="tablist" aria-label="Agent type">
+              {([["all", "All", aiCount + humanCount], ["ai", "AI agent", aiCount], ["human", "Human agent", humanCount]] as const).map(([key, label, count]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={agentView === key ? "active" : ""}
+                  onClick={() => { setAgentView(key); setQueueView("pending"); }}
+                >
+                  {label} <span>{count}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="queue-tabs" role="tablist" aria-label="Review queue status">
             <button
               type="button"
@@ -1207,7 +1237,7 @@ export default function Page() {
               Submitted <span>{reviewedCount}</span>
             </button>
           </div>
-          <div className="queue-stats">{pendingCount} pending · {reviewedCount} submitted · {tabCalls.length} assigned{hasIssueQueue ? (assignView === "issues" ? " · issue logging" : " · vibe") : ""}</div>
+          <div className="queue-stats">{pendingCount} pending · {reviewedCount} submitted · {agentScopedCalls.length} assigned{hasIssueQueue ? (assignView === "issues" ? " · issue logging" : " · vibe") : ""}</div>
           <nav className="call-list">
             {filteredCalls.map((call) => (
               <button key={rowKey(call)} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${currentQueueId === rowKey(call) ? "active" : ""}`} onClick={() => selectCall(call.execution_id, rowKey(call))}>
