@@ -41,7 +41,8 @@ const COL_COMPREHENSION = [
   "Full Comprehension",
   "Partial - understood debt exists but not offers",
   "No comprehension",
-  "Language issue"
+  "Language issue",
+  "Others"
 ];
 const COL_INTENT = [
   "Claims already paid",
@@ -50,7 +51,8 @@ const COL_INTENT = [
   "Installment asked",
   "Cant pay - no money",
   "Dispute / Fraud",
-  "Wont pay (clear no)"
+  "Wont pay (clear no)",
+  "Others"
 ];
 const COL_REASON = [
   "Money awaited",
@@ -58,7 +60,8 @@ const COL_REASON = [
   "Other debts too",
   "No money",
   "Emergency / unemployment",
-  "Technical error"
+  "Technical error",
+  "Others"
 ];
 
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
@@ -1027,7 +1030,7 @@ export default function Page() {
       alert("Please complete all call ratings. Reason is required when a rating is 1.");
       return;
     }
-    if (auditMode === RESPONSE_VIBE_MODE && showVibe) {
+    if (auditMode === RESPONSE_VIBE_MODE && showVibe && !isOolkaCall) {
       if (!vibeScore || !vibeReason.trim()) {
         alert("Please fill vibe score and reason before submitting.");
         return;
@@ -1294,7 +1297,7 @@ export default function Page() {
             <div className="audio-actions">
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 5); }}>-5s</button>
               <button onClick={() => { if (audioRef.current) audioRef.current.currentTime += 5; }}>+5s</button>
-              {showIssues && visibleIssueTypes.length > 0 && (
+              {showIssues && !isOolkaCall && visibleIssueTypes.length > 0 && (
                 <>
                   <label className="capture-select">
                     Issue
@@ -1319,7 +1322,7 @@ export default function Page() {
                 }}>Next</button>
               </div>
 
-              {showIssues && visibleIssueTypes.length > 0 && (
+              {showIssues && !isOolkaCall && visibleIssueTypes.length > 0 && (
                 <>
                   {visibleIssueTypes.length > 1 && (
                     <div className="quick-flags">
@@ -1424,15 +1427,15 @@ export default function Page() {
                     <span>Oolka</span>
                   </div>
                   <p className="helper-copy">
-                    Tag what the customer understood, what they intend to do about the payment, and why. Add a line of context for each.
+                    Tag what the customer understood, what they intend to do about the payment, and why. All three are optional — add a line of context wherever useful.
                   </p>
                   {([
                     ["Comprehension", COL_COMPREHENSION, colComp, setColComp, colCompNote, setColCompNote, "What did they understand / miss?"],
                     ["Intent", COL_INTENT, colIntent, setColIntent, colIntentNote, setColIntentNote, "What exactly did they commit to or refuse?"],
                     ["Reason code", COL_REASON, colReason, setColReason, colReasonNote, setColReasonNote, "Why are they in this position?"]
                   ] as const).map(([label, options, value, setValue, note, setNote, placeholder]) => (
-                    <div className={`rating-card ${!value ? "missing" : ""}`} key={label}>
-                      <label className={!value ? "field-missing" : ""}>
+                    <div className="rating-card" key={label}>
+                      <label>
                         {label}
                         <select value={value} onChange={(event) => setValue(event.target.value)}>
                           <option value="">Select {label.toLowerCase()}</option>
@@ -1450,7 +1453,7 @@ export default function Page() {
                 </section>
               )}
 
-              {showVibe && auditMode === RESPONSE_VIBE_MODE && (
+              {showVibe && !isOolkaCall && auditMode === RESPONSE_VIBE_MODE && (
                 <section className="vibe-calibration">
                   <div className="panel-title small">
                     <h3>Overall vibe score</h3>
