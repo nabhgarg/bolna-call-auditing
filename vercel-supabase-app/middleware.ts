@@ -24,7 +24,10 @@ export function middleware(req: NextRequest) {
   // session, because the shell fakes its own URL bar per tab.
   if (host === "realloop.in" || host === "www.realloop.in") {
     const path = url.pathname.replace(/\/+$/, "").toLowerCase();
-    url.pathname = path === "/ycpartners" ? "/ycpartners.html" : "/apex.html";
+    url.pathname =
+      path === "/ycpartners" ? "/ycpartners.html" :
+      path === "/spcpartners" ? "/spcpartners.html" :
+      "/apex.html";
     return NextResponse.rewrite(url);
   }
   if (host.startsWith("portal.")) {
@@ -41,4 +44,4 @@ export function middleware(req: NextRequest) {
 
 // Only the root path and the apex-owned /ycpartners are host-routed; every
 // other path passes straight through untouched.
-export const config = { matcher: ["/", "/ycpartners", "/ycpartners/"] };
+export const config = { matcher: ["/", "/ycpartners", "/ycpartners/", "/spcpartners", "/spcpartners/"] };

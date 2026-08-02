@@ -14,6 +14,12 @@
 // route. Rotate by setting DEMO_TOKEN in the environment and editing the shell.
 export const DEMO_TOKEN = process.env.NEXT_PUBLIC_DEMO_TOKEN || "YCPARTNER2026";
 
+// One demo session, several front doors. Each partner shell carries its own
+// token (public/ycpartners.html, public/spcpartners.html) so a link can be
+// revoked for one audience without killing the other · the session it buys is
+// identical: same anonymised reads, same dead-ended writes.
+const DEMO_TOKENS = new Set([DEMO_TOKEN, "SPCPARTNER2026"]);
+
 const KEY = "rlDemo";
 
 /** Names for the demo transcription queue.
@@ -57,7 +63,7 @@ export function clearDemo() {
 export function isDemo(): boolean {
   try {
     const q = new URLSearchParams(window.location.search).get("demo");
-    if (q === DEMO_TOKEN) {
+    if (q && DEMO_TOKENS.has(q)) {
       try { window.sessionStorage.setItem(KEY, "1"); } catch {}
       // SameSite=None; Secure or the browser drops it as third-party. Session
       // cookie · no max-age, so it dies with the tab rather than lingering.
@@ -90,7 +96,8 @@ export function demoHref(href: string): string {
  *  the query string or the cookie the client set from it. */
 export function isDemoRequest(request: Request): boolean {
   try {
-    if (new URL(request.url).searchParams.get("demo") === DEMO_TOKEN) return true;
+    const q = new URL(request.url).searchParams.get("demo");
+    if (q && DEMO_TOKENS.has(q)) return true;
   } catch {}
   return (request.headers.get("cookie") || "").includes(`${KEY}=1`);
 }

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RealLoop · SPC partner demo</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:#dfe5ea;color:#10181f;font-family:'Instrument Sans',sans-serif;overflow:hidden}
+  a{color:#0e8a5f;text-decoration:none}
+  a:hover{color:#0a6b4a}
+  #shell{height:100%;display:flex;flex-direction:column}
+  #tabstrip{display:flex;align-items:flex-end;gap:2px;padding:8px 10px 0;overflow-x:auto;scrollbar-width:none}
+  #tabstrip::-webkit-scrollbar{display:none}
+  .brand{display:flex;align-items:center;gap:8px;padding:0 10px 8px 6px;flex:none}
+  .wm{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;white-space:nowrap}
+  .wm i{color:#0e8a5f;font-style:normal}
+  .yc{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#b07a15;background:#faf3e3;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .tab{display:flex;align-items:center;gap:8px;border:0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;padding:9px 16px;border-radius:10px 10px 0 0;max-width:230px;min-width:0;flex:0 1 auto;background:transparent;color:#4b5762;white-space:nowrap}
+  .tab span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tab .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .tab[aria-selected="true"]{background:#fff;color:#10181f;font-weight:600;box-shadow:0 -1px 3px rgba(16,24,31,.06)}
+  #bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#fff;border-bottom:1px solid #e2e8ee}
+  #url{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#6b7885;background:#f5f7f9;border:1px solid #e2e8ee;border-radius:999px;padding:6px 16px;flex:1;max-width:560px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none;display:block}
+  #url:hover{color:#10181f;border-color:#c8d2dc}
+  #foot{flex:none;padding:7px 16px;background:#fff;border-top:1px solid #e2e8ee;font-size:12px;color:#6b7885;text-align:center}
+  .ctl{border:1px solid #e2e8ee;background:#fff;color:#4b5762;font-family:inherit;font-size:12.5px;font-weight:500;padding:7px 13px;border-radius:8px;cursor:pointer;white-space:nowrap;flex:none}
+  .ctl:hover{border-color:#10181f;color:#10181f}
+  #help{font-weight:600;width:30px;padding:7px 0;text-align:center}
+  #stage{flex:1;position:relative;background:#f5f7f9;overflow:hidden}
+  #stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  #stage iframe[hidden]{visibility:hidden;pointer-events:none;display:block}
+  #nudge{display:flex;align-items:center;gap:8px;padding:7px 14px;background:#fffdf7;border-bottom:1px solid #f0e4c8;font-size:12.5px;color:#8a6d20}
+  #nudge button{border:0;background:none;color:#0e8a5f;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0}
+  /* per-tab "what to look at" card */
+  /* bottom-right, not top-left · every one of the four screens puts its nav or
+     its work queue down the left edge, and a card explaining "use the call
+     list" while sitting on top of the call list is worse than no card */
+  #tabpop{position:absolute;z-index:30;right:16px;bottom:16px;width:min(400px,calc(100% - 32px));background:#fff;border:1px solid #e2e8ee;border-radius:14px;box-shadow:0 16px 40px rgba(16,24,31,.18);padding:20px;display:none;flex-direction:column;gap:12px}
+  #tabpop .lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#0e8a5f}
+  #tabpop h3{margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px}
+  #tabpop p{margin:0;font-size:14px;line-height:1.6;color:#4b5762}
+  #tabpop .link{font-size:12.5px;line-height:1.5;color:#6b7885;border-top:1px solid #e2e8ee;padding-top:12px}
+  #tabpop .link a{font-family:'IBM Plex Mono',monospace;font-weight:500}
+  #tabpop .row{display:flex;align-items:center;gap:12px}
+  #tabpop .ok{border:0;background:#0e8a5f;color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:9px;cursor:pointer}
+  #tabpop .ok:hover{background:#0a6b4a}
+  #tabpop .never{border:0;background:none;color:#6b7885;font-family:inherit;font-size:12.5px;cursor:pointer;padding:0}
+  #tabpop .never:hover{color:#10181f}
+  #fallback{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;text-align:center;background:#f5f7f9}
+  #fallback h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:20px;margin:0}
+  #fallback p{margin:0;font-size:14.5px;line-height:1.6;color:#6b7885;max-width:44ch}
+  /* first-visit welcome */
+  #scrim{position:fixed;inset:0;background:rgba(16,24,31,.55);display:none;z-index:40}
+  #welcome{position:fixed;z-index:41;left:50%;top:50%;transform:translate(-50%,-50%);width:min(470px,calc(100vw - 32px));max-height:calc(100vh - 32px);background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(16,24,31,.28);display:none;flex-direction:column;overflow:hidden}
+  #wbody{overflow:auto;padding:26px 28px 20px;display:flex;flex-direction:column;gap:14px}
+  #welcome .eye{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#0e8a5f}
+  #welcome h2{margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:26px;letter-spacing:-.018em;line-height:1.14;text-wrap:balance}
+  #welcome p.lede{margin:0;font-size:15px;line-height:1.6;color:#4b5762}
+  #welcome .foot{display:flex;flex-wrap:wrap;align-items:center;gap:12px;border-top:1px solid #e2e8ee;padding:16px 28px;background:#fff;flex:none}
+  #welcome .go{border:0;background:#0e8a5f;color:#fff;font-family:inherit;font-size:14.5px;font-weight:600;padding:12px 20px;border-radius:10px;cursor:pointer}
+  #welcome .go:hover{background:#0a6b4a}
+  @media (max-width:720px){
+    .tab{padding:9px 11px;font-size:12px;max-width:150px}
+    #welcome h2{font-size:21px}
+    #wbody{padding:22px 22px 16px}
+    #welcome .foot{padding:14px 22px}
+  }
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="tabstrip">
+    <div class="brand"><span class="wm">realloop<i>.</i></span><span class="yc">For SPC partners</span></div>
+  </div>
+  <div id="bar">
+    <!-- the address is the live link · clicking it opens the real route in a
+         new tab, which is also the wide view for the portal screens -->
+    <a id="url" href="#" target="_blank" rel="noopener" title="Open this screen in a new tab">🔒 https://realloop.in/spcpartners</a>
+    <span style="flex:1"></span>
+    <button class="ctl" id="reload">↻ Reload tab</button>
+    <button class="ctl" id="help" title="What is this?" aria-label="What is this?">?</button>
+  </div>
+  <div id="nudge">
+    <span>Blank pane or a login screen? The live route may not allow embedding yet.</span>
+    <button type="button" id="nudgeopen">⤢ Open this screen full width</button>
+  </div>
+  <div id="stage">
+    <div id="tabpop" role="note">
+      <span class="lbl">What to look at</span>
+      <h3 id="popttl"></h3>
+      <p id="popbody"></p>
+      <div class="link">This screen really lives at <a id="pophref" href="#" target="_blank" rel="noopener"></a> · we merged the four into one link for the SPC team.</div>
+      <div class="row">
+        <button type="button" class="ok" id="popok">Got it</button>
+        <button type="button" class="never" id="popnever">Stop showing these</button>
+      </div>
+    </div>
+    <div id="fallback">
+      <h2>This screen did not load</h2>
+      <p>The live route is blocking embedding, or the demo session expired. Open it full width instead.</p>
+      <button class="ctl" id="fbopen">⤢ Open full width</button>
+    </div>
+  </div>
+  <div id="foot">This URL is made for SPC partners to use the products powering both sides of the business · the live link is at the top of each page.</div>
+</div>
+
+<div id="scrim"></div>
+<div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wtitle">
+  <div id="wbody">
+  <span class="eye">For SPC partners · RealLoop</span>
+  <h2 id="wtitle">Made for the SPC team to walk both sides of the product, without four logins.</h2>
+  <p class="lede">Use the tabs at the top to move between them.</p>
+  </div>
+  <div class="foot">
+    <button class="go" id="wstart">Start →</button>
+  </div>
+</div>
+
+<script>
+/* ── Config ────────────────────────────────────────────────────────────
+   Swap any tab's `src` to a static snapshot (e.g. "/ycpartners/analytics.html")
+   if a live route is not demo-ready. `demo` appends the shared demo token.   */
+var DEMO_TOKEN = "?demo=SPCPARTNER2026";   // read-only demo session · see lib/demo.ts
+var TABS = [
+  { label:"New use case", dot:"#0e8a5f",
+    src:"https://portal.realloop.in/portal/new-use-case", demo:true,
+    show:"portal.realloop.in/portal/new-use-case",
+    pop:"The read-back",
+    focus:"A client writes three or four sentences. Watch what we resolve it into · which checks, quoting their own words, what a human does versus what a machine judges, and the price. Type your own description." },
+  { label:"Marketplace · become a reviewer", dot:"#0e8a5f",
+    src:"https://marketplace.realloop.in", demo:true,
+    show:"marketplace.realloop.in",
+    pop:"How little stands between applying and working",
+    focus:"Pick languages, then land straight in a real assignment on production audio · no CV, no waiting." },
+  { label:"Grading a call, live", dot:"#0e8a5f",
+    src:"https://review.realloop.in/transcribe", demo:true,
+    show:"review.realloop.in/transcribe",
+    pop:"Judgment broken into objective sub-tasks",
+    focus:"Hear the call, then log what actually happened one spike at a time. The unit of work is a single stretch of audio, not a whole-call opinion." },
+  { label:"Client insight portal", dot:"#7c5cbf",
+    src:"https://portal.realloop.in/portal/agents", demo:true,
+    show:"portal.realloop.in/portal/agents",
+    /* no pop · the portal runs its own four-stop tour of the sidebar from the
+       moment it loads, and a shell card on top of it would be one card too many */
+    pop:"" }
+];
+
+var strip=document.getElementById('tabstrip'), stage=document.getElementById('stage'),
+    urlEl=document.getElementById('url'),
+    fallback=document.getElementById('fallback'), nudge=document.getElementById('nudge'),
+    welcomeOpen=false, cur=0, frames=[], btns=[], loaded=[];
+
+function fullSrc(t){ return t.src + (t.demo && DEMO_TOKEN ? DEMO_TOKEN : ""); }
+
+TABS.forEach(function(t,i){
+  var b=document.createElement('button');
+  b.className='tab'; b.setAttribute('role','tab'); b.type='button';
+  b.innerHTML='<span class="dot" style="background:'+t.dot+'"></span><span class="t"></span>';
+  b.querySelector('.t').textContent=t.label;
+  b.onclick=function(){ select(i); };
+  strip.appendChild(b); btns.push(b);
+
+  var f=document.createElement('iframe');
+  f.title=t.label;
+  f.setAttribute('allow','autoplay; microphone; clipboard-write');
+  f.hidden = i!==0;
+  /* A cross-origin frame fires `load` even for an error page or a CSP block,
+     so `load` proves nothing. Real confirmation comes from a postMessage
+     handshake the embedded app sends: { realloopDemoReady: true }. */
+  f.addEventListener('load',function(){ if(i===cur) armFailTimer(); });
+  stage.insertBefore(f,fallback);
+  frames.push(f); loaded[i]=false;
+});
+
+function armFailTimer(){
+  clearTimeout(armFailTimer._t);
+  if(loaded[cur]) return;
+  armFailTimer._t=setTimeout(function(){
+    if(!loaded[cur]) fallback.style.display='flex';
+  }, 8000);
+}
+
+/* The embedded app confirms it really rendered. Until it does, we assume nothing. */
+window.addEventListener('message',function(e){
+  if(!e.data || e.data.realloopDemoReady!==true) return;
+  frames.forEach(function(f,i){
+    if(f.contentWindow===e.source){
+      loaded[i]=true;
+      if(i===cur){ fallback.style.display='none'; nudge.style.display='none'; }
+    }
+  });
+});
+
+function select(i){
+  cur=i;
+  frames.forEach(function(f,n){ f.hidden = n!==i; });
+  btns.forEach(function(b,n){ b.setAttribute('aria-selected', n===i ? 'true':'false'); });
+  urlEl.textContent='🔒 https://'+TABS[i].show;
+  urlEl.href=fullSrc(TABS[i]);
+  showTabPop(i);
+  /* lazy-load: only fetch a route once its tab is first opened */
+  if(!frames[i].getAttribute('src')) frames[i].setAttribute('src', fullSrc(TABS[i]));
+  fallback.style.display='none';
+  nudge.style.display = loaded[i] ? 'none' : 'flex';
+  armFailTimer();
+  /* browser URL never changes: no pushState, no hash */
+}
+
+document.getElementById('reload').onclick=function(){
+  loaded[cur]=false; fallback.style.display='none';
+  frames[cur].setAttribute('src', fullSrc(TABS[cur]));
+};
+/* Kept only on the failure paths · when a pane is blocked or blank, opening the
+   real route in a new tab is the one way through. The top bar no longer carries
+   it, because the address itself is the link. */
+function openFull(){ window.open(fullSrc(TABS[cur]),'_blank','noopener'); }
+document.getElementById('fbopen').onclick=openFull;
+document.getElementById('nudgeopen').onclick=openFull;
+
+frames[0].setAttribute('src', fullSrc(TABS[0]));
+
+/* ── Per-tab "what to look at" card ────────────────────────────────────
+   Shown once per tab, the first time a partner opens it. Never twice, and
+   "Stop showing these" kills the rest for good. */
+var tabpop=document.getElementById('tabpop'), popSeen=[], popsOff=false, POPS='realloop_spc_pops_off';
+try{ popsOff=localStorage.getItem(POPS)==='1'; }catch(e){}
+function hideTabPop(){ tabpop.style.display='none'; }
+function showTabPop(i){
+  if(popsOff || popSeen[i] || welcomeOpen || !TABS[i].pop){ hideTabPop(); return; }
+  popSeen[i]=true;
+  document.getElementById('popttl').textContent=TABS[i].pop;
+  document.getElementById('popbody').textContent=TABS[i].focus;
+  var a=document.getElementById('pophref');
+  a.textContent=TABS[i].show; a.setAttribute('href', fullSrc(TABS[i]));
+  tabpop.style.display='flex';
+}
+document.getElementById('popok').onclick=hideTabPop;
+document.getElementById('popnever').onclick=function(){
+  popsOff=true; try{ localStorage.setItem(POPS,'1'); }catch(e){} hideTabPop();
+};
+
+select(0);
+
+/* ── First-visit welcome ───────────────────────────────────────────────
+   Once per browser. The "?" in the top bar brings it back, so a partner who
+   dismissed it early is never stranded. */
+var scrim=document.getElementById('scrim'), welcome=document.getElementById('welcome'),
+    SEEN='realloop_spc_seen';
+function openWelcome(){ welcomeOpen=true; hideTabPop(); scrim.style.display='block'; welcome.style.display='flex'; }
+function closeWelcome(){
+  welcomeOpen=false;
+  scrim.style.display='none'; welcome.style.display='none';
+  try{ localStorage.setItem(SEEN,'1'); }catch(e){}
+}
+/* Tab 1's card is NOT re-armed here · the welcome just described it in step 01,
+   and a second card landing the instant the first one closes reads as nagging. */
+document.getElementById('wstart').onclick=function(){ closeWelcome(); select(0); };
+scrim.onclick=closeWelcome;
+document.getElementById('help').onclick=openWelcome;
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeWelcome(); });
+var seen=false; try{ seen=localStorage.getItem(SEEN)==='1'; }catch(e){}
+if(!seen) openWelcome();
+</script>
+</body>
+</html>
