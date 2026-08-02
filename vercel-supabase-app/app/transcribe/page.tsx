@@ -21,7 +21,9 @@ type QueueItem = { queue_id: string; execution_id: string; agent_name?: string; 
 
 // A segment is either an OFFICIAL Bolna turn (asr text + exact timing) or an
 // extra user-channel spike with no official transcript (asr = null → "write it").
-type Seg = { start: number; end: number; asr: string | null; official: boolean };
+// `manual` marks a segment the reviewer added by clicking the waveform · the
+// detector never found it, so it carries no ASR and is theirs to remove.
+type Seg = { start: number; end: number; asr: string | null; official: boolean; manual?: boolean };
 type Tok = { src: string; out: string; converted: boolean };
 type SegState = {
   status: "pending" | "done";
@@ -492,6 +494,65 @@ export default function Transcribe() {
     playSeg(target);
   }
 
+  /** Add a segment the detector missed, at a point the reviewer clicked.
+   *
+   *  Spikes are untouched · this only ever fires on a click that hit no
+   *  existing segment. The window snaps to surrounding user-channel activity
+   *  where there is any, so a click near real speech captures the whole
+   *  utterance rather than a fixed box around the cursor. */
+  function addSegAt(t: number) {
+    if (!wave || wave.duration <= 0) return;
+    const dur = wave.duration;
+    const bars = wave.user.length;
+    const per = dur / bars;                     // seconds per envelope bucket
+    const loud = wave.user.reduce((m, v) => Math.max(m, v), 0);
+    const floor = Math.max(0.06, loud * 0.14);  // same spirit as segmentsFromEnv
+    let bi = Math.round(t / per);
+    let s0 = t - 0.5, e0 = t + 1.2;
+    if (bi >= 0 && bi < bars && (wave.user[bi] || 0) >= floor) {
+      let a = bi, b = bi;
+      while (a > 0 && (wave.user[a - 1] || 0) >= floor) a--;
+      while (b < bars - 1 && (wave.user[b + 1] || 0) >= floor) b++;
+      s0 = a * per - 0.15;
+      e0 = (b + 1) * per + 0.15;
+    }
+    const start = Math.max(0, Math.min(s0, dur - 0.3));
+    const end = Math.min(dur, Math.max(start + 0.3, e0));
+    const seg: Seg = { start, end, asr: null, official: false, manual: true };
+    const at = segs.filter((g) => g.start <= start).length;   // keep time order
+    const list = [...segs.slice(0, at), seg, ...segs.slice(at)];
+    // states are keyed by index · shift everything at/after the insert point
+    setStates((prev) => {
+      const out: Record<number, SegState> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const i = Number(k);
+        out[i >= at ? i + 1 : i] = v;
+      });
+      return out;
+    });
+    setSegs(list);
+    setCur(at);
+    setTimeout(() => playSeg(at, list), 0);
+  }
+
+  /** Remove a reviewer-added segment. Detector spikes are never removable ·
+   *  "not a user turn" is the verdict for those, and it stays in the record. */
+  function removeSeg(i: number) {
+    if (!segs[i]?.manual) return;
+    const list = segs.filter((_, k) => k !== i);
+    setStates((prev) => {
+      const out: Record<number, SegState> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const n = Number(k);
+        if (n === i) return;
+        out[n > i ? n - 1 : n] = v;
+      });
+      return out;
+    });
+    setSegs(list);
+    setCur((c) => Math.max(0, Math.min(c > i ? c - 1 : c, list.length - 1)));
+  }
+
   // Two stacked lanes · agent above, user below, each waveform mirrored around
   // its own centreline (the Label-Studio look), user-segment highlights on the
   // user lane, current segment outlined across both, playhead full height.
@@ -592,8 +653,11 @@ export default function Transcribe() {
           timestamp: fmt(g.start),
           segment_start_sec: Number(g.start.toFixed(1)),
           segment_end_sec: Number(g.end.toFixed(1)),
-          turn_number: g.official ? `turn ${i + 1}` : `spike ${i + 1} (no transcript)`,
+          turn_number: g.official ? `turn ${i + 1}` : g.manual ? `added ${i + 1} (reviewer-found)` : `spike ${i + 1} (no transcript)`,
           official_bolna_turn: g.official ? "Yes" : "No",
+          // Speech the detector never surfaced · this is the strongest evidence
+          // of dropped user turns, so it must stay separable in the dataset.
+          reviewer_added: g.manual ? "Yes" : "No",
           verdict: s.kind,
           transcripted: asr || "(missing from transcript)",
           audio_said: gold,
@@ -746,9 +810,26 @@ export default function Transcribe() {
                     const hit = segs.findIndex((gg) => t >= gg.start && t <= gg.end);
                     if (hit >= 0) playSeg(hit);
                     else seekPlay(t, null);
+                  }}
+                  // Double-click adds a segment the detector missed. Single
+                  // click is untouched, and a double-click that lands ON a
+                  // spike does nothing new · spike behaviour is unchanged.
+                  onDoubleClick={(e) => {
+                    const r = (e.target as HTMLCanvasElement).getBoundingClientRect();
+                    const t = ((e.clientX - r.left) / r.width) * wave.duration;
+                    if (segs.some((gg) => t >= gg.start && t <= gg.end)) return;
+                    addSegAt(t);
                   }} />
-                <div style={{ fontSize: 10.5, color: "#8a988f" }}>
-                  <span style={{ color: "#1f7a5c" }}>▮ agent</span> · <span style={{ color: "#5b8def" }}>▮ user</span> · user spikes: <span style={{ color: "#d64545" }}>pending</span> / <span style={{ color: "#1f7a5c" }}>done</span> / <span style={{ color: "#b7791f" }}>current</span> · click a spike to jump · Space replay · ←/→ · U user-only
+                <div style={{ fontSize: 10.5, color: "#8a988f", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span>
+                    <span style={{ color: "#1f7a5c" }}>▮ agent</span> · <span style={{ color: "#5b8def" }}>▮ user</span> · user spikes: <span style={{ color: "#d64545" }}>pending</span> / <span style={{ color: "#1f7a5c" }}>done</span> / <span style={{ color: "#b7791f" }}>current</span> · click a spike to jump · Space replay · ←/→ · U user-only
+                  </span>
+                  <button onClick={() => addSegAt(playhead)}
+                    title="Add a segment the detector missed, at the playhead. Or double-click anywhere on the waveform."
+                    style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px dashed #5b8def", background: "#fff", color: "#3f6fd0", cursor: "pointer" }}>
+                    + add segment at playhead
+                  </button>
+                  <span style={{ color: "#a8b5ae" }}>or double-click the waveform</span>
                 </div>
               </>
             ) : call && analyzing ? <div style={{ fontSize: 12, color: "#5b6b64" }}>Analyzing waveform…</div> : null}
@@ -777,7 +858,17 @@ export default function Transcribe() {
                       <button onClick={() => playSeg(cur)} style={{ fontSize: 13 }}>🔁 {fmt(g.start)}-{fmt(g.end)}</button>
                       <strong style={{ fontSize: 13, color: "#5b6b64" }}>spike {cur + 1} of {segs.length}</strong>
                       {s.status === "done" && <span style={{ fontSize: 11, color: "#1f7a5c" }}>✓ {s.kind}</span>}
+                      {g.manual && (
+                        <span title="You added this segment · the detector did not find it"
+                          style={{ fontSize: 10.5, fontWeight: 600, color: "#3f6fd0", background: "#eef3fd", border: "1px solid #cfdcf7", borderRadius: 999, padding: "2px 8px" }}>
+                          added by you
+                        </span>
+                      )}
                       <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                        {g.manual && (
+                          <button onClick={() => removeSeg(cur)} title="Remove this segment you added"
+                            style={{ fontSize: 12, color: "#b03636" }}>✕ remove</button>
+                        )}
                         <button disabled={cur === 0} onClick={() => playSeg(cur - 1)} style={{ fontSize: 12 }}>← prev</button>
                         <button disabled={cur >= segs.length - 1} onClick={() => playSeg(cur + 1)} style={{ fontSize: 12 }}>next →</button>
                       </span>
@@ -806,8 +897,13 @@ export default function Transcribe() {
                       )}
                       <button onClick={() => resolve(cur, "noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #4a5568", background: s.kind === "noise" ? "#4a5568" : "#fff", color: s.kind === "noise" ? "#fff" : "#4a5568", cursor: "pointer" }}>{"{noise}"}</button>
                       <button onClick={() => resolve(cur, "deleted")} title="This isn't a user turn; the detector was wrong. Removes it from the transcript." style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #b03636", background: s.kind === "deleted" ? "#b03636" : "#fff", color: s.kind === "deleted" ? "#fff" : "#b03636", cursor: "pointer" }}>🗑 Not a user turn</button>
-                      <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto" }}>
-                        <input type="checkbox" checked={s.unclear} onChange={(e) => patch(cur, { unclear: e.target.checked })} /> audio unclear
+                      {/* Distinct from {noise}: noise means there is no user
+                          speech here at all, this means there IS speech and it
+                          is hard to make out. Reviewers already use them apart
+                          · only 183 of 6,512 noise segments carry this flag. */}
+                      <label title="There is speech here, but it is hard to make out. Different from {noise}, which means no user speech at all."
+                        style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto" }}>
+                        <input type="checkbox" checked={s.unclear} onChange={(e) => patch(cur, { unclear: e.target.checked })} /> audio unclear / feeble voice
                       </label>
                     </div>
 
