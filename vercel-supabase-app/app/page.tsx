@@ -37,32 +37,37 @@ void combinedIssueTypes;
 // Oolka collections tagging. Each call gets one comprehension, one intent and
 // one reason code, each with a free-text box. Options are derived from what
 // actually occurs in the Oolka call set, not a generic collections taxonomy.
-const COL_COMPREHENSION = [
-  "Full Comprehension",
-  "Partial - understood debt exists but not offers",
-  "No comprehension",
-  "Language issue",
-  "Others"
-];
-const COL_INTENT = [
-  "Claims already paid",
-  "Firm promise to pay",
-  "Passive acknowledgment / no commitment",
-  "Installment asked",
-  "Cant pay - no money",
-  "Dispute / Fraud",
-  "Wont pay (clear no)",
-  "Others"
-];
-const COL_REASON = [
-  "Money awaited",
-  "Already paid",
-  "Other debts too",
-  "No money",
-  "Emergency / unemployment",
-  "Technical error",
-  "Others"
-];
+const COL_COMPREHENSION: Record<string, string[]> = {
+  "Full comprehension": [],
+  "Partial comprehension": [
+    "Questions Oolka's relationship with lender",
+    "Not clear on which debt",
+    "Not clear on amount - total or principal-vs-interest/charges breakup",
+    "Understood debt but offers unclear",
+    "Others"
+  ],
+  "No comprehension": [
+    "Language barrier",
+    "Couldn't assess - call cut short etc",
+    "Others"
+  ],
+  "Others": []
+};
+const COL_INTENT: Record<string, string[]> = {
+  "Firm promise to pay (specific date + amount aligned)": ["Whole amount", "Via installments", "Others"],
+  "Partial promise to pay / soft commitment": [
+    "Request for postponement",
+    "Wants installments (but not available)",
+    "Passive acknowledgment (no real commitment)",
+    "Low trust on online, wants offline payment",
+    "Others"
+  ],
+  "Refusal to pay (no dispute)": ["No reason given", "Others"],
+  "Dispute / Fraud claimed": ["Not my loan / fraud", "Amount or charges wrong", "Others"],
+  "Cant pay - no money": ["No money", "Emergency / unemployment", "Other debts too", "Others"],
+  "Claims already paid": ["Paid online", "Paid offline (cash/agent)", "Unspecified / no proof offered", "Others"],
+  "Others": []
+};
 
 const TRANSCRIPTION_ERROR_TYPES = ["Wrong Transcription same language", "Wrong Transcription different language", "Missing"];
 // Shown when correcting an existing turn.
@@ -203,8 +208,8 @@ export default function Page() {
   const [colCompNote, setColCompNote] = useState("");
   const [colIntent, setColIntent] = useState("");
   const [colIntentNote, setColIntentNote] = useState("");
-  const [colReason, setColReason] = useState("");
-  const [colReasonNote, setColReasonNote] = useState("");
+  const [colCompL2, setColCompL2] = useState("");
+  const [colIntentL2, setColIntentL2] = useState("");
   const [missingIssueFields, setMissingIssueFields] = useState<string[]>([]);
   const [missingRatingFields, setMissingRatingFields] = useState<string[]>([]);
   const [startedAt, setStartedAt] = useState("");
@@ -412,9 +417,8 @@ export default function Page() {
     setMetricRatings(emptyMetricRatings());
     setVibeScore("");
     setVibeReason("");
-    setColComp(""); setColCompNote("");
-    setColIntent(""); setColIntentNote("");
-    setColReason(""); setColReasonNote("");
+    setColComp(""); setColCompL2(""); setColCompNote("");
+    setColIntent(""); setColIntentL2(""); setColIntentNote("");
     setMissingIssueFields([]);
     setMissingRatingFields([]);
     setStatusMessage("");
@@ -431,9 +435,8 @@ export default function Page() {
     setMetricRatings(emptyMetricRatings());
     setVibeScore("");
     setVibeReason("");
-    setColComp(""); setColCompNote("");
-    setColIntent(""); setColIntentNote("");
-    setColReason(""); setColReasonNote("");
+    setColComp(""); setColCompL2(""); setColCompNote("");
+    setColIntent(""); setColIntentL2(""); setColIntentNote("");
     setMissingIssueFields([]);
     setMissingRatingFields([]);
     setCapturedTime("00:00");
@@ -1069,11 +1072,11 @@ export default function Page() {
           issues: [...issues, ...ratingIssues, ...flagIssues, ...(isOolkaCall ? [{
             type: "collections",
             comprehension: colComp,
+            comprehension_l2: colCompL2,
             comprehension_note: colCompNote,
             intent: colIntent,
-            intent_note: colIntentNote,
-            reason_code: colReason,
-            reason_note: colReasonNote
+            intent_l2: colIntentL2,
+            intent_note: colIntentNote
           }] : [])],
           started_at: startedAt,
           duration_taken_sec: durationTaken
@@ -1427,29 +1430,61 @@ export default function Page() {
                     <span>Oolka</span>
                   </div>
                   <p className="helper-copy">
-                    Tag what the customer understood, what they intend to do about the payment, and why. All three are optional — add a line of context wherever useful.
+                    Pick L1, then L2 where it applies. All optional. Tie-breakers: a contest of the debt goes under intent, not comprehension.
+                    Soft commitment = the customer said something about paying themselves; passive acknowledgment = only haan / hmm / theek hai.
                   </p>
-                  {([
-                    ["Comprehension", COL_COMPREHENSION, colComp, setColComp, colCompNote, setColCompNote, "What did they understand / miss?"],
-                    ["Intent", COL_INTENT, colIntent, setColIntent, colIntentNote, setColIntentNote, "What exactly did they commit to or refuse?"],
-                    ["Reason code", COL_REASON, colReason, setColReason, colReasonNote, setColReasonNote, "Why are they in this position?"]
-                  ] as const).map(([label, options, value, setValue, note, setNote, placeholder]) => (
-                    <div className="rating-card" key={label}>
+                  <div className="rating-card">
+                    <label>
+                      Comprehension (L1)
+                      <select value={colComp} onChange={(event) => { setColComp(event.target.value); setColCompL2(""); }}>
+                        <option value="">Select comprehension</option>
+                        {Object.keys(COL_COMPREHENSION).map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {(COL_COMPREHENSION[colComp] || []).length > 0 && (
                       <label>
-                        {label}
-                        <select value={value} onChange={(event) => setValue(event.target.value)}>
-                          <option value="">Select {label.toLowerCase()}</option>
-                          {options.map((option) => (
+                        Comprehension (L2)
+                        <select value={colCompL2} onChange={(event) => setColCompL2(event.target.value)}>
+                          <option value="">Select detail</option>
+                          {(COL_COMPREHENSION[colComp] || []).map((option) => (
                             <option key={option} value={option}>{option}</option>
                           ))}
                         </select>
                       </label>
+                    )}
+                    <label>
+                      Comprehension note
+                      <textarea value={colCompNote} onChange={(event) => setColCompNote(event.target.value)} rows={2} placeholder="What did they understand / miss?" />
+                    </label>
+                  </div>
+                  <div className="rating-card">
+                    <label>
+                      Intent (L1)
+                      <select value={colIntent} onChange={(event) => { setColIntent(event.target.value); setColIntentL2(""); }}>
+                        <option value="">Select intent</option>
+                        {Object.keys(COL_INTENT).map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {(COL_INTENT[colIntent] || []).length > 0 && (
                       <label>
-                        {label} note
-                        <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} placeholder={placeholder} />
+                        Intent (L2)
+                        <select value={colIntentL2} onChange={(event) => setColIntentL2(event.target.value)}>
+                          <option value="">Select detail</option>
+                          {(COL_INTENT[colIntent] || []).map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
                       </label>
-                    </div>
-                  ))}
+                    )}
+                    <label>
+                      Intent note
+                      <textarea value={colIntentNote} onChange={(event) => setColIntentNote(event.target.value)} rows={2} placeholder="What did they commit to / contest, and why?" />
+                    </label>
+                  </div>
                 </section>
               )}
 
