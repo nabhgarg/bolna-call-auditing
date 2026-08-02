@@ -43,29 +43,26 @@ const COL_COMPREHENSION: Record<string, string[]> = {
     "Questions Oolka's relationship with lender",
     "Not clear on which debt",
     "Not clear on amount - total or principal-vs-interest/charges breakup",
-    "Understood debt but offers unclear",
-    "Others"
+    "Understood debt but offers unclear"
   ],
   "No comprehension": [
     "Language barrier",
-    "Couldn't assess - call cut short etc",
-    "Others"
+    "Couldn't assess - call cut short etc"
   ],
   "Others": []
 };
 const COL_INTENT: Record<string, string[]> = {
-  "Firm promise to pay (specific date + amount aligned)": ["Whole amount", "Via installments", "Others"],
+  "Firm promise to pay (specific date + amount aligned)": ["Whole amount", "Via installments"],
   "Partial promise to pay / soft commitment": [
     "Request for postponement",
     "Wants installments (but not available)",
     "Passive acknowledgment (no real commitment)",
-    "Low trust on online, wants offline payment",
-    "Others"
+    "Low trust on online, wants offline payment"
   ],
-  "Refusal to pay (no dispute)": ["No reason given", "Others"],
-  "Dispute / Fraud claimed": ["Not my loan / fraud", "Amount or charges wrong", "Others"],
-  "Cant pay - no money": ["No money", "Emergency / unemployment", "Other debts too", "Others"],
-  "Claims already paid": ["Paid online", "Paid offline (cash/agent)", "Unspecified / no proof offered", "Others"],
+  "Refusal to pay (no dispute)": ["No reason given"],
+  "Dispute / Fraud claimed": ["Not my loan / fraud", "Amount or charges wrong"],
+  "Cant pay - no money": ["No money", "Emergency / unemployment", "Other debts too"],
+  "Claims already paid": ["Paid online", "Paid offline (cash/agent)", "Unspecified / no proof offered"],
   "Others": []
 };
 
