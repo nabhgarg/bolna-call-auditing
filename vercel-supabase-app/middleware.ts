@@ -26,7 +26,7 @@ export function middleware(req: NextRequest) {
     const path = url.pathname.replace(/\/+$/, "").toLowerCase();
     url.pathname =
       path === "/ycpartners" ? "/ycpartners.html" :
-      path === "/spcpartners" ? "/spcpartners.html" :
+      path === "/spcteam" || path === "/spcpartners" ? "/spcteam.html" :
       "/apex.html";
     return NextResponse.rewrite(url);
   }
@@ -44,4 +44,4 @@ export function middleware(req: NextRequest) {
 
 // Only the root path and the apex-owned /ycpartners are host-routed; every
 // other path passes straight through untouched.
-export const config = { matcher: ["/", "/ycpartners", "/ycpartners/", "/spcpartners", "/spcpartners/"] };
+export const config = { matcher: ["/", "/ycpartners", "/ycpartners/", "/spcteam", "/spcteam/", "/spcpartners", "/spcpartners/"] };
