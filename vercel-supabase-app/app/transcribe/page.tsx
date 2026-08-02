@@ -207,6 +207,14 @@ export default function Transcribe() {
   const [playhead, setPlayhead] = useState(0);
   const [rate, setRate] = useState(1); // playback speed · 0.5x/0.75x help catch fast/slurred speech
   const rateRef = useRef(1);
+  // Channel isolation · these recordings are true two-channel telephony (agent
+  // on one leg, user on the other), so "user only" is a hard mute of the agent
+  // channel, not diarization. Mono calls can't be split · the toggle disables.
+  const [hear, setHear] = useState<"both" | "user" | "agent">("both");
+  const hearRef = useRef<"both" | "user" | "agent">("both");
+  const [stereoOk, setStereoOk] = useState(false);
+  const chanRef = useRef<{ user: AudioBuffer | null; agent: AudioBuffer | null }>({ user: null, agent: null });
+  function pickHear(h: "both" | "user" | "agent") { hearRef.current = h; setHear(h); }
   // click-a-word chooser: 3 Devanagari options + keep Roman
   const [altPick, setAltPick] = useState<{ ti: number; alts: string[]; loading: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -231,7 +239,13 @@ export default function Transcribe() {
     cancelAnimationFrame(rafRef.current);
   }
   function playBuffer(from: number, until: number) {
-    const ctx = ctxRef.current, buf = bufRef.current;
+    const ctx = ctxRef.current;
+    // isolation picks the source buffer · same timeline, one leg muted
+    const mode = hearRef.current;
+    const buf =
+      mode === "user" && chanRef.current.user ? chanRef.current.user :
+      mode === "agent" && chanRef.current.agent ? chanRef.current.agent :
+      bufRef.current;
     if (!ctx || !buf) return false;
     stopSpikeAudio();
     audioRef.current?.pause();
@@ -318,6 +332,7 @@ export default function Transcribe() {
     ctxRef.current?.close().catch(() => {});
     ctxRef.current = null; bufRef.current = null;
     setCall(null); setSegs([]); setStates({}); setCur(0); setApproxMode(false); setWave(null); setPlayhead(0);
+    chanRef.current = { user: null, agent: null }; setStereoOk(false); pickHear("both");
     // queue_id is shared across a person's whole batch (e.g. b4t_nabh) · track
     // the open call by composite key so exactly one card shows active.
     setCurrentQueueId(`${item.queue_id}:${item.execution_id}`);
@@ -370,6 +385,19 @@ export default function Transcribe() {
       } else {
         setApproxMode(true);
         envs = [envelope(audio.getChannelData(0), audio.sampleRate)];
+      }
+      // Mono buffers per leg, for isolated playback · built once at decode so
+      // the toggle costs nothing at play time.
+      if (audio.numberOfChannels >= 2) {
+        const mono = (data: Float32Array) => {
+          const b = ctx.createBuffer(1, data.length, audio.sampleRate);
+          // set() instead of copyToChannel · TS 5.7 types the latter's param as
+          // Float32Array<ArrayBuffer>, which getChannelData doesn't guarantee
+          b.getChannelData(0).set(data);
+          return b;
+        };
+        chanRef.current = { user: mono(audio.getChannelData(userIdx)), agent: mono(audio.getChannelData(1 - userIdx)) };
+        setStereoOk(true);
       }
       const userEnv = envs[userIdx];
       const agentEnv = envs.length > 1 ? envs[1 - userIdx] : null;
@@ -464,31 +492,46 @@ export default function Transcribe() {
     playSeg(target);
   }
 
-  // classic dual-channel waveform + user-segment highlights + playhead
+  // Two stacked lanes · agent above, user below, each waveform mirrored around
+  // its own centreline (the Label-Studio look), user-segment highlights on the
+  // user lane, current segment outlined across both, playhead full height.
+  // The lane that isolation has muted draws dimmed, so what you see is what
+  // you hear.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !wave) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const W = canvas.width = canvas.offsetWidth * 2, H = canvas.height = 120, mid = H / 2;
+    const W = canvas.width = canvas.offsetWidth * 2, H = canvas.height = 200;
+    const laneH = 88, gap = H - laneH * 2;             // 24px between lanes
+    const aMid = laneH / 2, uTop = laneH + gap, uMid = uTop + laneH / 2;
+    const amp = laneH / 2 - 4;
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = "#e6ebe9";
-    ctx.fillRect(0, mid - 0.5, W, 1);
+    ctx.fillRect(0, aMid - 0.5, W, 1);
+    ctx.fillRect(0, uMid - 0.5, W, 1);
     const bars = wave.agent.length;
     const bw = W / bars;
+    const aDim = hear === "user", uDim = hear === "agent";
     for (let i = 0; i < bars; i++) {
-      const up = (wave.agent[i] || 0) * (mid - 2);
-      const down = (wave.user[i] || 0) * (mid - 2);
-      ctx.fillStyle = "#1f7a5c";
-      ctx.fillRect(i * bw, mid - up, Math.max(bw - 0.5, 0.5), up);
-      ctx.fillStyle = "#5b8def";
-      ctx.fillRect(i * bw, mid, Math.max(bw - 0.5, 0.5), down);
+      const a = (wave.agent[i] || 0) * amp;
+      const u = (wave.user[i] || 0) * amp;
+      ctx.fillStyle = aDim ? "rgba(31,122,92,0.22)" : "#1f7a5c";
+      ctx.fillRect(i * bw, aMid - a, Math.max(bw - 0.5, 0.5), Math.max(a * 2, 1));
+      ctx.fillStyle = uDim ? "rgba(91,141,239,0.22)" : "#5b8def";
+      ctx.fillRect(i * bw, uMid - u, Math.max(bw - 0.5, 0.5), Math.max(u * 2, 1));
     }
-    // user segments: highlight bottom half only (agent side untouched)
+    // lane labels · drawn at 2x canvas scale
+    ctx.font = "600 19px system-ui, sans-serif";
+    ctx.fillStyle = aDim ? "#b6c4be" : "#1f7a5c";
+    ctx.fillText(`AGENT${aDim ? " · muted" : ""}`, 8, 22);
+    ctx.fillStyle = uDim ? "#bccbe8" : "#5b8def";
+    ctx.fillText(`USER${uDim ? " · muted" : ""}`, 8, uTop + 22);
+    // user segments: highlight the user lane only (agent lane untouched)
     segs.forEach((g, i) => {
       const x1 = (g.start / wave.duration) * W, x2 = (g.end / wave.duration) * W;
       ctx.fillStyle = i === cur ? "rgba(183,121,31,0.4)" : st(i).status === "done" ? "rgba(31,122,92,0.25)" : "rgba(214,69,69,0.18)";
-      ctx.fillRect(x1, mid, Math.max(2, x2 - x1), mid);
+      ctx.fillRect(x1, uTop, Math.max(2, x2 - x1), laneH);
       if (i === cur) { ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2); }
     });
     if (wave.duration > 0) {
@@ -496,7 +539,7 @@ export default function Transcribe() {
       ctx.fillStyle = "#d64545";
       ctx.fillRect(x - 1, 0, 2, H);
     }
-  }, [wave, segs, states, cur, playhead]);
+  }, [wave, segs, states, cur, playhead, hear]);
 
   function onRoman(i: number, value: string) {
     patch(i, { roman: value });
@@ -588,6 +631,12 @@ export default function Transcribe() {
       if (e.code === "Space") { e.preventDefault(); playSeg(cur); }
       if (e.code === "ArrowRight") playSeg(Math.min(cur + 1, segs.length - 1));
       if (e.code === "ArrowLeft") playSeg(Math.max(cur - 1, 0));
+      // U toggles user-only isolation and replays the segment, so the effect
+      // of the mute is heard immediately on the same words
+      if (e.code === "KeyU" && chanRef.current.user) {
+        pickHear(hearRef.current === "user" ? "both" : "user");
+        playSeg(cur);
+      }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
@@ -672,6 +721,17 @@ export default function Transcribe() {
                   </button>
                 ))}
               </div>
+              <div style={{ display: "inline-flex", gap: 2, border: "1px solid #cfd9d4", borderRadius: 7, overflow: "hidden", opacity: stereoOk ? 1 : 0.45 }}
+                title={stereoOk ? "Which channel plays on spike playback (U to toggle user-only)" : "Mono recording · channels can't be separated"}>
+                {([["both", "Both"], ["user", "User only"], ["agent", "Agent only"]] as const).map(([k, label]) => (
+                  <button key={k} onClick={() => stereoOk && pickHear(k)} disabled={!stereoOk}
+                    style={{ fontSize: 12, padding: "5px 9px", border: "none", cursor: stereoOk ? "pointer" : "default",
+                      background: hear === k ? (k === "user" ? "#5b8def" : k === "agent" ? "#1f7a5c" : "#4d5a66") : "#fff",
+                      color: hear === k ? "#fff" : "#5b6b64" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
               <button onClick={() => setRulesOpen(!rulesOpen)} style={{ fontSize: 12 }}>{rulesOpen ? "rules ▴" : "rules ▾"}</button>
               {approxMode && <span style={{ fontSize: 11, color: "#b7791f" }}>~approx timing</span>}
             </div>
@@ -679,7 +739,7 @@ export default function Transcribe() {
           <div>
             {wave ? (
               <>
-                <canvas ref={canvasRef} className="waveform" style={{ width: "100%", height: 60, cursor: "pointer", display: "block" }}
+                <canvas ref={canvasRef} className="waveform" style={{ width: "100%", height: 100, cursor: "pointer", display: "block" }}
                   onClick={(e) => {
                     const r = (e.target as HTMLCanvasElement).getBoundingClientRect();
                     const t = ((e.clientX - r.left) / r.width) * wave.duration;
@@ -688,7 +748,7 @@ export default function Transcribe() {
                     else seekPlay(t, null);
                   }} />
                 <div style={{ fontSize: 10.5, color: "#8a988f" }}>
-                  <span style={{ color: "#1f7a5c" }}>▮ agent</span> · <span style={{ color: "#5b8def" }}>▮ user</span> · user spikes: <span style={{ color: "#d64545" }}>pending</span> / <span style={{ color: "#1f7a5c" }}>done</span> / <span style={{ color: "#b7791f" }}>current</span> · click a spike to jump · Space replay · ←/→
+                  <span style={{ color: "#1f7a5c" }}>▮ agent</span> · <span style={{ color: "#5b8def" }}>▮ user</span> · user spikes: <span style={{ color: "#d64545" }}>pending</span> / <span style={{ color: "#1f7a5c" }}>done</span> / <span style={{ color: "#b7791f" }}>current</span> · click a spike to jump · Space replay · ←/→ · U user-only
                 </div>
               </>
             ) : call && analyzing ? <div style={{ fontSize: 12, color: "#5b6b64" }}>Analyzing waveform…</div> : null}
