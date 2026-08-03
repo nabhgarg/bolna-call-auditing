@@ -257,6 +257,11 @@ export async function GET(request: Request) {
         // vs ground truth
         gtHit: 0, gtN: 0, gtHigh: 0, gtLow: 0,
         gtSegN: 0, gtSegMatch: 0, gtVerdict: new collections_Counter(),
+        // where transcription actually goes wrong
+        noiseForSpeech: 0, speechForNoise: 0,
+        shortHit: 0, shortN: 0, longHit: 0, longN: 0,
+        wordsDropped: 0, wordsAdded: 0,
+        gtDiffSum: 0,   // signed vibe gap · positive = they score higher than the expert
         // issue logging vs peers
         missN: 0, missCalls: new Set<string>(), missCat: new collections_Counter()
       });
@@ -277,6 +282,7 @@ export async function GET(request: Request) {
         if (v >= 1 && v <= 4 && g !== undefined) {
           p.gtN++;
           const diff = v - g;
+          p.gtDiffSum += diff;
           if (Math.abs(diff) <= 1) p.gtHit++;
           else if (diff > 0) p.gtHigh++;
           else p.gtLow++;
@@ -289,8 +295,25 @@ export async function GET(request: Request) {
             const ms = mine[ts];
             if (!ms) continue;
             p.gtSegN++;
-            if (similar(ms.heard, gs.heard) >= 0.85) p.gtSegMatch++;
+            const hit = similar(ms.heard, gs.heard) >= 0.85;
+            if (hit) p.gtSegMatch++;
             if (ms.verdict !== gs.verdict) p.gtVerdict.add(`${gs.verdict}→${ms.verdict}`);
+
+            // Short turns are easy and long ones are not · reported apart,
+            // because "83%" hides that a 9-word turn is close to a coin flip.
+            const gWords = gs.heard.trim().split(/\s+/).filter(Boolean);
+            const mWords = ms.heard.trim().split(/\s+/).filter(Boolean);
+            if (gWords.length <= 3) { p.shortN++; if (hit) p.shortHit++; }
+            else { p.longN++; if (hit) p.longHit++; }
+
+            // The noise boundary, in both directions.
+            const isNoise = (t: string) => /^\{?\s*noise\s*\}?$/i.test(t.trim());
+            if (isNoise(ms.heard) && !isNoise(gs.heard)) p.noiseForSpeech++;
+            else if (!isNoise(ms.heard) && isNoise(gs.heard)) p.speechForNoise++;
+            else if (!hit) {
+              if (mWords.length < gWords.length) p.wordsDropped += gWords.length - mWords.length;
+              else if (mWords.length > gWords.length) p.wordsAdded += mWords.length - gWords.length;
+            }
           }
         }
       }
@@ -397,6 +420,15 @@ export async function GET(request: Request) {
         gtSegPct: p.gtSegN >= 20 ? Math.round((p.gtSegMatch / p.gtSegN) * 100) : null,
         gtSegN: p.gtSegN,
         gtVerdict: p.gtVerdict.top(3).map(([k, n]: [string, number]) => ({ shift: k, n })),
+        gtGap: p.gtN >= 10 ? Number((p.gtDiffSum / p.gtN).toFixed(2)) : null,
+        noiseForSpeech: p.noiseForSpeech,
+        speechForNoise: p.speechForNoise,
+        shortPct: p.shortN >= 20 ? Math.round((p.shortHit / p.shortN) * 100) : null,
+        shortN: p.shortN,
+        longPct: p.longN >= 20 ? Math.round((p.longHit / p.longN) * 100) : null,
+        longN: p.longN,
+        wordsDropped: p.wordsDropped,
+        wordsAdded: p.wordsAdded,
         // ---- issue logging vs peers ----
         missTotal: p.missN,
         missCalls: p.missCalls.size,
