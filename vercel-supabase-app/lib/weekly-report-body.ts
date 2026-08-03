@@ -116,53 +116,70 @@ export function buildBody(r: WeeklyRow, weekLabel: string): string {
   if (r.transcriptionPct !== null || r.gtSegPct !== null) {
     L.push(`TRANSCRIPTION`);
     if (r.transcriptionPct !== null) {
-      L.push(`  Your words matched other reviewers on ${r.transcriptionPct}% of ${r.transcriptionN.toLocaleString()} shared parts.`);
-    }
-    if (r.gtSegPct !== null) {
-      L.push(`  Your words matched the expert on ${r.gtSegPct}% of ${r.gtSegN.toLocaleString()} shared parts.`);
+      L.push(`  Every part is checked against the other reviewers who did the same call.`);
+      L.push(`  Your words matched them on ${r.transcriptionPct}% of ${r.transcriptionN.toLocaleString()} shared parts.`);
     }
     L.push("");
 
     // long vs short · the strongest and most fixable pattern
     if (r.shortPct !== null && r.longPct !== null && r.shortPct - r.longPct >= 10) {
       L.push(`  Short and long turns are very different for you:`);
-      L.push(line("1 to 3 words", `${r.shortPct}% correct`, 22));
-      L.push(line("4 words or more", `${r.longPct}% correct`, 22));
+      L.push(line("1 to 3 words", `${r.shortPct}% match`, 22));
+      L.push(line("4 words or more", `${r.longPct}% match`, 22));
       L.push(`  WHAT TO DO: long turns are where the mistakes are. On a long turn,`);
       L.push(`  play it twice. Type the first half, then play again for the second half.`);
       L.push(`  Do not try to catch the whole sentence in one listen.`);
       L.push("");
     }
 
-    // the noise boundary · the biggest single problem across the panel
-    if (r.noiseForSpeech >= 5 || r.speechForNoise >= 5) {
-      if (r.noiseForSpeech > r.speechForNoise) {
-        L.push(`  You marked ${r.noiseForSpeech} part${r.noiseForSpeech === 1 ? "" : "s"} as {noise}. The expert heard real words there.`);
-        L.push(`  This is the most common mistake in the whole team right now.`);
-        L.push(`  WHAT TO DO: before you mark {noise}, press U. This turns off the`);
-        L.push(`  agent voice and plays only the customer. A soft "haan ji" or "ok" is`);
-        L.push(`  usually easy to hear once the agent voice is gone.`);
-      } else {
-        L.push(`  You typed words on ${r.speechForNoise} part${r.speechForNoise === 1 ? "" : "s"} where the expert heard only noise.`);
-        L.push(`  WHAT TO DO: if you are guessing at the words, mark {noise} instead.`);
-        L.push(`  A guess is worse than an honest {noise}.`);
-      }
+    // The noise boundary.
+    //
+    // Peer comparison is symmetric: if I say {noise} and you type words, that
+    // is one count each way. So the panel totals always match and only the
+    // BALANCE for one person means anything · it says whether they call noise
+    // more or less often than the people hearing the same audio. Only shown
+    // when the balance is clearly one-sided.
+    const noiseTotal = r.noiseForSpeech + r.speechForNoise;
+    const noiseLean = noiseTotal >= 40 ? r.noiseForSpeech / noiseTotal : null;
+    if (noiseLean !== null && noiseLean >= 0.6) {
+      L.push(`  On ${noiseTotal} parts you and another reviewer disagreed about noise.`);
+      L.push(`  ${Math.round(noiseLean * 100)}% of those were you marking {noise} while they heard words.`);
+      L.push(`  So you call {noise} more often than the rest of the team.`);
+      L.push(`  WHAT TO DO: before you mark {noise}, press U. This turns off the`);
+      L.push(`  agent voice and plays only the customer. A soft "haan ji" or "ok" is`);
+      L.push(`  usually easy to hear once the agent voice is gone.`);
+      L.push("");
+    } else if (noiseLean !== null && noiseLean <= 0.4) {
+      L.push(`  On ${noiseTotal} parts you and another reviewer disagreed about noise.`);
+      L.push(`  ${Math.round((1 - noiseLean) * 100)}% of those were you typing words while they heard noise.`);
+      L.push(`  So you type words more often than the rest of the team.`);
+      L.push(`  WHAT TO DO: this is fine when you can really hear the words. But if`);
+      L.push(`  you are guessing, mark {noise} instead. A guess is worse than an`);
+      L.push(`  honest {noise}.`);
       L.push("");
     }
 
     // dropped vs added words
     if (r.wordsDropped >= 10 || r.wordsAdded >= 10) {
       if (r.wordsDropped > r.wordsAdded * 1.5) {
-        L.push(`  You left out about ${r.wordsDropped} words that the expert typed.`);
+        L.push(`  On the parts where you both typed words, you wrote about`);
+        L.push(`  ${r.wordsDropped} fewer words than the other reviewer.`);
         L.push(`  Small words go missing most: hai, ji, ma'am, you, I.`);
         L.push(`  WHAT TO DO: type every word you hear, even filler words.`);
       } else if (r.wordsAdded > r.wordsDropped * 1.5) {
-        L.push(`  You typed about ${r.wordsAdded} extra words that the expert did not hear.`);
+        L.push(`  On the parts where you both typed words, you wrote about`);
+        L.push(`  ${r.wordsAdded} more words than the other reviewer.`);
         L.push(`  WHAT TO DO: type only what you can clearly hear. Do not complete the`);
         L.push(`  sentence from what you expect the customer to say.`);
       }
       L.push("");
     }
+
+    while (L.length && L[L.length - 1] === "") L.pop();
+    L.push("");
+    L.push(`  Note: this compares you with other reviewers, not with a correct answer.`);
+    L.push(`  A difference means the two of you heard the same audio differently.`);
+    L.push("");
   }
 
   // ---------- 5. anything left open ----------

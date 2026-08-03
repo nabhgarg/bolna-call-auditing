@@ -288,6 +288,8 @@ export async function GET(request: Request) {
           else p.gtLow++;
         }
       } else if (r.review_mode === "timing_transcription") {
+        // Expert overlap is kept only as a headline accuracy figure · all the
+        // coaching detail is computed against co-reviewers instead.
         const g = gtSeg.get(r.call_id);
         if (g) {
           const mine = segMap(r);
@@ -295,25 +297,7 @@ export async function GET(request: Request) {
             const ms = mine[ts];
             if (!ms) continue;
             p.gtSegN++;
-            const hit = similar(ms.heard, gs.heard) >= 0.85;
-            if (hit) p.gtSegMatch++;
-            if (ms.verdict !== gs.verdict) p.gtVerdict.add(`${gs.verdict}→${ms.verdict}`);
-
-            // Short turns are easy and long ones are not · reported apart,
-            // because "83%" hides that a 9-word turn is close to a coin flip.
-            const gWords = gs.heard.trim().split(/\s+/).filter(Boolean);
-            const mWords = ms.heard.trim().split(/\s+/).filter(Boolean);
-            if (gWords.length <= 3) { p.shortN++; if (hit) p.shortHit++; }
-            else { p.longN++; if (hit) p.longHit++; }
-
-            // The noise boundary, in both directions.
-            const isNoise = (t: string) => /^\{?\s*noise\s*\}?$/i.test(t.trim());
-            if (isNoise(ms.heard) && !isNoise(gs.heard)) p.noiseForSpeech++;
-            else if (!isNoise(ms.heard) && isNoise(gs.heard)) p.speechForNoise++;
-            else if (!hit) {
-              if (mWords.length < gWords.length) p.wordsDropped += gWords.length - mWords.length;
-              else if (mWords.length > gWords.length) p.wordsAdded += mWords.length - gWords.length;
-            }
+            if (similar(ms.heard, gs.heard) >= 0.85) p.gtSegMatch++;
           }
         }
       }
@@ -339,7 +323,30 @@ export async function GET(request: Request) {
         p.transcription++;
         for (const s of segsOf(r)) {
           const others = (segBucket.get(`${r.call_id}@${s.ts}`) || []).filter((x) => x.who !== w);
-          for (const o of others) { p.trN++; p.trScore += wordAgreement(s.heard, o.heard); }
+          for (const o of others) {
+            p.trN++;
+            const score = wordAgreement(s.heard, o.heard);
+            p.trScore += score;
+
+            // Coaching detail comes from the PANEL, not the expert · the
+            // people transcribing today have no expert-transcribed calls in
+            // common, so an expert-only comparison teaches them nothing.
+            // There is no "correct" side here: this is where a reviewer and a
+            // co-reviewer heard the same audio differently.
+            const hit = score >= 0.85;
+            const mine = s.heard.trim().split(/\s+/).filter(Boolean);
+            const theirs = o.heard.trim().split(/\s+/).filter(Boolean);
+            if (theirs.length <= 3) { p.shortN++; if (hit) p.shortHit++; }
+            else { p.longN++; if (hit) p.longHit++; }
+
+            const isNoise = (t: string) => /^\{?\s*noise\s*\}?$/i.test(t.trim());
+            if (isNoise(s.heard) && !isNoise(o.heard)) p.noiseForSpeech++;
+            else if (!isNoise(s.heard) && isNoise(o.heard)) p.speechForNoise++;
+            else if (!hit) {
+              if (mine.length < theirs.length) p.wordsDropped += theirs.length - mine.length;
+              else if (mine.length > theirs.length) p.wordsAdded += mine.length - theirs.length;
+            }
+          }
         }
       } else if (r.review_mode === "response_vibe") {
         const v = Number(String(r.vibe_score || "").trim());
