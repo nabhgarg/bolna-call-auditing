@@ -28,6 +28,16 @@ async function selectAll(build: () => any): Promise<any[]> {
   return rows;
 }
 
+/** Tiny counter · Map<string, number> with an increment that doesn't need a
+ *  guard at every call site. */
+class collections_Counter extends Map<string, number> {
+  add(k: string, n = 1) { this.set(k, (this.get(k) || 0) + n); }
+  top(n: number): Array<[string, number]> {
+    return [...this.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
+  }
+  total(): number { let s = 0; this.forEach((v) => { s += v; }); return s; }
+}
+
 const norm = (v: unknown) => String(v || "").trim().toLowerCase().replace(/\s+/g, " ");
 const day = (iso: unknown) => String(iso || "").slice(0, 10);
 const baseMode = (m: string) => String(m || "").split("::")[0];
@@ -51,6 +61,42 @@ function issueCats(issues: any): string[] {
   return issues
     .map((i) => (i && typeof i === "object" ? String(i.category || i.type || "") : String(i)))
     .filter((c) => c && c !== "metric_rating" && c !== "transcription");
+}
+
+export const ISSUE_LABEL: Record<string, string> = {
+  response_appropriateness: "Response appropriateness",
+  latency: "Latency / dead air",
+  pronunciation: "Pronunciation",
+  tone: "Tone & naturalness",
+  barge_in: "Barge-in",
+  flag_for_review: "Flagged / uncodeable"
+};
+
+/** Timestamped segments keyed by their timestamp, for GT comparison. */
+function segMap(r: any): Record<string, { heard: string; verdict: string }> {
+  const out: Record<string, { heard: string; verdict: string }> = {};
+  for (const s of (Array.isArray(r.issues_json) ? r.issues_json : [])) {
+    if (!s || typeof s !== "object") continue;
+    const ts = String(s.timestamp || "").trim();
+    const heard = String(s.audio_said || "").trim();
+    if (ts && heard) out[ts] = { heard, verdict: String(s.verdict) };
+  }
+  return out;
+}
+
+/** Rough text similarity · used only to ask "is this the same transcript",
+ *  never to score anything a reviewer sees as a percentage on its own. */
+function similar(a: string, b: string): number {
+  const A = a.toLowerCase().split(/\s+/).filter(Boolean);
+  const B = b.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!A.length || !B.length) return 0;
+  let hit = 0;
+  const pool = [...B];
+  for (const w of A) {
+    const i = pool.indexOf(w);
+    if (i >= 0) { hit++; pool.splice(i, 1); }
+  }
+  return hit / Math.max(A.length, B.length);
 }
 function segsOf(r: any) {
   return (Array.isArray(r.issues_json) ? r.issues_json : [])
@@ -130,6 +176,38 @@ export async function GET(request: Request) {
       }
     }
 
+    // ---- ground truth · the founders' own reviews --------------------------
+    // Vibe GT: mean expert score per call. Deliberately all-time, not
+    // week-scoped · GT is sparse, and a reviewer with no expert overlap this
+    // week would otherwise get no accuracy figure at all.
+    const gtVibe = new Map<string, number[]>();
+    for (const r of live) {
+      if (r.review_mode !== "response_vibe" || !EXPERT_IDS.has((r as any)._who)) continue;
+      const v = Number(String(r.vibe_score || "").trim());
+      if (v >= 1 && v <= 4) {
+        if (!gtVibe.has(r.call_id)) gtVibe.set(r.call_id, []);
+        (gtVibe.get(r.call_id) as number[]).push(v);
+      }
+    }
+    const gtMean = new Map<string, number>();
+    gtVibe.forEach((v, c) => gtMean.set(c, v.reduce((s, n) => s + n, 0) / v.length));
+
+    // Transcription GT: expert segments keyed call@timestamp
+    const gtSeg = new Map<string, Record<string, { heard: string; verdict: string }>>();
+    for (const r of live) {
+      if (r.review_mode !== "timing_transcription" || !EXPERT_IDS.has((r as any)._who)) continue;
+      const cur = gtSeg.get(r.call_id) || {};
+      gtSeg.set(r.call_id, { ...cur, ...segMap(r) });
+    }
+
+    // Issue-logging peer comparison: what a co-reviewer caught on the same call
+    const issueByCall = new Map<string, Map<string, Set<string>>>();
+    for (const r of live) {
+      if (r.review_mode !== "response_vibe") continue;
+      if (!issueByCall.has(r.call_id)) issueByCall.set(r.call_id, new Map());
+      (issueByCall.get(r.call_id) as Map<string, Set<string>>).set((r as any)._who, new Set(issueCats(r.issues_json)));
+    }
+
     // ---- assigned this week -----------------------------------------------
     const assigned = new Map<string, number>();
     for (const q of queue) {
@@ -156,10 +234,48 @@ export async function GET(request: Request) {
         byDay: [0, 0, 0, 0, 0], vibe: 0, issue: 0, transcription: 0, total: 0,
         secs: [] as number[], fast: 0,
         agrHit: 0, agrN: 0, devSum: 0, devN: 0, trScore: 0, trN: 0,
-        resub: 0, activeDays: new Set<string>()
+        resub: 0, activeDays: new Set<string>(),
+        // vs ground truth
+        gtHit: 0, gtN: 0, gtHigh: 0, gtLow: 0,
+        gtSegN: 0, gtSegMatch: 0, gtVerdict: new collections_Counter(),
+        // issue logging vs peers
+        missN: 0, missCalls: new Set<string>(), missCat: new collections_Counter()
       });
       return people.get(w);
     };
+
+    // Ground truth is sparse · an expert-rated call rarely lands in the same
+    // week a reviewer worked, so a week-scoped GT figure is empty for almost
+    // everyone. GT accuracy is therefore ALL-TIME and labelled that way in the
+    // email; volume and peer agreement stay week-scoped.
+    for (const r of live) {
+      const w = (r as any)._who;
+      if (!w || EXPERT_IDS.has(w)) continue;
+      const p = touch(w);
+      if (r.review_mode === "response_vibe") {
+        const v = Number(String(r.vibe_score || "").trim());
+        const g = gtMean.get(r.call_id);
+        if (v >= 1 && v <= 4 && g !== undefined) {
+          p.gtN++;
+          const diff = v - g;
+          if (Math.abs(diff) <= 1) p.gtHit++;
+          else if (diff > 0) p.gtHigh++;
+          else p.gtLow++;
+        }
+      } else if (r.review_mode === "timing_transcription") {
+        const g = gtSeg.get(r.call_id);
+        if (g) {
+          const mine = segMap(r);
+          for (const [ts, gs] of Object.entries(g)) {
+            const ms = mine[ts];
+            if (!ms) continue;
+            p.gtSegN++;
+            if (similar(ms.heard, gs.heard) >= 0.85) p.gtSegMatch++;
+            if (ms.verdict !== gs.verdict) p.gtVerdict.add(`${gs.verdict}→${ms.verdict}`);
+          }
+        }
+      }
+    }
 
     for (const r of live) {
       const d = day(r.submitted_at);
@@ -194,6 +310,19 @@ export async function GET(request: Request) {
           m.forEach((ov, ow) => { if (ow !== w) { sum += ov; n++; p.agrN++; if (Math.abs(v - ov) <= 1) p.agrHit++; } });
           if (n) { p.devSum += v - sum / n; p.devN++; }
         }
+        // issue logging · categories a co-reviewer logged on this call and
+        // they did not. Only counted where somebody else reviewed the same
+        // call, so it is a real miss rather than an unreviewed call.
+        const im = issueByCall.get(r.call_id);
+        if (im && im.size >= 2) {
+          const mine = im.get(w) || new Set<string>();
+          const others = new Set<string>();
+          im.forEach((set, ow) => { if (ow !== w) set.forEach((c) => others.add(c)); });
+          if (others.size) {
+            p.missCalls.add(r.call_id);
+            others.forEach((c) => { if (!mine.has(c)) { p.missN++; p.missCat.add(c); } });
+          }
+        }
       }
     }
     for (const r of cleared) {
@@ -227,7 +356,19 @@ export async function GET(request: Request) {
         agreementN: p.agrN,
         deviation: p.devN >= 20 ? Number((p.devSum / p.devN).toFixed(2)) : null,
         transcriptionPct: p.trN >= 20 ? Math.round((p.trScore / p.trN) * 100) : null,
-        transcriptionN: p.trN
+        transcriptionN: p.trN,
+        // ---- vs ground truth ----
+        gtPct: p.gtN >= 10 ? Math.round((p.gtHit / p.gtN) * 100) : null,
+        gtN: p.gtN,
+        gtHigh: p.gtHigh,
+        gtLow: p.gtLow,
+        gtSegPct: p.gtSegN >= 20 ? Math.round((p.gtSegMatch / p.gtSegN) * 100) : null,
+        gtSegN: p.gtSegN,
+        gtVerdict: p.gtVerdict.top(3).map(([k, n]: [string, number]) => ({ shift: k, n })),
+        // ---- issue logging vs peers ----
+        missTotal: p.missN,
+        missCalls: p.missCalls.size,
+        missTop: p.missCat.top(3).map(([k, n]: [string, number]) => ({ key: k, label: ISSUE_LABEL[k] || k, n }))
       };
     }).filter((r) => r.total > 0 || r.assigned > 0)
       .sort((a, b) => b.total - a.total);
