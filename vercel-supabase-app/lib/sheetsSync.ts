@@ -96,23 +96,29 @@ export async function sendOtpEmail(email: string, code: string) {
 }
 
 // General reviewer mail (the weekly report), through the same Apps Script
-// MailApp the OTP uses. Needs a `sendMail` case in the Apps Script:
+// MailApp the OTP already uses. Requires a `sendMail` case in the script:
 //
-//   if (body.action === 'sendMail') {
-//     MailApp.sendEmail({ to: body.email, subject: body.subject, body: body.text });
-//     return ok({});
+//   if (payload.action === "sendMail") return jsonOutput(sendMail(payload));
+//
+//   function sendMail(payload) {
+//     const email = String(payload.email || "").trim();
+//     const subject = String(payload.subject || "").trim();
+//     const text = String(payload.text || "");
+//     if (!email || !subject || !text) return { ok: false, error: "email, subject and text required" };
+//     MailApp.sendEmail({ to: email, subject: subject, body: text });
+//     return { ok: true };
 //   }
 //
-// Until that case exists the script falls through to its default and this
-// returns an error rather than silently reporting success.
+// Until it is added AND redeployed, doPost answers {ok:false,"Unknown action"},
+// which postToSheets already surfaces as an error · so a send can never
+// silently no-op.
 export async function sendReviewerMail(email: string, subject: string, text: string) {
   const result = await postToSheets({ action: "sendMail", email, subject, text });
-  if (!result.ok) return { ok: false as const, error: result.error };
-  const data = (result.data || {}) as Record<string, unknown>;
-  // The script answers unknown actions with its readCalls fallback · treat a
-  // reply that doesn't acknowledge the send as a failure, not a success.
-  if (data.sheet_name || data.calls) {
-    return { ok: false as const, error: "Apps Script has no 'sendMail' action yet — add the case shown in lib/sheetsSync.ts" };
+  if (!result.ok) {
+    const hint = /unknown action/i.test(String(result.error))
+      ? "Apps Script has no 'sendMail' case yet — add it and redeploy a new version"
+      : String(result.error);
+    return { ok: false as const, error: hint };
   }
   return { ok: true as const };
 }
