@@ -1,4 +1,8 @@
-import { exportRowsFromReviews, normalizeReviewMode, REVIEW_EXPORT_COLUMNS_BY_MODE, ReviewRow } from "./audit";
+import {
+  exportRowsByTab, normalizeReviewMode, ReviewRow,
+  VIBE_TAB, ISSUE_TAB, TRANSCRIPTION_TAB,
+  VIBE_TAB_COLUMNS, ISSUE_TAB_COLUMNS, TRANSCRIPTION_TAB_COLUMNS
+} from "./audit";
 import { applyEmailAlias, normalizeAuditMode, normalizeCallRows } from "./callImport";
 
 // Current sheet webhook (experts phase). Not a secret - it's a public Apps Script
@@ -169,18 +173,26 @@ export async function syncReviewsToSheets(reviews: ReviewRow[]) {
 
   let totalRows = 0;
   let configured = true;
-  const syncedReviewIds = new Set<number>();
+  const syncedReviewIds = new Set<string>();
 
-  for (const mode of ["pronunciation_tone", "timing_transcription", "response_vibe"] as const) {
-    const modeReviews = reviews.filter((review) => normalizeReviewMode(review.review_mode) === mode);
-    if (!modeReviews.length) continue;
+  // One tab per kind of work · vibe scores, issue findings, transcription
+  // segments. Each carries only its own columns, and the two grains inside a
+  // quality review (one scored call, n findings) are kept apart.
+  const split = exportRowsByTab(reviews);
+  const targets: Array<[string, readonly string[], Array<Record<string, unknown>>, string]> = [
+    [VIBE_TAB, VIBE_TAB_COLUMNS, split.vibe, "response_vibe"],
+    [ISSUE_TAB, ISSUE_TAB_COLUMNS, split.issues, "response_vibe"],
+    [TRANSCRIPTION_TAB, TRANSCRIPTION_TAB_COLUMNS, split.transcription, "timing_transcription"]
+  ];
 
-    const rows = exportRowsFromReviews(modeReviews, mode);
+  for (const [tab, columns, rows, mode] of targets) {
+    if (!rows.length) continue;
     totalRows += rows.length;
     const result = await postToSheets({
       action: "appendReviews",
+      sheet_name: tab,
       review_mode: mode,
-      columns: REVIEW_EXPORT_COLUMNS_BY_MODE[mode],
+      columns,
       rows
     });
 
@@ -195,7 +207,7 @@ export async function syncReviewsToSheets(reviews: ReviewRow[]) {
     }
 
     configured = result.configured;
-    modeReviews.forEach((review) => syncedReviewIds.add(review.id));
+    rows.forEach((r) => syncedReviewIds.add(String(r.review_id)));
   }
 
   return {

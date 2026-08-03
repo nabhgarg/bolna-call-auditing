@@ -148,6 +148,57 @@ export const REVIEW_EXPORT_COLUMNS_BY_MODE = {
   response_vibe: RESPONSE_VIBE_REVIEW_EXPORT_COLUMNS
 } as const;
 
+// ---------------------------------------------------------------------------
+// Three purpose-built sheet tabs, one per kind of work.
+//
+// Everything used to land in one tab (Reviews_Experts, 38k rows) with a column
+// set wide enough to cover every mode, so most cells in any given row were
+// blank. These carry only the columns their own work actually produces.
+//
+// The split that matters: a quality review yields ONE scored call and N
+// findings. Those are different grains, so they get different tabs · one row
+// per call in Vibe, one row per finding in Issues. Filing a scored call under
+// Issues (or repeating its score on every finding row, as before) makes both
+// tabs impossible to count from.
+
+export const VIBE_TAB = "Reviews_Vibe";
+export const ISSUE_TAB = "Reviews_Issues";
+export const TRANSCRIPTION_TAB = "Reviews_Transcription";
+
+/** One row per scored call. */
+export const VIBE_TAB_COLUMNS = [
+  "review_id", "call_id", "org_name", "agent_name",
+  "call_duration_sec", "call_created_at_ist",
+  "reviewer_name", "reviewer_email",
+  "vibe_score", "vibe_score_reason",
+  "issues_logged",
+  "started_at", "submitted_at", "duration_taken_sec"
+] as const;
+
+/** One row per finding on a call. */
+export const ISSUE_TAB_COLUMNS = [
+  "review_id", "call_id", "org_name", "agent_name",
+  "reviewer_name", "reviewer_email",
+  "vibe_score",
+  "issue_type", "issue_timestamp", "issue_recording_link",
+  "content_tag",
+  "response_error_type", "response_error_subtype", "response_error_explanation",
+  "pronunciation_word_heard", "pronunciation_correct_form",
+  "tone_tag", "latency_reaction",
+  "issue_notes", "submitted_at"
+] as const;
+
+/** One row per transcribed segment. */
+export const TRANSCRIPTION_TAB_COLUMNS = [
+  "review_id", "call_id", "org_name", "agent_name",
+  "call_duration_sec", "call_created_at_ist",
+  "reviewer_name", "reviewer_email",
+  "turn_number", "issue_timestamp", "issue_recording_link",
+  "transcription_error_type", "audio_said", "transcripted",
+  "audio_unclear", "reviewer_added",
+  "issue_notes", "started_at", "submitted_at", "duration_taken_sec"
+] as const;
+
 export const REVIEW_EXPORT_COLUMNS = PRONUNCIATION_TONE_REVIEW_EXPORT_COLUMNS;
 
 export function parseTurns(transcript = "") {
@@ -299,6 +350,94 @@ export function exportRowsFromReviews(reviews: ReviewRow[], mode?: string | null
   }
 
   return rows;
+}
+
+/** Rows for the three purpose-built tabs, split by the grain each one holds.
+ *
+ *  A quality review produces one scored call AND n findings · they go to
+ *  different tabs rather than being flattened together. Transcription reviews
+ *  produce one row per segment.
+ *
+ *  `metric_rating` is skipped in Issues: it is a rating the reviewer gave, not
+ *  something the agent did wrong, and counting it as a finding inflated every
+ *  issue total we have ever printed. */
+export function exportRowsByTab(reviews: ReviewRow[]) {
+  const vibe: Array<Record<string, unknown>> = [];
+  const issues: Array<Record<string, unknown>> = [];
+  const transcription: Array<Record<string, unknown>> = [];
+
+  for (const review of reviews) {
+    const mode = normalizeReviewMode(review.review_mode);
+    const call = (review.calls || {}) as Partial<CallRow>;
+    const found = normalizeIssues(review.issues_json);
+    const base = {
+      review_id: review.id,
+      call_id: review.call_id,
+      org_name: call.org_name || "",
+      agent_name: call.agent_name || "",
+      call_duration_sec: call.duration_sec || "",
+      call_created_at_ist: call.created_at_ist || "",
+      reviewer_name: review.reviewer_name || "",
+      reviewer_email: review.reviewer_email || "",
+      started_at: review.started_at || "",
+      submitted_at: review.submitted_at || "",
+      duration_taken_sec: review.duration_taken_sec || ""
+    };
+
+    if (mode === "timing_transcription") {
+      for (const seg of found) {
+        const ts = String(seg.timestamp || "");
+        transcription.push({
+          ...base,
+          turn_number: seg.turn_number || "",
+          issue_timestamp: ts,
+          issue_recording_link: recordingLinkAt(call.recording_url, ts),
+          transcription_error_type: seg.transcription_error_type || "",
+          audio_said: seg.audio_said || "",
+          transcripted: seg.transcripted || "",
+          audio_unclear: seg.audio_unclear || "",
+          reviewer_added: (seg as Record<string, unknown>).reviewer_added || "No",
+          issue_notes: seg.notes || ""
+        });
+      }
+      continue;
+    }
+
+    // quality review · the scored call
+    const real = found.filter((i) => {
+      const t = String(i.type || "");
+      return t && t !== "metric_rating";
+    });
+    vibe.push({
+      ...base,
+      vibe_score: review.vibe_score || "",
+      vibe_score_reason: review.notes || "",
+      issues_logged: real.length
+    });
+
+    // quality review · each finding
+    for (const issue of real) {
+      const ts = String(issue.timestamp || "");
+      issues.push({
+        ...base,
+        vibe_score: review.vibe_score || "",
+        issue_type: issue.type === "interruption" ? "barge_in" : issue.type || "",
+        issue_timestamp: ts,
+        issue_recording_link: recordingLinkAt(call.recording_url, ts),
+        content_tag: issue.content_tag || "",
+        response_error_type: issue.response_error_type || "",
+        response_error_subtype: issue.response_error_subtype || "",
+        response_error_explanation: issue.error_explanation || "",
+        pronunciation_word_heard: issue.word_heard || "",
+        pronunciation_correct_form: issue.correct_form || "",
+        tone_tag: issue.tag || "",
+        latency_reaction: issue.reaction || "",
+        issue_notes: issue.notes || ""
+      });
+    }
+  }
+
+  return { vibe, issues, transcription };
 }
 
 export function toCsv(rows: Array<Record<string, unknown>>, columns: readonly string[] = REVIEW_EXPORT_COLUMNS) {
