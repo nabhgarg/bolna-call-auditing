@@ -155,8 +155,23 @@ export async function sendOtpEmail(email: string, code: string) {
 // Until it is added AND redeployed, doPost answers {ok:false,"Unknown action"},
 // which postToSheets already surfaces as an error · so a send can never
 // silently no-op.
+// Who the weekly report comes from.
+//
+// MailApp sends as the account that owns the Apps Script. `from` is only
+// honoured when the address is that account or one of its verified "send mail
+// as" aliases · Google silently falls back to the owner otherwise, so this is
+// a request, not a guarantee. Overridable without a deploy.
+const REPORT_FROM = process.env.REPORT_FROM_EMAIL || "nabh@realloop.in";
+const REPORT_FROM_NAME = process.env.REPORT_FROM_NAME || "RealLoop";
+
 export async function sendReviewerMail(email: string, subject: string, text: string) {
-  const result = await postToSheets({ action: "sendMail", email, subject, text });
+  const result = await postToSheets({
+    action: "sendMail",
+    email, subject, text,
+    from: REPORT_FROM,
+    fromName: REPORT_FROM_NAME,
+    replyTo: REPORT_FROM
+  });
   if (!result.ok) {
     const hint = /unknown action/i.test(String(result.error))
       ? "Apps Script has no 'sendMail' case yet — add it and redeploy a new version"

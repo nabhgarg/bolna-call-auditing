@@ -115,6 +115,7 @@ export default function Ops() {
   const [wkErr, setWkErr] = useState("");
   const [wkOpen, setWkOpen] = useState<string>("");   // which reviewer's email body is expanded
   const [wkPick, setWkPick] = useState<Record<string, boolean>>({});
+  const [wkEdit, setWkEdit] = useState<Record<string, { subject: string; body: string }>>({});
   const [wkSending, setWkSending] = useState(false);
   const [wkResult, setWkResult] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -135,7 +136,7 @@ export default function Ops() {
   // Weekly report · fetched only when the tab is opened, and re-fetched when
   // the week changes. Nothing here sends anything.
   function loadWeek(week?: string) {
-    setWk(null); setWkErr(""); setWkResult(null);
+    setWk(null); setWkErr(""); setWkResult(null); setWkEdit({}); setWkOpen("");
     fetch(`/api/ops/weekly${week ? `?week=${week}` : ""}`)
       .then((r) => r.json())
       .then((d) => {
@@ -231,7 +232,7 @@ export default function Ops() {
             try {
               const r = await fetch("/api/ops/weekly/send", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ weekStart: wk.weekStart, weekEnd: wk.weekEnd, rows: chosen, dryRun: dry })
+                body: JSON.stringify({ weekStart: wk.weekStart, weekEnd: wk.weekEnd, rows: chosen, edits: wkEdit, dryRun: dry })
               }).then((x) => x.json());
               setWkResult(r);
             } catch (e) { setWkResult({ error: String(e) }); }
@@ -323,17 +324,42 @@ export default function Ops() {
                           {r.perHour ? `${r.perHour}/hr` : "—"}
                         </span>
                       </div>
-                      {open && (
-                        <div style={{ padding: "0 18px 16px 56px" }}>
-                          <div style={{ ...head, marginBottom: 6 }}>The email {r.name.split(" ")[0]} receives</div>
-                          <pre className={mono.className} style={{ margin: 0, background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "12px 14px", fontSize: 11.5, lineHeight: 1.65, whiteSpace: "pre-wrap", color: INK, overflowX: "auto" }}>
-{`To: ${r.email}
-Subject: ${subjectFor(r, wk.weekStart, wk.weekEnd)}
-
-${bodyFor(r, wk.weekStart, wk.weekEnd)}`}
-                          </pre>
-                        </div>
-                      )}
+                      {open && (() => {
+                        const key = String(r.email).toLowerCase();
+                        const genSub = subjectFor(r, wk.weekStart, wk.weekEnd);
+                        const genBody = bodyFor(r, wk.weekStart, wk.weekEnd);
+                        const sub = wkEdit[key]?.subject ?? genSub;
+                        const bod = wkEdit[key]?.body ?? genBody;
+                        const dirty = sub !== genSub || bod !== genBody;
+                        const setEdit = (patch: { subject?: string; body?: string }) =>
+                          setWkEdit({ ...wkEdit, [key]: { subject: sub, body: bod, ...patch } });
+                        return (
+                          <div style={{ padding: "0 18px 16px 56px", display: "flex", flexDirection: "column", gap: 7 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={head}>The email {r.name.split(" ")[0]} receives · editable</span>
+                              {dirty && <span className={mono.className} style={{ fontSize: 10, color: AMBER, background: "#fdf4e3", border: "1px solid #f0e2c4", borderRadius: 999, padding: "1px 7px" }}>edited</span>}
+                              <span style={{ flex: 1 }} />
+                              {dirty && (
+                                <button onClick={() => { const n = { ...wkEdit }; delete n[key]; setWkEdit(n); }}
+                                  style={{ fontSize: 11.5, color: MUT, background: "transparent", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                                  reset to generated
+                                </button>
+                              )}
+                            </div>
+                            <div className={mono.className} style={{ fontSize: 11, color: MUT }}>To: {r.email}</div>
+                            <input value={sub} onChange={(e) => setEdit({ subject: e.target.value })}
+                              className={mono.className}
+                              style={{ width: "100%", fontSize: 11.5, padding: "8px 10px", border: `1px solid ${dirty ? "#f0e2c4" : BORDER}`, borderRadius: 8, color: INK, fontFamily: "inherit" }} />
+                            <textarea value={bod} onChange={(e) => setEdit({ body: e.target.value })}
+                              rows={18} spellCheck
+                              className={mono.className}
+                              style={{ width: "100%", fontSize: 11.5, lineHeight: 1.65, padding: "12px 14px", border: `1px solid ${dirty ? "#f0e2c4" : BORDER}`, borderRadius: 8, color: INK, resize: "vertical", fontFamily: "inherit" }} />
+                            <span style={{ fontSize: 11, color: FAINT }}>
+                              Edits are kept until you reload, and are sent verbatim · the numbers are not recomputed at send time.
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

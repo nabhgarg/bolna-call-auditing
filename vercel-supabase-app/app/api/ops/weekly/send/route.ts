@@ -64,8 +64,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "rows, weekStart and weekEnd are required" }, { status: 400 });
     }
 
+    // Operator edits, keyed by recipient. Whatever is in the preview box is
+    // what goes out · the generated text is only the starting point, and an
+    // edited message must never be quietly replaced by a regenerated one.
+    const edits: Record<string, { subject?: string; body?: string }> =
+      payload.edits && typeof payload.edits === "object" ? payload.edits : {};
+
     const targets = rows.filter((r) => r.active !== false && (!only.length || only.includes(String(r.email).toLowerCase())));
-    const results: Array<{ email: string; ok: boolean; error?: string; skipped?: boolean }> = [];
+    const results: Array<{ email: string; ok: boolean; error?: string; skipped?: boolean; edited?: boolean }> = [];
 
     // Already-sent guard. The webhook's redirect hop is flaky, so a partly
     // failed run WILL be re-run · without this, everyone who succeeded the
@@ -76,11 +82,12 @@ export async function POST(request: Request) {
     for (const r of targets) {
       const key = String(r.email).toLowerCase();
       if (already.has(key)) { results.push({ email: r.email, ok: true, skipped: true }); continue; }
-      const subject = subjectFor(r, weekStart, weekEnd);
-      const body = bodyFor(r, weekStart, weekEnd);
-      if (dryRun) { results.push({ email: r.email, ok: true }); continue; }
+      const edit = edits[key] || {};
+      const subject = String(edit.subject || "").trim() || subjectFor(r, weekStart, weekEnd);
+      const body = String(edit.body || "").trim() || bodyFor(r, weekStart, weekEnd);
+      if (dryRun) { results.push({ email: r.email, ok: true, edited: !!(edit.subject || edit.body) }); continue; }
       const sent = await sendReviewerMail(r.email, subject, body);
-      results.push({ email: r.email, ok: sent.ok, error: sent.ok ? undefined : sent.error });
+      results.push({ email: r.email, ok: sent.ok, error: sent.ok ? undefined : sent.error, edited: !!(edit.subject || edit.body) });
       if (sent.ok) await markSent(weekStart, key);
     }
 
