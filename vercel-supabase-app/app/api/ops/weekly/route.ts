@@ -154,6 +154,25 @@ export async function GET(request: Request) {
     const live = reviews.filter((r: any) => r.review_mode !== "cleared");
     const cleared = reviews.filter((r: any) => r.review_mode === "cleared");
     for (const r of [...live, ...cleared]) (r as any)._who = who(r.reviewer_email, r.reviewer_name);
+
+    // A call reviewed twice is two passes of work, so VOLUME counts every
+    // submission · superseded ones included. Resubmitting voids the earlier
+    // row by overwriting review_mode with "cleared", which loses the work
+    // type, so it is inferred back from the row's own shape (a vibe score, or
+    // segments carrying audio_said). 94% resolve; the rest count toward the
+    // total without landing in a per-type column.
+    //
+    // QUALITY is not computed from these. Scoring someone twice on the same
+    // call would weight it double, and the superseded pass is by definition
+    // the one they chose to replace.
+    const inferMode = (r: any): "vibe" | "transcription" | "unknown" => {
+      const v = String(r.vibe_score || "").trim();
+      if (/^[1-4]/.test(v)) return "vibe";
+      const segs = Array.isArray(r.issues_json) ? r.issues_json : [];
+      if (segs.some((s: any) => s && typeof s === "object" && s.audio_said)) return "transcription";
+      if (segs.some((s: any) => s && typeof s === "object" && (s.type || s.category))) return "vibe";
+      return "unknown";
+    };
     const callDur = new Map(calls.map((c: any) => [c.execution_id, Number(c.duration_sec || 0)]));
 
     // ---- panel context for quality: consensus and shared segments ----------
@@ -325,10 +344,23 @@ export async function GET(request: Request) {
         }
       }
     }
+    // Superseded passes · counted as work done, not as quality signal.
     for (const r of cleared) {
-      if (!inWeek.has(day(r.submitted_at))) continue;
+      const d = day(r.submitted_at);
+      if (!inWeek.has(d)) continue;
       const w = (r as any)._who;
-      if (w && people.has(w)) people.get(w).resub++;
+      if (!w || EXPERT_IDS.has(w)) continue;
+      const p = touch(w);
+      p.resub++;
+      p.total++;
+      p.activeDays.add(d);
+      const di = days.indexOf(d);
+      if (di >= 0) p.byDay[di]++;
+      const took = Number(r.duration_taken_sec || 0);
+      if (took > 0) p.secs.push(took);
+      const kind = inferMode(r);
+      if (kind === "transcription") p.transcription++;
+      else if (kind === "vibe") p.vibe++;
     }
 
     const rows = [...people.values()].map((p) => {

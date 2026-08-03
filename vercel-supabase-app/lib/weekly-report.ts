@@ -180,7 +180,9 @@ export function bodyFor(r: WeeklyRow, weekStart: string, weekEnd: string): strin
 
   const notes: string[] = [];
   if (r.openNow > 0) notes.push(`  ${r.openNow} call${r.openNow === 1 ? "" : "s"} still open in your queue.`);
-  if (r.resubmissions > 0) notes.push(`  ${r.resubmissions} review${r.resubmissions === 1 ? "" : "s"} you submitted more than once.`);
+  if (r.resubmissions > 0) {
+    notes.push(`  ${r.resubmissions} call${r.resubmissions === 1 ? " you" : "s you"} reviewed more than once — each pass is counted above, so redoing a call is not lost work.`);
+  }
   if (r.fasterThanAudio > 0) {
     notes.push(`  ${r.fasterThanAudio} review${r.fasterThanAudio === 1 ? "" : "s"} took less than half the length of the call — worth a second listen if the audio was hard.`);
   }
