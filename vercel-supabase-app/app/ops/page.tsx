@@ -347,7 +347,10 @@ ${bodyFor(r, wk.weekStart, wk.weekEnd)}`}
                   ) : (
                     <>
                       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
-                        {wkResult.dryRun ? `Dry run · ${wkResult.attempted} email${wkResult.attempted === 1 ? "" : "s"} rendered, nothing sent` : `Sent ${wkResult.sent} of ${wkResult.attempted}`}
+                        {wkResult.dryRun
+                          ? `Dry run · ${wkResult.attempted} email${wkResult.attempted === 1 ? "" : "s"} rendered, nothing sent`
+                          : `Sent ${wkResult.sent} of ${wkResult.attempted}`
+                            + (wkResult.skipped ? ` · ${wkResult.skipped} already had this week's report, skipped` : "")}
                       </div>
                       {(wkResult.failed || []).length > 0 && (
                         <div style={{ fontSize: 12, color: RED_BAR, lineHeight: 1.6 }}>

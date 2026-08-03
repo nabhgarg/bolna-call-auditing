@@ -17,6 +17,19 @@ function sheetsConfig() {
   return { webhookUrl, secret };
 }
 
+// Apps Script answers over a 302 to a one-shot googleusercontent URL, and that
+// second hop fails intermittently · measured 2 of 5 identical requests coming
+// back as a 3KB HTML error page instead of JSON, same payload, same second.
+// The script itself never ran in those cases, so the call is safe to repeat.
+//
+// A retry is only safe because of that distinction, so it is drawn carefully:
+//   - transport failure (HTML, empty body, 5xx, network throw) -> the script
+//     did not run, retry
+//   - a real JSON {ok:false} -> the script DID run and rejected us, never retry
+// Retrying a genuine rejection is how you double-send an email.
+const SHEETS_ATTEMPTS = 3;
+const looksLikeHtml = (s: string) => /^\s*</.test(s);
+
 async function postToSheets(payload: Record<string, unknown>) {
   const { webhookUrl, secret } = sheetsConfig();
   if (!webhookUrl) {
@@ -27,29 +40,55 @@ async function postToSheets(payload: Record<string, unknown>) {
     };
   }
 
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ secret, ...payload })
-  });
+  let lastError = "";
+  for (let attempt = 1; attempt <= SHEETS_ATTEMPTS; attempt++) {
+    let text = "";
+    let status = 0;
+    let statusText = "";
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ secret, ...payload })
+      });
+      status = response.status;
+      statusText = response.statusText;
+      text = await response.text();
+    } catch (e) {
+      lastError = `network: ${String((e as Error)?.message || e)}`;
+      if (attempt < SHEETS_ATTEMPTS) { await wait(attempt); continue; }
+      return { ok: false, configured: true, error: lastError };
+    }
 
-  const text = await response.text();
-  let data: Record<string, unknown> = {};
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = { error: text };
+    // Parsed JSON means the script ran · its answer is final either way.
+    let data: Record<string, unknown> | null = null;
+    if (text && !looksLikeHtml(text)) {
+      try { data = JSON.parse(text) as Record<string, unknown>; } catch { data = null; }
+    }
+    if (data) {
+      if (status >= 200 && status < 300 && data.ok !== false) {
+        return { ok: true, configured: true, data };
+      }
+      return {
+        ok: false,
+        configured: true,
+        error: String(data.error || statusText || `HTTP ${status}`)
+      };
+    }
+
+    // No usable JSON · the redirect hop dropped it. The script did not run.
+    lastError = looksLikeHtml(text)
+      ? `Apps Script redirect returned HTML instead of JSON (HTTP ${status})`
+      : `Empty response from Apps Script (HTTP ${status})`;
+    if (attempt < SHEETS_ATTEMPTS) { await wait(attempt); continue; }
   }
 
-  if (!response.ok || data.ok === false) {
-    return {
-      ok: false,
-      configured: true,
-      error: String(data.error || text || response.statusText)
-    };
-  }
+  return { ok: false, configured: true, error: `${lastError} after ${SHEETS_ATTEMPTS} attempts` };
+}
 
-  return { ok: true, configured: true, data };
+/** 400ms, then 1200ms · the hop either works immediately or needs a moment. */
+function wait(attempt: number) {
+  return new Promise((r) => setTimeout(r, attempt === 1 ? 400 : 1200));
 }
 
 // The base sheet splits assignments by track; import merges every track tab.
