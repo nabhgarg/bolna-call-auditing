@@ -1,0 +1,250 @@
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { sameWord } from "../../../../lib/script-match";
+
+export const dynamic = "force-dynamic";
+
+// Weekly reviewer report · Monday-Friday.
+//
+// One row per person: what they did, how fast, and how well it agreed with the
+// rest of the panel. Quality figures are only reported where there is enough
+// shared work to mean anything · a reviewer whose calls nobody else rated gets
+// "—", never a flattering number computed from one sample.
+
+const PAGE = 1000;
+const EXPERT_IDS = new Set([
+  "manavi@realloop.in", "manavi.garg1399@gmail.com",
+  "nabh@realloop.in", "nabhgarg@gmail.com", "manavi", "nabh"
+]);
+
+async function selectAll(build: () => any): Promise<any[]> {
+  const rows: any[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await build().range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...(data || []));
+    if (!data || data.length < PAGE) break;
+  }
+  return rows;
+}
+
+const norm = (v: unknown) => String(v || "").trim().toLowerCase().replace(/\s+/g, " ");
+const day = (iso: unknown) => String(iso || "").slice(0, 10);
+const baseMode = (m: string) => String(m || "").split("::")[0];
+const isActive = (m: string) => !baseMode(m).includes("__");
+
+/** Monday of the week containing `d`, as YYYY-MM-DD. */
+function mondayOf(d: Date): string {
+  const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const dow = x.getUTCDay();                 // 0=Sun
+  x.setUTCDate(x.getUTCDate() - ((dow + 6) % 7));
+  return x.toISOString().slice(0, 10);
+}
+function addDays(iso: string, n: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function issueCats(issues: any): string[] {
+  if (!Array.isArray(issues)) return [];
+  return issues
+    .map((i) => (i && typeof i === "object" ? String(i.category || i.type || "") : String(i)))
+    .filter((c) => c && c !== "metric_rating" && c !== "transcription");
+}
+function segsOf(r: any) {
+  return (Array.isArray(r.issues_json) ? r.issues_json : [])
+    .map((s: any) => ({ ts: String(s?.timestamp || "").trim(), heard: String(s?.audio_said || "").trim() }))
+    .filter((s: any) => s.ts && s.heard && !s.heard.startsWith("("));
+}
+function wordAgreement(a: string, b: string): number {
+  const A = String(a || "").trim().split(/\s+/).filter(Boolean);
+  const B = String(b || "").trim().split(/\s+/).filter(Boolean);
+  if (!A.length || !B.length) return 0;
+  const n = Math.min(A.length, B.length);
+  let hit = 0;
+  for (let i = 0; i < n; i++) if (sameWord(A[i], B[i])) hit++;
+  return hit / Math.max(A.length, B.length);
+}
+
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const now = new Date();
+    // Default to the most recently COMPLETED week · on a Monday or Tuesday the
+    // current week has almost nothing in it, and a report of nothing is noise.
+    const thisMon = mondayOf(now);
+    const dow = now.getUTCDay();
+    const weekStart = url.searchParams.get("week") || (dow === 0 || dow === 1 ? addDays(thisMon, -7) : thisMon);
+    const days = [0, 1, 2, 3, 4].map((i) => addDays(weekStart, i));   // Mon..Fri
+    const weekEnd = days[4];
+    const inWeek = new Set(days);
+
+    const supabase = supabaseAdmin();
+    const [reviews, queue, calls, reviewerRows] = await Promise.all([
+      selectAll(() => supabase.from("reviews").select("call_id,reviewer_name,reviewer_email,review_mode,vibe_score,issues_json,submitted_at,duration_taken_sec")),
+      selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode,assigned_reviewer,imported_at")),
+      selectAll(() => supabase.from("calls").select("execution_id,duration_sec")),
+      selectAll(() => supabase.from("reviewers").select("email,display_name,role,is_active"))
+    ]);
+
+    const alias = new Map<string, string>();
+    const nameOf = new Map<string, string>();
+    const active = new Map<string, boolean>();
+    for (const r of reviewerRows) {
+      const e = norm(r.email);
+      if (!e) continue;
+      alias.set(e, e);
+      if (r.display_name) alias.set(norm(r.display_name), e);
+      nameOf.set(e, String(r.display_name || e.split("@")[0]));
+      active.set(e, r.is_active !== false);
+    }
+    const who = (email: unknown, name: unknown) => {
+      const e = norm(email);
+      if (e && e.includes("@") && alias.has(e)) return alias.get(e) as string;
+      return alias.get(norm(name)) || e || norm(name);
+    };
+
+    const live = reviews.filter((r: any) => r.review_mode !== "cleared");
+    const cleared = reviews.filter((r: any) => r.review_mode === "cleared");
+    for (const r of [...live, ...cleared]) (r as any)._who = who(r.reviewer_email, r.reviewer_name);
+    const callDur = new Map(calls.map((c: any) => [c.execution_id, Number(c.duration_sec || 0)]));
+
+    // ---- panel context for quality: consensus and shared segments ----------
+    const vibeByCall = new Map<string, Map<string, number>>();
+    for (const r of live) {
+      if (r.review_mode !== "response_vibe") continue;
+      const v = Number(String(r.vibe_score || "").trim());
+      if (!(v >= 1 && v <= 4)) continue;
+      if (!vibeByCall.has(r.call_id)) vibeByCall.set(r.call_id, new Map());
+      (vibeByCall.get(r.call_id) as Map<string, number>).set((r as any)._who, v);
+    }
+    // transcription segments this week, bucketed by call@timestamp
+    const segBucket = new Map<string, { who: string; heard: string }[]>();
+    for (const r of live) {
+      if (r.review_mode !== "timing_transcription" || !inWeek.has(day(r.submitted_at))) continue;
+      for (const s of segsOf(r)) {
+        const k = `${r.call_id}@${s.ts}`;
+        if (!segBucket.has(k)) segBucket.set(k, []);
+        (segBucket.get(k) as any[]).push({ who: (r as any)._who, heard: s.heard });
+      }
+    }
+
+    // ---- assigned this week -----------------------------------------------
+    const assigned = new Map<string, number>();
+    for (const q of queue) {
+      if (!isActive(q.audit_mode)) continue;
+      if (!inWeek.has(day(q.imported_at))) continue;
+      const w = who(q.assigned_reviewer, q.assigned_reviewer);
+      if (w) assigned.set(w, (assigned.get(w) || 0) + 1);
+    }
+    // still open, any batch
+    const openNow = new Map<string, number>();
+    const doneKey = new Set(live.map((r: any) => `${r.call_id}|${r._who}|${r.review_mode}`));
+    for (const q of queue) {
+      if (!isActive(q.audit_mode)) continue;
+      const w = who(q.assigned_reviewer, q.assigned_reviewer);
+      if (!w) continue;
+      if (!doneKey.has(`${q.call_id}|${w}|${baseMode(q.audit_mode)}`)) openNow.set(w, (openNow.get(w) || 0) + 1);
+    }
+
+    // ---- per reviewer ------------------------------------------------------
+    const people = new Map<string, any>();
+    const touch = (w: string) => {
+      if (!people.has(w)) people.set(w, {
+        email: w, name: nameOf.get(w) || w.split("@")[0],
+        byDay: [0, 0, 0, 0, 0], vibe: 0, issue: 0, transcription: 0, total: 0,
+        secs: [] as number[], fast: 0,
+        agrHit: 0, agrN: 0, devSum: 0, devN: 0, trScore: 0, trN: 0,
+        resub: 0, activeDays: new Set<string>()
+      });
+      return people.get(w);
+    };
+
+    for (const r of live) {
+      const d = day(r.submitted_at);
+      if (!inWeek.has(d)) continue;
+      const w = (r as any)._who;
+      if (!w || EXPERT_IDS.has(w)) continue;             // founders aren't reviewers
+      const p = touch(w);
+      const di = days.indexOf(d);
+      if (di >= 0) p.byDay[di]++;
+      p.total++;
+      p.activeDays.add(d);
+      const took = Number(r.duration_taken_sec || 0);
+      if (took > 0) {
+        p.secs.push(took);
+        const cd = callDur.get(r.call_id) || 0;
+        if (cd > 0 && took < cd * 0.5) p.fast++;
+      }
+      if (r.review_mode === "timing_transcription") {
+        p.transcription++;
+        for (const s of segsOf(r)) {
+          const others = (segBucket.get(`${r.call_id}@${s.ts}`) || []).filter((x) => x.who !== w);
+          for (const o of others) { p.trN++; p.trScore += wordAgreement(s.heard, o.heard); }
+        }
+      } else if (r.review_mode === "response_vibe") {
+        const v = Number(String(r.vibe_score || "").trim());
+        if (v >= 1 && v <= 4) p.vibe++;
+        if (issueCats(r.issues_json).length) p.issue++;
+        // agreement + calibration against co-raters on the same call
+        const m = vibeByCall.get(r.call_id);
+        if (v >= 1 && v <= 4 && m && m.size >= 2) {
+          let sum = 0, n = 0;
+          m.forEach((ov, ow) => { if (ow !== w) { sum += ov; n++; p.agrN++; if (Math.abs(v - ov) <= 1) p.agrHit++; } });
+          if (n) { p.devSum += v - sum / n; p.devN++; }
+        }
+      }
+    }
+    for (const r of cleared) {
+      if (!inWeek.has(day(r.submitted_at))) continue;
+      const w = (r as any)._who;
+      if (w && people.has(w)) people.get(w).resub++;
+    }
+
+    const rows = [...people.values()].map((p) => {
+      const secs = p.secs.slice().sort((a: number, b: number) => a - b);
+      const median = secs.length ? secs[Math.floor(secs.length / 2)] : 0;
+      const asg = assigned.get(p.email) || 0;
+      return {
+        email: p.email,
+        name: p.name,
+        active: active.get(p.email) !== false,
+        total: p.total,
+        byDay: p.byDay,
+        vibe: p.vibe,
+        issue: p.issue,
+        transcription: p.transcription,
+        activeDays: p.activeDays.size,
+        assigned: asg,
+        openNow: openNow.get(p.email) || 0,
+        medianSec: median,
+        perHour: median > 0 ? Math.round(3600 / median) : null,
+        fasterThanAudio: p.fast,
+        resubmissions: p.resub,
+        // quality · null when there isn't enough shared work to be honest about
+        agreementPct: p.agrN >= 20 ? Math.round((p.agrHit / p.agrN) * 100) : null,
+        agreementN: p.agrN,
+        deviation: p.devN >= 20 ? Number((p.devSum / p.devN).toFixed(2)) : null,
+        transcriptionPct: p.trN >= 20 ? Math.round((p.trScore / p.trN) * 100) : null,
+        transcriptionN: p.trN
+      };
+    }).filter((r) => r.total > 0 || r.assigned > 0)
+      .sort((a, b) => b.total - a.total);
+
+    const panel = {
+      total: rows.reduce((s, r) => s + r.total, 0),
+      vibe: rows.reduce((s, r) => s + r.vibe, 0),
+      issue: rows.reduce((s, r) => s + r.issue, 0),
+      transcription: rows.reduce((s, r) => s + r.transcription, 0),
+      reviewers: rows.length
+    };
+
+    return NextResponse.json(
+      { weekStart, weekEnd, days, panel, rows },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (e: any) {
+    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+  }
+}

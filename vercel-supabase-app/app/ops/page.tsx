@@ -5,6 +5,7 @@ import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google"
 import { INK, MUT, GREEN, RED } from "../../lib/ui";
 import { isExpert } from "../../lib/role";
 import type { OpsPayload, OpsClientDetail, OpsReviewer } from "../../lib/ops-shape";
+import { bodyFor, subjectFor } from "../../lib/weekly-report";
 
 // The ops console · expert-only.
 //
@@ -109,7 +110,13 @@ export default function Ops() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [data, setData] = useState<OpsPayload | null>(null);
   const [err, setErr] = useState("");
-  const [level, setLevel] = useState<{ view: "home" | "client"; client?: string; tab?: string }>({ view: "home" });
+  const [level, setLevel] = useState<{ view: "home" | "client" | "weekly"; client?: string; tab?: string }>({ view: "home" });
+  const [wk, setWk] = useState<any>(null);
+  const [wkErr, setWkErr] = useState("");
+  const [wkOpen, setWkOpen] = useState<string>("");   // which reviewer's email body is expanded
+  const [wkPick, setWkPick] = useState<Record<string, boolean>>({});
+  const [wkSending, setWkSending] = useState(false);
+  const [wkResult, setWkResult] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [modal, setModal] = useState(false);
   const [pick, setPick] = useState(0);
@@ -124,6 +131,23 @@ export default function Ops() {
       .then((d) => (d.error ? setErr(d.error) : setData(d)))
       .catch((e) => setErr(String(e)));
   }, [allowed]);
+
+  // Weekly report · fetched only when the tab is opened, and re-fetched when
+  // the week changes. Nothing here sends anything.
+  function loadWeek(week?: string) {
+    setWk(null); setWkErr(""); setWkResult(null);
+    fetch(`/api/ops/weekly${week ? `?week=${week}` : ""}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) { setWkErr(d.error); return; }
+        setWk(d);
+        const pick: Record<string, boolean> = {};
+        (d.rows || []).forEach((r: any) => { pick[r.email] = r.active !== false && r.total > 0; });
+        setWkPick(pick);
+      })
+      .catch((e) => setWkErr(String(e)));
+  }
+  useEffect(() => { if (allowed === true && level.view === "weekly" && !wk && !wkErr) loadWeek(); }, [allowed, level.view, wk, wkErr]);
 
   const asOf = useMemo(() => data ? new Date(data.asOf).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "", [data]);
 
@@ -159,6 +183,16 @@ export default function Ops() {
             <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>{detail.name}</span>
           </>
         )}
+        {level.view === "weekly" && (
+          <>
+            <span style={{ fontSize: 12, color: SLATE }}>/</span>
+            <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Weekly report</span>
+          </>
+        )}
+        <span onClick={() => setLevel({ view: level.view === "weekly" ? "home" : "weekly" })}
+          style={{ fontSize: 12.5, fontWeight: 600, color: level.view === "weekly" ? INK : GREEN, cursor: "pointer" }}>
+          {level.view === "weekly" ? "← back to ops" : "Weekly report"}
+        </span>
         <span style={{ fontSize: 12, color: MUT }}>{new Date(d.today).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</span>
         <span className={mono.className} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: MUT }}>
           <span style={{ width: 6, height: 6, borderRadius: 3, background: GREEN }} />live · as of {asOf}
@@ -183,6 +217,154 @@ export default function Ops() {
       )}
 
       <div style={{ padding: "20px 28px 40px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+        {/* ---------------- WEEKLY REPORT ---------------- */}
+        {level.view === "weekly" && (() => {
+          if (wkErr) return <div style={{ ...card, padding: 18, color: RED }}>Could not load the weekly report · {wkErr}</div>;
+          if (!wk) return <div style={{ ...card, padding: 18, color: MUT }}>Building last week&apos;s numbers…</div>;
+          const chosen = (wk.rows as any[]).filter((r) => wkPick[r.email]);
+          const prevWeek = () => { const dd = new Date(wk.weekStart + "T00:00:00Z"); dd.setUTCDate(dd.getUTCDate() - 7); loadWeek(dd.toISOString().slice(0, 10)); };
+          const nextWeek = () => { const dd = new Date(wk.weekStart + "T00:00:00Z"); dd.setUTCDate(dd.getUTCDate() + 7); loadWeek(dd.toISOString().slice(0, 10)); };
+          const fmtDate = (s: string) => new Date(s + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+          async function send(dry: boolean) {
+            setWkSending(true); setWkResult(null);
+            try {
+              const r = await fetch("/api/ops/weekly/send", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ weekStart: wk.weekStart, weekEnd: wk.weekEnd, rows: chosen, dryRun: dry })
+              }).then((x) => x.json());
+              setWkResult(r);
+            } catch (e) { setWkResult({ error: String(e) }); }
+            finally { setWkSending(false); }
+          }
+          return (
+            <>
+              <div style={{ ...card, padding: "16px 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>
+                    {fmtDate(wk.weekStart)} – {fmtDate(wk.weekEnd)}
+                  </span>
+                  <span style={{ fontSize: 12, color: MUT }}>Monday to Friday · {wk.panel.reviewers} reviewers · {wk.panel.total.toLocaleString()} calls</span>
+                </div>
+                <span style={{ display: "flex", gap: 4 }}>
+                  <button onClick={prevWeek} style={{ fontSize: 12, padding: "5px 10px", borderRadius: 6, border: `1px solid ${BORDER}`, background: "#fff", cursor: "pointer" }}>← earlier</button>
+                  <button onClick={nextWeek} style={{ fontSize: 12, padding: "5px 10px", borderRadius: 6, border: `1px solid ${BORDER}`, background: "#fff", cursor: "pointer" }}>later →</button>
+                </span>
+                <span style={{ flex: 1 }} />
+                <span className={mono.className} style={{ fontSize: 11.5, color: MUT }}>
+                  {wk.panel.vibe} vibe · {wk.panel.issue} issue · {wk.panel.transcription} transcription
+                </span>
+              </div>
+
+              <div style={{ ...card, overflow: "hidden" }}>
+                <div style={{ padding: "13px 18px", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Who gets an email</span>
+                  <span style={{ fontSize: 12, color: MUT }}>{chosen.length} selected · click a name to read the exact email</span>
+                  <span style={{ flex: 1 }} />
+                  <button onClick={() => send(true)} disabled={wkSending || !chosen.length}
+                    style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 13px", borderRadius: 8, border: `1px solid ${BORDER}`, background: "#fff", color: INK, cursor: chosen.length ? "pointer" : "not-allowed" }}>
+                    {wkSending ? "…" : "Dry run"}
+                  </button>
+                  <button onClick={() => { if (window.confirm(`Send the weekly email to ${chosen.length} reviewer${chosen.length === 1 ? "" : "s"}? This goes to their real inboxes.`)) send(false); }}
+                    disabled={wkSending || !chosen.length}
+                    style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 15px", borderRadius: 8, border: "none", background: chosen.length ? GREEN : SLATE, color: "#fff", cursor: chosen.length ? "pointer" : "not-allowed" }}>
+                    Send to {chosen.length}
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
+                  <span style={{ width: 26, flex: "none" }} />
+                  <span style={{ width: 150, flex: "none" }}>Reviewer</span>
+                  <span style={{ width: 60, flex: "none", textAlign: "right" }}>Calls</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>Mon–Fri</span>
+                  <span style={{ width: 120, flex: "none", textAlign: "right" }}>Agreement</span>
+                  <span style={{ width: 90, flex: "none", textAlign: "right" }}>Deviation</span>
+                  <span style={{ width: 80, flex: "none", textAlign: "right" }}>Pace</span>
+                </div>
+
+                {(wk.rows as any[]).map((r) => {
+                  const open = wkOpen === r.email;
+                  const max = Math.max(1, ...r.byDay);
+                  return (
+                    <div key={r.email} style={{ borderBottom: `1px solid #f2f5f8`, background: open ? "#fbfcfd" : "#fff" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px" }}>
+                        <input type="checkbox" checked={!!wkPick[r.email]} onChange={(e) => setWkPick({ ...wkPick, [r.email]: e.target.checked })}
+                          style={{ width: 26, flex: "none" }} />
+                        <span onClick={() => setWkOpen(open ? "" : r.email)}
+                          style={{ width: 150, flex: "none", fontSize: 12.5, fontWeight: 600, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {r.name}
+                        </span>
+                        <span className={mono.className} style={{ width: 60, flex: "none", textAlign: "right", fontSize: 13 }}>{r.total}</span>
+                        <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "flex-end", gap: 3, height: 24 }}>
+                          {r.byDay.map((v: number, i: number) => (
+                            <span key={i} title={`${["Mon", "Tue", "Wed", "Thu", "Fri"][i]}: ${v}`}
+                              style={{ flex: 1, borderRadius: 2, height: Math.max(2, Math.round(22 * (v / max))), background: v ? GREEN : LINE }} />
+                          ))}
+                        </span>
+                        {/* transcriptionists never score a vibe, so falling back
+                            to their word-agreement is the difference between a
+                            real number and a blank row for half the panel */}
+                        {(() => {
+                          const vibeSide = r.agreementPct !== null;
+                          const pct = vibeSide ? r.agreementPct : r.transcriptionPct;
+                          const n = vibeSide ? r.agreementN : r.transcriptionN;
+                          const kind = vibeSide ? "score" : "word";
+                          return (
+                            <span className={mono.className} title={pct === null ? "Not enough shared work to report" : `${kind}-level agreement across ${n.toLocaleString()} shared ${vibeSide ? "ratings" : "segments"}`}
+                              style={{ width: 120, flex: "none", textAlign: "right", fontSize: 11.5, color: pct === null ? FAINT : pct >= 75 ? INK : AMBER }}>
+                              {pct === null ? "—" : `${pct}% ${kind}`}
+                            </span>
+                          );
+                        })()}
+                        <span className={mono.className} style={{ width: 90, flex: "none", textAlign: "right", fontSize: 11.5, color: r.deviation === null ? FAINT : Math.abs(r.deviation) > 0.5 ? RED_BAR : MUT }}>
+                          {r.deviation === null ? "—" : `${r.deviation > 0 ? "+" : ""}${r.deviation.toFixed(2)}`}
+                        </span>
+                        <span className={mono.className} style={{ width: 80, flex: "none", textAlign: "right", fontSize: 11.5, color: MUT }}>
+                          {r.perHour ? `${r.perHour}/hr` : "—"}
+                        </span>
+                      </div>
+                      {open && (
+                        <div style={{ padding: "0 18px 16px 56px" }}>
+                          <div style={{ ...head, marginBottom: 6 }}>The email {r.name.split(" ")[0]} receives</div>
+                          <pre className={mono.className} style={{ margin: 0, background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "12px 14px", fontSize: 11.5, lineHeight: 1.65, whiteSpace: "pre-wrap", color: INK, overflowX: "auto" }}>
+{`To: ${r.email}
+Subject: ${subjectFor(r, wk.weekStart, wk.weekEnd)}
+
+${bodyFor(r, wk.weekStart, wk.weekEnd)}`}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {!wk.rows.length && <div style={{ padding: 18, fontSize: 12.5, color: MUT }}>Nobody submitted anything that week.</div>}
+              </div>
+
+              {wkResult && (
+                <div style={{ ...card, padding: "14px 18px", borderColor: wkResult.error || wkResult.failed?.length ? "#f0cfd1" : BORDER, background: wkResult.error || wkResult.failed?.length ? "#fdf5f5" : "#fff" }}>
+                  {wkResult.error ? (
+                    <span style={{ fontSize: 12.5, color: RED_BAR }}>{wkResult.error}</span>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                        {wkResult.dryRun ? `Dry run · ${wkResult.attempted} email${wkResult.attempted === 1 ? "" : "s"} rendered, nothing sent` : `Sent ${wkResult.sent} of ${wkResult.attempted}`}
+                      </div>
+                      {(wkResult.failed || []).length > 0 && (
+                        <div style={{ fontSize: 12, color: RED_BAR, lineHeight: 1.6 }}>
+                          {wkResult.failed.map((f: any) => <div key={f.email}>{f.email} · {f.error}</div>)}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div style={{ ...card, padding: "14px 18px", fontSize: 11.5, color: MUT, lineHeight: 1.65 }}>
+                Agreement and deviation compare only the calls more than one person reviewed, and are shown as &quot;—&quot; below 20 shared ratings rather than computed from too little. Deviation is that reviewer&apos;s average score minus the panel&apos;s on the same calls, leaving them out of the panel figure. The email is plain text and identical to the preview above.
+              </div>
+            </>
+          );
+        })()}
 
         {/* ---------------- LEVEL 1 ---------------- */}
         {level.view === "home" && (

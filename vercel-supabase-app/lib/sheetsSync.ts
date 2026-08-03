@@ -95,6 +95,28 @@ export async function sendOtpEmail(email: string, code: string) {
   return { ok: true as const };
 }
 
+// General reviewer mail (the weekly report), through the same Apps Script
+// MailApp the OTP uses. Needs a `sendMail` case in the Apps Script:
+//
+//   if (body.action === 'sendMail') {
+//     MailApp.sendEmail({ to: body.email, subject: body.subject, body: body.text });
+//     return ok({});
+//   }
+//
+// Until that case exists the script falls through to its default and this
+// returns an error rather than silently reporting success.
+export async function sendReviewerMail(email: string, subject: string, text: string) {
+  const result = await postToSheets({ action: "sendMail", email, subject, text });
+  if (!result.ok) return { ok: false as const, error: result.error };
+  const data = (result.data || {}) as Record<string, unknown>;
+  // The script answers unknown actions with its readCalls fallback · treat a
+  // reply that doesn't acknowledge the send as a failure, not a success.
+  if (data.sheet_name || data.calls) {
+    return { ok: false as const, error: "Apps Script has no 'sendMail' action yet — add the case shown in lib/sheetsSync.ts" };
+  }
+  return { ok: true as const };
+}
+
 // Reads the three role tabs (Reviewers_Vibe / Reviewers_Issues / Reviewers_Experts,
 // columns: email, name, active). The tab a person sits in decides their role.
 const REVIEWER_TABS: Array<[string, string]> = [
