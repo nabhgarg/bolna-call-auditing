@@ -110,7 +110,26 @@ export default function Ops() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [data, setData] = useState<OpsPayload | null>(null);
   const [err, setErr] = useState("");
-  const [level, setLevel] = useState<{ view: "home" | "client" | "weekly"; client?: string; tab?: string }>({ view: "home" });
+  const [level, setLevel] = useState<{ view: "home" | "client" | "weekly" | "assign"; client?: string; tab?: string }>({ view: "home" });
+  // Daily assignment
+  const [asPool, setAsPool] = useState<any>(null);
+  const [asErr, setAsErr] = useState("");
+  const [asWork, setAsWork] = useState<"transcription" | "quality_review">("transcription");
+  const [asClient, setAsClient] = useState("bolna");
+  const [asPick, setAsPick] = useState<Record<string, boolean>>({});
+  const [asPerDay, setAsPerDay] = useState(100);
+  const [asSplit, setAsSplit] = useState({ distinct: 70, all: 15, pair: 15 });
+  const [asBatch, setAsBatch] = useState("");
+  const [asPlan, setAsPlan] = useState<any>(null);
+  const [asBusy, setAsBusy] = useState(false);
+  const [asDone, setAsDone] = useState<any>(null);
+  // Panel roster
+  const [rosterOpen, setRosterOpen] = useState(false);
+  const [roster, setRoster] = useState<any>(null);
+  const [rosterMsg, setRosterMsg] = useState<any>(null);
+  const [rosterBusy, setRosterBusy] = useState("");
+  const [newP, setNewP] = useState({ email: "", name: "", role: "reviewer" });
+  const [confirmOff, setConfirmOff] = useState("");
   const [wk, setWk] = useState<any>(null);
   const [wkErr, setWkErr] = useState("");
   const [wkOpen, setWkOpen] = useState<string>("");   // which reviewer's email body is expanded
@@ -149,6 +168,70 @@ export default function Ops() {
       .catch((e) => setWkErr(String(e)));
   }
   useEffect(() => { if (allowed === true && level.view === "weekly" && !wk && !wkErr) loadWeek(); }, [allowed, level.view, wk, wkErr]);
+
+  // Assignment · the pool depends on the work type and client, so it is
+  // re-read whenever either changes. Nothing here writes.
+  useEffect(() => {
+    if (allowed !== true || level.view !== "assign") return;
+    setAsPool(null); setAsErr(""); setAsPlan(null); setAsDone(null);
+    fetch(`/api/ops/assign?work=${asWork}&client=${asClient}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) { setAsErr(d.error); return; }
+        setAsPool(d);
+        setAsPick((prev) => Object.keys(prev).length ? prev
+          : Object.fromEntries(d.reviewers.map((r: any) => [r.email, true])));
+        // Suggest the next tag in the existing series · b10t -> b11t
+        const suffix = asWork === "transcription" ? "t" : "v";
+        const nums = (d.batches || []).map((b: string) => Number(/^b(\d+)/.exec(b)?.[1] || 0));
+        setAsBatch(`b${Math.max(0, ...nums) + 1}${suffix}`);
+      })
+      .catch((e) => setAsErr(String(e)));
+  }, [allowed, level.view, asWork, asClient]);
+
+  function loadRoster() {
+    setRoster(null);
+    fetch("/api/ops/reviewers").then((r) => r.json()).then(setRoster).catch((e) => setRoster({ error: String(e) }));
+  }
+  useEffect(() => { if (rosterOpen && !roster) loadRoster(); }, [rosterOpen, roster]);
+
+  /** Adding or removing changes who can be assigned, so the pool view is
+   *  re-read too · otherwise the picker keeps showing a stale panel. */
+  function refreshAfterRoster() {
+    loadRoster();
+    fetch(`/api/ops/assign?work=${asWork}&client=${asClient}`)
+      .then((r) => r.json()).then((d) => { if (!d.error) { setAsPool(d); setAsPlan(null); } })
+      .catch(() => {});
+  }
+
+  async function addPerson() {
+    setRosterBusy("add"); setRosterMsg(null);
+    try {
+      const res = await fetch("/api/ops/reviewers", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newP)
+      });
+      const d = await res.json();
+      setRosterMsg(d);
+      if (!d.error) { setNewP({ email: "", name: "", role: "reviewer" }); refreshAfterRoster(); }
+    } catch (e) { setRosterMsg({ error: String(e) }); }
+    setRosterBusy("");
+  }
+
+  async function setActive(email: string, active: boolean) {
+    setRosterBusy(email); setRosterMsg(null); setConfirmOff("");
+    try {
+      const res = await fetch("/api/ops/reviewers", {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, active })
+      });
+      const d = await res.json();
+      setRosterMsg(d);
+      if (!d.error) {
+        setAsPick((prev) => { const n = { ...prev }; if (!active) delete n[email]; return n; });
+        refreshAfterRoster();
+      }
+    } catch (e) { setRosterMsg({ error: String(e) }); }
+    setRosterBusy("");
+  }
 
   const asOf = useMemo(() => data ? new Date(data.asOf).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "", [data]);
 
@@ -190,10 +273,20 @@ export default function Ops() {
             <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Weekly report</span>
           </>
         )}
-        <span onClick={() => setLevel({ view: level.view === "weekly" ? "home" : "weekly" })}
-          style={{ fontSize: 12.5, fontWeight: 600, color: level.view === "weekly" ? INK : GREEN, cursor: "pointer" }}>
-          {level.view === "weekly" ? "← back to ops" : "Weekly report"}
-        </span>
+        {level.view === "assign" && (
+          <>
+            <span style={{ fontSize: 12, color: SLATE }}>/</span>
+            <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Assign today</span>
+          </>
+        )}
+        {level.view === "home" || level.view === "client" ? (
+          <>
+            <span onClick={() => setLevel({ view: "assign" })} style={{ fontSize: 12.5, fontWeight: 600, color: GREEN, cursor: "pointer" }}>Assign today</span>
+            <span onClick={() => setLevel({ view: "weekly" })} style={{ fontSize: 12.5, fontWeight: 600, color: GREEN, cursor: "pointer" }}>Weekly report</span>
+          </>
+        ) : (
+          <span onClick={() => setLevel({ view: "home" })} style={{ fontSize: 12.5, fontWeight: 600, color: GREEN, cursor: "pointer" }}>← back to ops</span>
+        )}
         <span style={{ fontSize: 12, color: MUT }}>{new Date(d.today).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</span>
         <span className={mono.className} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: MUT }}>
           <span style={{ width: 6, height: 6, borderRadius: 3, background: GREEN }} />live · as of {asOf}
@@ -391,6 +484,281 @@ export default function Ops() {
               <div style={{ ...card, padding: "14px 18px", fontSize: 11.5, color: MUT, lineHeight: 1.65 }}>
                 Agreement and deviation compare only the calls more than one person reviewed, and are shown as &quot;—&quot; below 20 shared ratings rather than computed from too little. Deviation is that reviewer&apos;s average score minus the panel&apos;s on the same calls, leaving them out of the panel figure. The email is plain text and identical to the preview above.
               </div>
+            </>
+          );
+        })()}
+
+        {/* ---------------- ASSIGN TODAY ---------------- */}
+        {level.view === "assign" && (() => {
+          if (asErr) return <div style={{ ...card, padding: 18, color: RED }}>Could not load the pool · {asErr}</div>;
+          if (!asPool) return <div style={{ ...card, padding: 18, color: MUT }}>Reading the free pool…</div>;
+
+          const chosen = (asPool.reviewers as any[]).filter((r) => asPick[r.email]);
+          const n = chosen.length;
+          const sum = asSplit.distinct + asSplit.all + asSplit.pair;
+          const anchorN = Math.round((asPerDay * asSplit.all) / 100);
+          const pairQ = Math.round((asPerDay * asSplit.pair) / 100);
+          const uniqN = Math.max(0, asPerDay - anchorN - pairQ);
+          const pairCalls = n >= 2 ? Math.round((n * pairQ) / 2) : 0;
+          const needed = n < 2 ? asPerDay * n : anchorN + pairCalls + uniqN * n;
+          const short = needed > asPool.pool.free;
+          const ready = n >= 1 && sum === 100 && !!asBatch && !short;
+
+          async function plan(commit: boolean) {
+            setAsBusy(true); setAsDone(null);
+            if (!commit) setAsPlan(null);
+            try {
+              const res = await fetch("/api/ops/assign", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  work: asWork, client: asClient, perDay: asPerDay, split: asSplit,
+                  batch: asBatch, reviewers: chosen.map((r) => r.email),
+                  commit, assignments: commit ? asPlan?.assignments : undefined
+                })
+              });
+              const d = await res.json();
+              if (commit) setAsDone(d); else setAsPlan(d.error ? null : d);
+              if (d.error && !commit) setAsDone(d);
+            } catch (e) {
+              setAsDone({ error: String(e) });
+            }
+            setAsBusy(false);
+          }
+
+          const num: React.CSSProperties = {
+            width: 62, fontSize: 12.5, padding: "6px 8px", border: `1px solid ${BORDER}`,
+            borderRadius: 7, color: INK, textAlign: "right"
+          };
+          const chip = (on: boolean): React.CSSProperties => ({
+            fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 999, cursor: "pointer",
+            background: on ? INK : "#fff", color: on ? "#fff" : MUT, border: `1px solid ${on ? INK : BORDER}`
+          });
+
+          return (
+            <>
+              {/* what we are assigning */}
+              <div style={{ ...card, padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={head}>Work</span>
+                  <span onClick={() => setAsWork("transcription")} style={chip(asWork === "transcription")}>Transcription</span>
+                  <span onClick={() => setAsWork("quality_review")} style={chip(asWork === "quality_review")}>Quality review</span>
+                  <span style={{ width: 14 }} />
+                  <span style={head}>Client</span>
+                  {["bolna", "oolka", "all"].map((c) => (
+                    <span key={c} onClick={() => setAsClient(c)} style={chip(asClient === c)}>{c === "all" ? "All" : c[0].toUpperCase() + c.slice(1)}</span>
+                  ))}
+                  <span style={{ flex: 1 }} />
+                  <span className={mono.className} style={{ fontSize: 11.5, color: short ? RED_BAR : MUT }}>
+                    {asPool.pool.free.toLocaleString()} free calls
+                    {asPool.pool.released > 0 && ` · ${asPool.pool.released} released back`}
+                  </span>
+                </div>
+
+                <div style={{ height: 1, background: LINE }} />
+
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 26, flexWrap: "wrap" }}>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <span style={head}>Calls per person</span>
+                    <input type="number" min={1} max={500} value={asPerDay} className={mono.className}
+                      onChange={(e) => { setAsPerDay(Number(e.target.value) || 0); setAsPlan(null); }} style={num} />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <span style={head}>Batch tag</span>
+                    <input value={asBatch} className={mono.className}
+                      onChange={(e) => { setAsBatch(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "")); setAsPlan(null); }}
+                      style={{ ...num, width: 88, textAlign: "left" }} />
+                  </label>
+                  {([["distinct", "Only them"], ["all", "Everyone"], ["pair", "In pairs"]] as const).map(([k, label]) => (
+                    <label key={k} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <span style={head}>{label} %</span>
+                      <input type="number" min={0} max={100} value={(asSplit as any)[k]} className={mono.className}
+                        onChange={(e) => { setAsSplit({ ...asSplit, [k]: Number(e.target.value) || 0 }); setAsPlan(null); }} style={num} />
+                    </label>
+                  ))}
+                  <span className={mono.className} style={{ fontSize: 11.5, color: sum === 100 ? MUT : RED_BAR, paddingBottom: 8 }}>
+                    {sum === 100 ? `${uniqN} + ${anchorN} + ${pairQ} = ${asPerDay} each` : `shares add to ${sum}%, not 100%`}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: 11.5, color: FAINT, lineHeight: 1.65 }}>
+                  <b style={{ color: MUT }}>Only them</b> is coverage — nobody else sees the call.
+                  <b style={{ color: MUT }}> Everyone</b> is the anchor set, the same {anchorN} calls for all {n || "—"} reviewers; group agreement and alpha are computed on these.
+                  <b style={{ color: MUT }}> In pairs</b> gives each person {pairQ} calls shared with exactly two partners in a ring, which is what shows whose reading is drifting rather than just that the group disagrees.
+                </div>
+              </div>
+
+              {/* who */}
+              <div style={{ ...card, overflow: "hidden" }}>
+                <div style={{ padding: "12px 18px", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={head}>Reviewers · {n} selected</span>
+                  <span style={{ flex: 1 }} />
+                  <span onClick={() => { setAsPick(Object.fromEntries(asPool.reviewers.map((r: any) => [r.email, true]))); setAsPlan(null); }}
+                    style={{ fontSize: 11.5, color: GREEN, cursor: "pointer", fontWeight: 600 }}>select all</span>
+                  <span onClick={() => { setAsPick({}); setAsPlan(null); }}
+                    style={{ fontSize: 11.5, color: MUT, cursor: "pointer" }}>none</span>
+                  <span onClick={() => setRosterOpen(!rosterOpen)}
+                    style={{ fontSize: 11.5, color: rosterOpen ? INK : GREEN, cursor: "pointer", fontWeight: 600 }}>
+                    {rosterOpen ? "done editing" : "add / remove people"}
+                  </span>
+                </div>
+                {(asPool.reviewers as any[]).map((r) => (
+                  <div key={r.email} onClick={() => { setAsPick({ ...asPick, [r.email]: !asPick[r.email] }); setAsPlan(null); }}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 18px", borderTop: `1px solid ${LINE}`, cursor: "pointer", background: asPick[r.email] ? "#fff" : "#fbfcfd" }}>
+                    <span style={{
+                      width: 15, height: 15, borderRadius: 4, flex: "none",
+                      border: `1.5px solid ${asPick[r.email] ? GREEN : SLATE}`, background: asPick[r.email] ? GREEN : "#fff",
+                      color: "#fff", fontSize: 10, lineHeight: "13px", textAlign: "center"
+                    }}>{asPick[r.email] ? "✓" : ""}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: asPick[r.email] ? 600 : 400, color: asPick[r.email] ? INK : MUT, width: 190 }}>{r.name}</span>
+                    <span className={mono.className} style={{ fontSize: 11, color: FAINT, flex: 1 }}>{r.email}</span>
+                    <span className={mono.className} title="calls already open in their queue"
+                      style={{ fontSize: 11.5, color: r.open > 40 ? AMBER : r.open ? MUT : FAINT }}>
+                      {r.open ? `${r.open} still open` : "queue clear"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* roster · add and remove people on the panel */}
+              {rosterOpen && (
+                <div style={{ ...card, overflow: "hidden" }}>
+                  <div style={{ padding: "12px 18px", borderBottom: `1px solid ${LINE}`, display: "flex", gap: 10, alignItems: "center" }}>
+                    <span style={head}>The panel</span>
+                    <span style={{ flex: 1 }} />
+                    <span style={{ fontSize: 11, color: FAINT }}>Removing someone never deletes their reviews.</span>
+                  </div>
+
+                  {/* add */}
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "12px 18px", borderBottom: `1px solid ${LINE}`, background: "#fbfcfd", flexWrap: "wrap" }}>
+                    <input placeholder="Full name" value={newP.name} onChange={(e) => setNewP({ ...newP, name: e.target.value })}
+                      style={{ fontSize: 12.5, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, width: 180, color: INK }} />
+                    <input placeholder="name@realloop.in" value={newP.email} onChange={(e) => setNewP({ ...newP, email: e.target.value })}
+                      className={mono.className}
+                      style={{ fontSize: 12, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, width: 240, color: INK, fontFamily: "inherit" }} />
+                    <select value={newP.role} onChange={(e) => setNewP({ ...newP, role: e.target.value })}
+                      style={{ fontSize: 12.5, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, color: INK, background: "#fff" }}>
+                      <option value="reviewer">Reviewer</option>
+                      <option value="expert">Expert · internal</option>
+                      <option value="client">Client · portal only</option>
+                      <option value="viewer">Viewer · no call audio</option>
+                    </select>
+                    <button onClick={addPerson} disabled={rosterBusy === "add" || !newP.email || !newP.name}
+                      style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 15px", borderRadius: 8, border: "none", cursor: newP.email && newP.name ? "pointer" : "not-allowed", background: newP.email && newP.name ? GREEN : "#eef1f4", color: newP.email && newP.name ? "#fff" : FAINT }}>
+                      {rosterBusy === "add" ? "Adding…" : "Add to panel"}
+                    </button>
+                  </div>
+
+                  {rosterMsg && (
+                    <div style={{ padding: "10px 18px", borderBottom: `1px solid ${LINE}`, fontSize: 12, lineHeight: 1.6, color: rosterMsg.error ? RED_BAR : MUT, background: rosterMsg.error ? "#fdf5f5" : "#fff" }}>
+                      {rosterMsg.error || rosterMsg.note || "Done."}
+                    </div>
+                  )}
+
+                  {!roster && <div style={{ padding: 16, fontSize: 12.5, color: MUT }}>Reading the panel…</div>}
+                  {roster?.error && <div style={{ padding: 16, fontSize: 12.5, color: RED }}>{roster.error}</div>}
+                  {(roster?.people as any[] || []).map((p) => (
+                    <div key={p.email} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 18px", borderTop: `1px solid ${LINE}`, opacity: p.active ? 1 : 0.62 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, width: 190, color: p.active ? INK : MUT }}>{p.name}</span>
+                      <span className={mono.className} style={{ fontSize: 11, color: FAINT, flex: 1 }}>{p.email}</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: MUT, background: "#f2f5f8", borderRadius: 999, padding: "2px 9px" }}>{p.role}</span>
+                      <span className={mono.className} title="reviews they have already submitted · kept forever"
+                        style={{ width: 110, textAlign: "right", fontSize: 11, color: p.reviews ? MUT : FAINT }}>
+                        {p.reviews ? `${p.reviews.toLocaleString()} reviews` : "no reviews"}
+                      </span>
+                      <span className={mono.className} style={{ width: 74, textAlign: "right", fontSize: 11, color: p.open ? AMBER : FAINT }}>
+                        {p.open ? `${p.open} open` : "—"}
+                      </span>
+                      {p.active ? (
+                        confirmOff === p.email ? (
+                          <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <button onClick={() => setActive(p.email, false)} disabled={rosterBusy === p.email}
+                              style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 11px", borderRadius: 7, border: "none", background: RED_BAR, color: "#fff", cursor: "pointer" }}>
+                              {rosterBusy === p.email ? "Removing…" : p.open ? `Remove · free ${p.open}` : "Remove"}
+                            </button>
+                            <span onClick={() => setConfirmOff("")} style={{ fontSize: 11.5, color: MUT, cursor: "pointer" }}>cancel</span>
+                          </span>
+                        ) : (
+                          <button onClick={() => setConfirmOff(p.email)}
+                            style={{ fontSize: 11.5, padding: "5px 11px", borderRadius: 7, border: `1px solid ${BORDER}`, background: "#fff", color: MUT, cursor: "pointer" }}>
+                            Remove
+                          </button>
+                        )
+                      ) : (
+                        <button onClick={() => setActive(p.email, true)} disabled={rosterBusy === p.email}
+                          style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 11px", borderRadius: 7, border: `1px solid ${BORDER}`, background: "#fff", color: GREEN, cursor: "pointer" }}>
+                          {rosterBusy === p.email ? "…" : "Restore"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <div style={{ padding: "12px 18px", fontSize: 11.5, color: MUT, lineHeight: 1.65, borderTop: `1px solid ${LINE}` }}>
+                    Removing blocks the sign-in and puts their unfinished calls back in the pool, so those calls get picked up by the next batch instead of sitting in a queue nobody opens. Everything they already submitted stays in the data and keeps counting towards agreement and the golden set. Restoring switches the sign-in back on · it does not pull the released calls back.
+                  </div>
+                </div>
+              )}
+
+              {/* cost + actions */}
+              <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+                <span className={mono.className} style={{ fontSize: 12.5, color: short ? RED_BAR : INK }}>
+                  {n} × {asPerDay} = {(n * asPerDay).toLocaleString()} assignments · needs {needed.toLocaleString()} distinct calls of {asPool.pool.free.toLocaleString()} free
+                </span>
+                {short && <span style={{ fontSize: 12, color: RED_BAR }}>Not enough free calls · lower the per-person count or pick fewer reviewers.</span>}
+                <span style={{ flex: 1 }} />
+                <button disabled={!ready || asBusy} onClick={() => plan(false)}
+                  style={{ fontSize: 12.5, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: ready && !asBusy ? "pointer" : "not-allowed", background: "#fff", color: ready ? INK : FAINT, border: `1px solid ${BORDER}` }}>
+                  {asBusy && !asPlan ? "Planning…" : "Preview plan"}
+                </button>
+                <button disabled={!asPlan || asBusy || !!asDone?.written} onClick={() => plan(true)}
+                  style={{ fontSize: 12.5, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: asPlan && !asBusy && !asDone?.written ? "pointer" : "not-allowed", background: asPlan && !asDone?.written ? GREEN : "#eef1f4", color: asPlan && !asDone?.written ? "#fff" : FAINT, border: "none" }}>
+                  {asBusy && asPlan ? "Assigning…" : `Assign ${asPlan ? asPlan.willWrite.toLocaleString() : ""} calls`}
+                </button>
+              </div>
+
+              {/* the plan */}
+              {asPlan && (
+                <div style={{ ...card, overflow: "hidden" }}>
+                  <div style={{ padding: "12px 18px", borderBottom: `1px solid ${LINE}`, display: "flex", gap: 10, alignItems: "center" }}>
+                    <span style={head}>Plan · batch {asPlan.batch} · nothing written yet</span>
+                    <span style={{ flex: 1 }} />
+                    <span className={mono.className} style={{ fontSize: 11, color: FAINT }}>{asPlan.willWrite.toLocaleString()} queue rows</span>
+                  </div>
+                  {(asPlan.plan.warnings || []).map((w: string, i: number) => (
+                    <div key={i} style={{ padding: "10px 18px", borderBottom: `1px solid ${LINE}`, fontSize: 12, color: AMBER, background: "#fdf9f0" }}>{w}</div>
+                  ))}
+                  <div style={{ display: "flex", gap: 12, padding: "8px 18px", borderBottom: `1px solid ${LINE}`, ...head }}>
+                    <span style={{ flex: 1 }}>Reviewer</span>
+                    <span style={{ width: 70, textAlign: "right" }}>Only them</span>
+                    <span style={{ width: 70, textAlign: "right" }}>Everyone</span>
+                    <span style={{ width: 70, textAlign: "right" }}>Pairs</span>
+                    <span style={{ width: 50, textAlign: "right" }}>Total</span>
+                    <span style={{ width: 210 }}>Shares with</span>
+                  </div>
+                  {(asPlan.plan.rows as any[]).map((r) => (
+                    <div key={r.email} style={{ display: "flex", gap: 12, alignItems: "center", padding: "9px 18px", borderBottom: `1px solid ${LINE}` }}>
+                      <span style={{ flex: 1, fontSize: 12.5 }}>{r.name}</span>
+                      {[r.distinct, r.anchor, r.pair].map((v: number, i: number) => (
+                        <span key={i} className={mono.className} style={{ width: 70, textAlign: "right", fontSize: 11.5, color: MUT }}>{v}</span>
+                      ))}
+                      <span className={mono.className} style={{ width: 50, textAlign: "right", fontSize: 11.5, fontWeight: 600 }}>{r.total}</span>
+                      <span style={{ width: 210, fontSize: 11, color: FAINT }}>{(asPlan.plan.pairsWith[r.email] || []).join(", ") || "—"}</span>
+                    </div>
+                  ))}
+                  <div style={{ padding: "12px 18px", fontSize: 11.5, color: MUT, lineHeight: 1.65 }}>
+                    Each reviewer&apos;s queue is tagged <span className={mono.className}>{asPlan.plan.rows[0]?.auditMode}</span>. Assigning writes exactly these rows and nothing else · it does not touch anyone&apos;s existing open work.
+                  </div>
+                </div>
+              )}
+
+              {asDone && (
+                <div style={{ ...card, padding: "14px 18px", borderColor: asDone.error ? "#f0cfd1" : BORDER, background: asDone.error ? "#fdf5f5" : "#fff" }}>
+                  {asDone.error
+                    ? <span style={{ fontSize: 12.5, color: RED_BAR }}>{asDone.error}</span>
+                    : <span style={{ fontSize: 13, fontWeight: 600 }}>
+                        Assigned {asDone.written?.toLocaleString()} calls across {asDone.plan?.rows?.length} reviewers as batch {asDone.batch}. They will see them on their next refresh.
+                      </span>}
+                </div>
+              )}
             </>
           );
         })()}
