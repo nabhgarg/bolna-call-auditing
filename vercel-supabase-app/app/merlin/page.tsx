@@ -35,11 +35,24 @@ export default function MerlinReview() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
+  const [rosterEmail, setRosterEmail] = useState("");
+
   useEffect(() => {
     fetch("/api/merlin")
       .then((r) => r.json())
       .then((d) => setItems(d.items || []))
       .catch(() => setErr("Could not load review items."));
+    // Same-origin session from the reviewer app: if this person is logged in
+    // to review.realloop.in, adopt that identity so their judgments join
+    // their roster accuracy record. Guests (no login) just type a name —
+    // the panel stays open to anyone.
+    try {
+      const e = (window.localStorage.getItem("auditReviewerEmail") || "").trim().toLowerCase();
+      if (e) {
+        setRosterEmail(e);
+        setName(e);
+      }
+    } catch {}
   }, []);
 
   const storeKey = useMemo(() => `merlin-done::${name.trim().toLowerCase()}`, [name]);
@@ -130,6 +143,7 @@ export default function MerlinReview() {
             <input
               placeholder="Your name"
               value={name}
+              readOnly={!!rosterEmail}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && begin()}
             />
@@ -137,6 +151,14 @@ export default function MerlinReview() {
               Start reviewing
             </button>
           </div>
+          {rosterEmail && (
+            <p className="mr-mutedline">
+              Signed in as {rosterEmail} — your judgments count toward your reviewer record.{" "}
+              <a href="#" onClick={(e) => { e.preventDefault(); setRosterEmail(""); setName(""); }}>
+                Not you?
+              </a>
+            </p>
+          )}
           {err && <p className="mr-err">{err}</p>}
         </main>
       )}

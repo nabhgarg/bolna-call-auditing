@@ -22,8 +22,13 @@ alter table merlin_judgments enable row level security;
 
 -- One judgment per reviewer per item (latest wins via upsert in the API).
 -- A named constraint (not just an index) so PostgREST upsert onConflict works.
-alter table merlin_judgments
-  add constraint merlin_judgments_reviewer_item unique (reviewer, item_id);
+-- Guarded so rerunning this file never errors (an error anywhere rolls back
+-- the whole batch in the SQL editor, silently dropping the policies below).
+do $$ begin
+  alter table merlin_judgments
+    add constraint merlin_judgments_reviewer_item unique (reviewer, item_id);
+exception when duplicate_table or duplicate_object then null;
+end $$;
 
 drop policy if exists merlin_judgments_insert on public.merlin_judgments;
 create policy merlin_judgments_insert on public.merlin_judgments
