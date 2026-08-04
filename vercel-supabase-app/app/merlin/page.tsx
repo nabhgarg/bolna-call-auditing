@@ -25,6 +25,44 @@ const TAGS = [
 
 const blank = (): Judgment => ({ preference: "", confidence: "", tags_a: [], tags_b: [], reason: "" });
 
+// Minimal markdown for model responses: pipe tables, **bold**, and #-headings.
+// Everything is HTML-escaped first, so the substitutions below are safe.
+function mdToHtml(src: string): string {
+  const esc = src.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const lines = esc.split("\n");
+  const out: string[] = [];
+  let i = 0;
+  const isRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+  const isSep = (l: string) => /^\s*\|[\s:|-]+\|\s*$/.test(l);
+  const cells = (l: string) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+  const inline = (s: string) =>
+    s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;:!?])/g, "$1<i>$2</i>");
+  while (i < lines.length) {
+    if (isRow(lines[i]) && i + 1 < lines.length && isSep(lines[i + 1])) {
+      const head = cells(lines[i]);
+      i += 2;
+      const body: string[][] = [];
+      while (i < lines.length && isRow(lines[i]) && !isSep(lines[i])) {
+        body.push(cells(lines[i]));
+        i++;
+      }
+      out.push(
+        '<div class="mr-tablewrap"><table><thead><tr>' +
+          head.map((h) => `<th>${inline(h)}</th>`).join("") +
+          "</tr></thead><tbody>" +
+          body.map((r) => "<tr>" + r.map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>").join("") +
+          "</tbody></table></div>"
+      );
+      continue;
+    }
+    const line = lines[i];
+    const h = line.match(/^\s*(#{1,4})\s+(.*)$/);
+    out.push(h ? `<div class="mr-h">${inline(h[2])}</div>` : inline(line));
+    i++;
+  }
+  return out.join("\n");
+}
+
 export default function MerlinReview() {
   const [items, setItems] = useState<Item[]>([]);
   const [name, setName] = useState("");
@@ -189,7 +227,7 @@ export default function MerlinReview() {
             {(["A", "B"] as const).map((side) => (
               <article key={side} className="mr-resp">
                 <h3>Response {side}</h3>
-                <div className="mr-resptext">{it[side]}</div>
+                <div className="mr-resptext" dangerouslySetInnerHTML={{ __html: mdToHtml(it[side]) }} />
               </article>
             ))}
           </section>
@@ -286,6 +324,11 @@ const css = `
 .mr-resp { background: var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; box-shadow: var(--shadow); }
 .mr-resp h3 { margin:0 0 8px; font-family: var(--font-mono); font-size:12px; letter-spacing:1px; text-transform:uppercase; color: var(--muted); }
 .mr-resptext { white-space:pre-wrap; max-height:46vh; overflow-y:auto; line-height:1.55; font-size:14.5px; }
+.mr-resptext .mr-h { font-weight:600; font-size:15px; margin:6px 0 2px; }
+.mr-tablewrap { overflow-x:auto; white-space:normal; margin:6px 0; }
+.mr-resptext table { border-collapse:collapse; font-size:13px; min-width:60%; }
+.mr-resptext th, .mr-resptext td { border:1px solid var(--line); padding:5px 9px; text-align:left; vertical-align:top; }
+.mr-resptext th { background:var(--soft); font-weight:600; }
 .mr-qs { background: var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; margin-top:14px; box-shadow: var(--shadow); }
 .mr-q { margin-bottom:16px; }
 .mr-q label { display:block; font-weight:600; margin-bottom:8px; font-size:14.5px; }
