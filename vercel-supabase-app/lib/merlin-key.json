@@ -1,0 +1,324 @@
+{
+ "m_F01": {
+  "prompt_id": "F01",
+  "A_arm": "MAGIC",
+  "B_arm": "MATCHED",
+  "pair_type": "MATCHED",
+  "magic_model": "Claude Haiku 4.5"
+ },
+ "m_F09": {
+  "prompt_id": "F09",
+  "A_arm": "MATCHED",
+  "B_arm": "MAGIC",
+  "pair_type": "MATCHED",
+  "magic_model": "Claude Haiku 4.5"
+ },
+ "m_F11": {
+  "prompt_id": "F11",
+  "A_arm": "MATCHED",
+  "B_arm": "MAGIC",
+  "pair_type": "MATCHED",
+  "magic_model": "Claude Haiku 4.5"
+ },
+ "m_F12": {
+  "prompt_id": "F12",
+  "A_arm": "MAGIC",
+  "B_arm": "FRONTIER",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "m_F13": {
+  "prompt_id": "F13",
+  "A_arm": "FRONTIER",
+  "B_arm": "MAGIC",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "m_F17": {
+  "prompt_id": "F17",
+  "A_arm": "MATCHED",
+  "B_arm": "MAGIC",
+  "pair_type": "MATCHED",
+  "magic_model": "Claude Haiku 4.5"
+ },
+ "m_F20": {
+  "prompt_id": "F20",
+  "A_arm": "MAGIC",
+  "B_arm": "MATCHED",
+  "pair_type": "MATCHED",
+  "magic_model": "Claude Haiku 4.5"
+ },
+ "m_F22": {
+  "prompt_id": "F22",
+  "A_arm": "FRONTIER",
+  "B_arm": "MAGIC",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "m_F25": {
+  "prompt_id": "F25",
+  "A_arm": "MATCHED",
+  "B_arm": "MAGIC",
+  "pair_type": "MATCHED",
+  "magic_model": "Claude Haiku 4.5"
+ },
+ "m_F30": {
+  "prompt_id": "F30",
+  "A_arm": "FRONTIER",
+  "B_arm": "MAGIC",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "m_S01": {
+  "prompt_id": "S01",
+  "A_arm": "MAGIC",
+  "B_arm": "FRONTIER",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "m_S11": {
+  "prompt_id": "S11",
+  "A_arm": "MAGIC",
+  "B_arm": "FRONTIER",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "m_S16": {
+  "prompt_id": "S16",
+  "A_arm": "MAGIC",
+  "B_arm": "FRONTIER",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "m_S21": {
+  "prompt_id": "S21",
+  "A_arm": "FRONTIER",
+  "B_arm": "MAGIC",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "m_S22": {
+  "prompt_id": "S22",
+  "A_arm": "FRONTIER",
+  "B_arm": "MAGIC",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "m_S30": {
+  "prompt_id": "S30",
+  "A_arm": "MAGIC",
+  "B_arm": "FRONTIER",
+  "pair_type": "FRONTIER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "c_F01": {
+  "prompt_id": "F01",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F02": {
+  "prompt_id": "F02",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F03": {
+  "prompt_id": "F03",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F04": {
+  "prompt_id": "F04",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F05": {
+  "prompt_id": "F05",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F06": {
+  "prompt_id": "F06",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F07": {
+  "prompt_id": "F07",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F08": {
+  "prompt_id": "F08",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F09": {
+  "prompt_id": "F09",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F10": {
+  "prompt_id": "F10",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F11": {
+  "prompt_id": "F11",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F12": {
+  "prompt_id": "F12",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F13": {
+  "prompt_id": "F13",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F14": {
+  "prompt_id": "F14",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F15": {
+  "prompt_id": "F15",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F16": {
+  "prompt_id": "F16",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F17": {
+  "prompt_id": "F17",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F18": {
+  "prompt_id": "F18",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F19": {
+  "prompt_id": "F19",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F20": {
+  "prompt_id": "F20",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F21": {
+  "prompt_id": "F21",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F22": {
+  "prompt_id": "F22",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F23": {
+  "prompt_id": "F23",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F24": {
+  "prompt_id": "F24",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F25": {
+  "prompt_id": "F25",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F26": {
+  "prompt_id": "F26",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F27": {
+  "prompt_id": "F27",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F28": {
+  "prompt_id": "F28",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F29": {
+  "prompt_id": "F29",
+  "A_arm": "claude-sonnet-5",
+  "B_arm": "claude-haiku-4-5-20251001",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ },
+ "c_F30": {
+  "prompt_id": "F30",
+  "A_arm": "claude-haiku-4-5-20251001",
+  "B_arm": "claude-sonnet-5",
+  "pair_type": "H45_VS_S5",
+  "magic_model": ""
+ }
+}

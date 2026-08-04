@@ -28,4 +28,3 @@ npm-debug.log*
 
 # Demo video projects (large renders/audio) stay local
 videos/
-vercel-supabase-app/lib/merlin-key.json

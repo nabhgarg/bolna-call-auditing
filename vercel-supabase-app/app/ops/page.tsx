@@ -142,6 +142,8 @@ export default function Ops() {
   const [weekly, setWeekly] = useState(false);
   const [period, setPeriod] = useState<"daily" | "weekly">("daily");
 
+  const [merlin, setMerlin] = useState<any>(null);
+
   useEffect(() => { setAllowed(isExpert()); }, []);
   useEffect(() => {
     if (allowed !== true) return;
@@ -149,6 +151,10 @@ export default function Ops() {
       .then((r) => r.json())
       .then((d) => (d.error ? setErr(d.error) : setData(d)))
       .catch((e) => setErr(String(e)));
+    fetch("/api/ops/merlin")
+      .then((r) => r.json())
+      .then(setMerlin)
+      .catch(() => setMerlin({ error: "unreachable" }));
   }, [allowed]);
 
   // Weekly report · fetched only when the tab is opened, and re-fetched when
@@ -819,6 +825,47 @@ export default function Ops() {
                   </div>
                 </div>
               ))}
+
+              {/* Merlin router audit · text pairs, not calls. Unblinded here
+                  (ops is internal); the public panel at /merlin stays blind. */}
+              <div style={{ ...card, flex: "1 1 260px", minWidth: 0, padding: "15px 17px", display: "flex", flexDirection: "column", gap: 11 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Merlin audit</span>
+                  <span className={mono.className} style={{ fontSize: 10.5, background: "#eef6f1", color: GREEN, padding: "2px 7px", borderRadius: 20 }}>pilot</span>
+                  <span style={{ flex: 1 }} />
+                  <a href="/merlin" target="_blank" style={{ fontSize: 12, fontWeight: 600, color: GREEN, textDecoration: "none" }}>open panel →</a>
+                </div>
+                {!merlin ? (
+                  <div style={{ fontSize: 12.5, color: MUT }}>Loading…</div>
+                ) : merlin.error ? (
+                  <div style={{ fontSize: 12.5, color: RED_BAR }}>Merlin feed · {merlin.error}</div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 12.5 }}>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <span style={{ flex: 1 }}>Blind pairs live</span>
+                        <span className={mono.className} style={{ fontSize: 11.5 }}>{merlin.itemsLive}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <span style={{ flex: 1 }}>Judgments in</span>
+                        <span className={mono.className} style={{ fontSize: 11.5 }}>{merlin.judgments}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <span style={{ flex: 1 }}>Reviewers</span>
+                        <span className={mono.className} style={{ fontSize: 11.5 }}>{merlin.reviewers.length}</span>
+                      </div>
+                    </div>
+                    <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ fontSize: 11.5, color: MUT }}>
+                        Magic vs premium · <b style={{ color: INK }}>{merlin.merlin.magicWin}W {merlin.merlin.tie}T {merlin.merlin.magicLoss}L</b>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: MUT }}>
+                        Haiku 4.5 vs Sonnet 5 · <b style={{ color: INK }}>{merlin.models.haikuWin}W {merlin.models.tie}T {merlin.models.sonnetWin}L</b>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
