@@ -417,18 +417,6 @@ export async function GET() {
     problems.push("Done-count regression needs a daily snapshot table; not computable from current data.");
 
     // ---- batch options ----------------------------------------------------
-    const coveredBy = new Map<string, Set<string>>();
-    for (const q of active) {
-      const wt = workType(q.audit_mode);
-      if (!coveredBy.has(wt)) coveredBy.set(wt, new Set());
-      (coveredBy.get(wt) as Set<string>).add(q.call_id);
-    }
-    const batchOptions = (["quality_review", "transcription"] as const).map((wt) => {
-      const covered = coveredBy.get(wt) || new Set();
-      const pool = calls.filter((c: any) => clientOf(c.source_sheet).key === "bolna" && !covered.has(c.execution_id)).length;
-      return { key: wt, name: `Bolna · ${WORK_LABEL[wt]}`, pool };
-    });
-
     // ---- per client detail ------------------------------------------------
     const details: Record<string, OpsClientDetail> = {};
     for (const c of clientsOut) {
@@ -954,7 +942,6 @@ export async function GET() {
       reviewers: reviewersOut,
       alerts,
       checks,
-      batchOptions,
       totals: {
         done: reviewersOut.reduce((s, r) => s + r.done, 0),
         assigned: reviewersOut.reduce((s, r) => s + r.assigned, 0)

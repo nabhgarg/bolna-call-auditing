@@ -49,7 +49,6 @@ export type OpsAlert = {
 
 export type OpsCheck = { name: string; value: string; tripped: boolean };
 
-export type OpsBatchOption = { key: string; name: string; pool: number };
 
 export type OpsDelivery = {
   name: string;
@@ -129,7 +128,6 @@ export type OpsPayload = {
   reviewers: OpsReviewer[];
   alerts: OpsAlert[];
   checks: OpsCheck[];
-  batchOptions: OpsBatchOption[];
   totals: { done: number; assigned: number };
   details: Record<string, OpsClientDetail>;
   problems: string[];

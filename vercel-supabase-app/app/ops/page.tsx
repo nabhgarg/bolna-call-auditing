@@ -138,8 +138,6 @@ export default function Ops() {
   const [wkSending, setWkSending] = useState(false);
   const [wkResult, setWkResult] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [modal, setModal] = useState(false);
-  const [pick, setPick] = useState(0);
   const [weekly, setWeekly] = useState(false);
   const [period, setPeriod] = useState<"daily" | "weekly">("daily");
 
@@ -292,9 +290,6 @@ export default function Ops() {
           <span style={{ width: 6, height: 6, borderRadius: 3, background: GREEN }} />live · as of {asOf}
         </span>
         <span style={{ flex: 1 }} />
-        <span onClick={() => setModal(true)} style={{ background: GREEN, color: "#fff", fontSize: 12.5, fontWeight: 600, padding: "9px 15px", borderRadius: 8, cursor: "pointer" }}>
-          Create today&apos;s batch
-        </span>
       </div>
 
       {level.view === "client" && detail && (
@@ -1329,61 +1324,6 @@ export default function Ops() {
         )}
       </div>
 
-      {/* ---------------- create batch modal ---------------- */}
-      {modal && (
-        <div onClick={() => setModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(16,24,31,.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 40 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 600, maxWidth: "100%", background: "#fff", borderRadius: 14, boxShadow: "0 18px 50px rgba(16,24,31,.18)", overflow: "hidden" }}>
-            <div style={{ padding: "18px 22px", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "center" }}>
-              <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Create today&apos;s batch</span>
-              <span style={{ flex: 1 }} />
-              <span onClick={() => setModal(false)} style={{ fontSize: 16, color: FAINT, cursor: "pointer" }}>×</span>
-            </div>
-            <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <span style={head}>Use case</span>
-                {d.batchOptions.map((o, i) => (
-                  <div key={o.key} onClick={() => setPick(i)} style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    border: `1px solid ${i === pick ? GREEN : BORDER}`, background: i === pick ? "#f2faf6" : "#fff",
-                    borderRadius: 9, padding: "11px 13px", cursor: "pointer"
-                  }}>
-                    <span style={{ width: 14, height: 14, borderRadius: 8, border: `2px solid ${i === pick ? GREEN : SLATE}`, flex: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: 4, background: i === pick ? GREEN : "transparent" }} />
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600 }}>{o.name}</span>
-                    <span className={mono.className} style={{ fontSize: 11.5, color: MUT }}>{o.pool.toLocaleString()} uncovered</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ background: "#fbfcfd", border: `1px solid ${BORDER}`, borderRadius: 11, padding: "15px 17px", display: "flex", flexDirection: "column", gap: 12 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                  <span className={grotesk.className} style={{ fontSize: 14, fontWeight: 600 }}>Computed plan</span>
-                  <span style={{ fontSize: 11.5, color: MUT }}>nothing written yet</span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 18px" }}>
-                  {[["500", "review slots"], ["410", "distinct calls"], ["60", "agreement units (shared)"], ["5 × 100", "reviewers × slots each"]].map(([v, l]) => (
-                    <div key={l} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                      <span className={mono.className} style={{ fontSize: 17 }}>{v}</span>
-                      <span style={{ fontSize: 11.5, color: MUT }}>{l}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 11, fontSize: 12, color: MUT, lineHeight: 1.6 }}>
-                  10 calls go to all five reviewers and 5 to each pair, so 500 slots cover 410 distinct calls and yield 60 agreement units.
-                </div>
-              </div>
-              <div style={{ background: "#fdf4e3", border: "1px solid #f0e2c4", borderRadius: 9, padding: "11px 13px", fontSize: 12, color: AMBER, lineHeight: 1.55 }}>
-                Batch creation is not wired yet — it writes nothing. Assignment still runs through the agreed endpoint, which lands with the new schema.
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ flex: 1, fontSize: 11.5, color: "#8b96a2", lineHeight: 1.5 }}>Will be logged as <span className={mono.className}>batch.create</span>.</span>
-                <span onClick={() => setModal(false)} style={{ fontSize: 12.5, fontWeight: 600, color: MUT, padding: "9px 13px", cursor: "pointer" }}>Cancel</span>
-                <span style={{ background: SLATE, color: "#fff", fontSize: 12.5, fontWeight: 600, padding: "9px 15px", borderRadius: 8, cursor: "not-allowed" }}>Create 500 slots</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
