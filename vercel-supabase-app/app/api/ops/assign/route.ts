@@ -41,37 +41,84 @@ const WORK: Record<string, string> = {
 
 const isOolka = (s: unknown) => /oolka/i.test(String(s || ""));
 
-/** The free pool for a work type.
+/** The shortest call worth a reviewer's time. Below this there is not enough
+ *  speech for a transcript or a vibe score to mean anything. */
+const MIN_SEC = 20;
+
+/** Does this row point at real audio?
  *
- *  Free means: no ACTIVE queue row for this base mode. A call whose only rows
- *  are __removed / __archived is genuinely free again — that is what
- *  releasing an offboarded reviewer's queue is for — so those come back into
- *  the pool rather than being written off. */
-async function loadPool(mode: string, client: string) {
+ *  Asking is not paranoia. One import landed the transcript text in the
+ *  recording_url column, so 721 rows carry "assistant: Hello…" where a URL
+ *  should be. They look like perfectly good calls in every count until a
+ *  reviewer opens one and there is nothing to play. */
+const hasAudio = (c: any) => /^https?:\/\//i.test(String(c?.recording_url || ""));
+
+/** The assignable pool for a work type.
+ *
+ *  A call qualifies only if all four hold:
+ *    · no ACTIVE queue row for this mode      · not already claimed
+ *    · real audio behind it                   · the reviewer can actually work it
+ *    · at least MIN_SEC long                  · long enough to be worth doing
+ *    · nobody has reviewed it in this mode    · we are not buying the same work twice
+ *
+ *  A call whose only rows are __removed / __archived IS free again — that is
+ *  what releasing a departed reviewer's queue is for.
+ *
+ *  Everything rejected is counted, not silently dropped, so the console can
+ *  show why a pool is smaller than the raw call count suggests. */
+async function loadPool(mode: string, client: string, sheet: string) {
   const supabase = supabaseAdmin();
-  const [calls, queue] = await Promise.all([
-    selectAll(() => supabase.from("calls").select("execution_id,source_sheet,created_at_ist,duration_sec").order("created_at_ist", { ascending: true })),
-    selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode"))
+  const [calls, queue, reviews] = await Promise.all([
+    selectAll(() => supabase.from("calls").select("execution_id,source_sheet,created_at_ist,duration_sec,recording_url,imported_at").order("created_at_ist", { ascending: true })),
+    selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode")),
+    selectAll(() => supabase.from("reviews").select("call_id,review_mode").eq("review_mode", mode))
   ]);
 
   const taken = new Set<string>();
   const released = new Set<string>();
   const batches = new Set<string>();
   for (const q of queue) {
-    if (baseMode(q.audit_mode) !== mode && baseMode(q.audit_mode).split("__")[0] !== mode) continue;
+    if (baseMode(q.audit_mode).split("__")[0] !== mode) continue;
     if (isActive(q.audit_mode)) { taken.add(q.call_id); batches.add(queueTag(q.audit_mode).split("_")[0]); }
     else released.add(q.call_id);
   }
+  const reviewed = new Set(reviews.map((r: any) => r.call_id));
 
-  const free = calls.filter((c: any) => {
-    if (taken.has(c.execution_id)) return false;
-    if (client === "bolna" && isOolka(c.source_sheet)) return false;
-    if (client === "oolka" && !isOolka(c.source_sheet)) return false;
+  const inClient = calls.filter((c: any) =>
+    client === "all" ? true : client === "oolka" ? isOolka(c.source_sheet) : !isOolka(c.source_sheet));
+
+  // Every source sheet that still has assignable work, newest import first ·
+  // this is what the operator picks a batch from.
+  const bySheet = new Map<string, { key: string; count: number; imported: string }>();
+  const rejected = { claimed: 0, noAudio: 0, tooShort: 0, alreadyDone: 0 };
+
+  const usable = inClient.filter((c: any) => {
+    if (taken.has(c.execution_id)) { rejected.claimed++; return false; }
+    if (!hasAudio(c)) { rejected.noAudio++; return false; }
+    if ((c.duration_sec || 0) < MIN_SEC) { rejected.tooShort++; return false; }
+    if (reviewed.has(c.execution_id)) { rejected.alreadyDone++; return false; }
     return true;
   });
 
+  for (const c of usable) {
+    const key = String(c.source_sheet || "(no sheet)");
+    const cur = bySheet.get(key) || { key, count: 0, imported: "" };
+    cur.count++;
+    if (String(c.imported_at || "") > cur.imported) cur.imported = String(c.imported_at || "");
+    bySheet.set(key, cur);
+  }
+  const sheets = [...bySheet.values()].sort((a, b) => b.imported.localeCompare(a.imported));
+
+  // Default to the newest batch rather than the whole history · assigning
+  // across every old sheet at once is almost never what is wanted.
+  const chosen = sheet && sheet !== "__all" ? sheet : sheets[0]?.key || "";
+  const free = sheet === "__all" ? usable : usable.filter((c: any) => String(c.source_sheet || "(no sheet)") === chosen);
+
   return {
     free,
+    sheet: sheet === "__all" ? "__all" : chosen,
+    sheets,
+    rejected,
     releasedCount: free.filter((c: any) => released.has(c.execution_id)).length,
     batches: [...batches].filter(Boolean).sort()
   };
@@ -94,9 +141,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const work = String(url.searchParams.get("work") || "transcription");
     const client = String(url.searchParams.get("client") || "bolna");
+    const sheet = String(url.searchParams.get("sheet") || "");
     const mode = WORK[work] || WORK.transcription;
 
-    const [reviewers, pool] = await Promise.all([activeReviewers(), loadPool(mode, client)]);
+    const [reviewers, pool] = await Promise.all([activeReviewers(), loadPool(mode, client, sheet)]);
 
     // Everyone's current open load, so the operator is not piling a hundred
     // calls onto someone who is already forty behind.
@@ -116,7 +164,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       work, client, mode,
       reviewers: reviewers.map((r) => ({ ...r, open: open[r.email.toLowerCase()] || 0 })),
-      pool: { free: pool.free.length, released: pool.releasedCount },
+      pool: { free: pool.free.length, released: pool.releasedCount, rejected: pool.rejected },
+      sheet: pool.sheet, sheets: pool.sheets,
       batches: pool.batches
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (e: any) {
@@ -129,6 +178,7 @@ export async function POST(request: Request) {
     const payload = await request.json();
     const work = String(payload.work || "transcription");
     const client = String(payload.client || "bolna");
+    const sheet = String(payload.sheet || "");
     const mode = WORK[work] || WORK.transcription;
     const perDay = Math.max(1, Math.min(500, Number(payload.perDay) || 100));
     const emails: string[] = Array.isArray(payload.reviewers) ? payload.reviewers.map((s: string) => String(s)) : [];
@@ -152,7 +202,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "One or more selected reviewers are not active." }, { status: 400 });
     }
 
-    const pool = await loadPool(mode, client);
+    const pool = await loadPool(mode, client, sheet);
     const sheetOf: Record<string, string> = {};
     for (const c of pool.free) sheetOf[c.execution_id] = c.source_sheet || "";
 
@@ -160,7 +210,7 @@ export async function POST(request: Request) {
     const rows = planToQueueRows(plan, sheetOf);
 
     const summary = {
-      work, client, batch, commit,
+      work, client, batch, commit, sheet: pool.sheet,
       perDay, split,
       poolFree: pool.free.length,
       poolNeeded: poolNeededFor(perDay, split, chosen.length),

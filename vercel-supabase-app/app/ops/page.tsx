@@ -116,6 +116,7 @@ export default function Ops() {
   const [asErr, setAsErr] = useState("");
   const [asWork, setAsWork] = useState<"transcription" | "quality_review">("transcription");
   const [asClient, setAsClient] = useState("bolna");
+  const [asSheet, setAsSheet] = useState("");
   const [asPick, setAsPick] = useState<Record<string, boolean>>({});
   const [asPerDay, setAsPerDay] = useState(100);
   const [asSplit, setAsSplit] = useState({ distinct: 70, all: 15, pair: 15 });
@@ -172,11 +173,12 @@ export default function Ops() {
   useEffect(() => {
     if (allowed !== true || level.view !== "assign") return;
     setAsPool(null); setAsErr(""); setAsPlan(null); setAsDone(null);
-    fetch(`/api/ops/assign?work=${asWork}&client=${asClient}`)
+    fetch(`/api/ops/assign?work=${asWork}&client=${asClient}${asSheet ? `&sheet=${encodeURIComponent(asSheet)}` : ""}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.error) { setAsErr(d.error); return; }
         setAsPool(d);
+        setAsSheet(d.sheet || "");
         setAsPick((prev) => Object.keys(prev).length ? prev
           : Object.fromEntries(d.reviewers.map((r: any) => [r.email, true])));
         // Suggest the next tag in the existing series · b10t -> b11t
@@ -185,7 +187,7 @@ export default function Ops() {
         setAsBatch(`b${Math.max(0, ...nums) + 1}${suffix}`);
       })
       .catch((e) => setAsErr(String(e)));
-  }, [allowed, level.view, asWork, asClient]);
+  }, [allowed, level.view, asWork, asClient, asSheet]);
 
   function loadRoster() {
     setRoster(null);
@@ -197,7 +199,7 @@ export default function Ops() {
    *  re-read too · otherwise the picker keeps showing a stale panel. */
   function refreshAfterRoster() {
     loadRoster();
-    fetch(`/api/ops/assign?work=${asWork}&client=${asClient}`)
+    fetch(`/api/ops/assign?work=${asWork}&client=${asClient}${asSheet ? `&sheet=${encodeURIComponent(asSheet)}` : ""}`)
       .then((r) => r.json()).then((d) => { if (!d.error) { setAsPool(d); setAsPlan(null); } })
       .catch(() => {});
   }
@@ -507,7 +509,7 @@ export default function Ops() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  work: asWork, client: asClient, perDay: asPerDay, split: asSplit,
+                  work: asWork, client: asClient, sheet: asSheet, perDay: asPerDay, split: asSplit,
                   batch: asBatch, reviewers: chosen.map((r) => r.email),
                   commit, assignments: commit ? asPlan?.assignments : undefined
                 })
@@ -545,9 +547,36 @@ export default function Ops() {
                   ))}
                   <span style={{ flex: 1 }} />
                   <span className={mono.className} style={{ fontSize: 11.5, color: short ? RED_BAR : MUT }}>
-                    {asPool.pool.free.toLocaleString()} free calls
+                    {asPool.pool.free.toLocaleString()} assignable
                     {asPool.pool.released > 0 && ` · ${asPool.pool.released} released back`}
                   </span>
+                </div>
+
+                <div style={{ height: 1, background: LINE }} />
+
+                {/* Which import to draw from. Defaults to the newest · assigning
+                    across every historical sheet at once is almost never right. */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={head}>Source batch</span>
+                  <select value={asSheet} onChange={(e) => { setAsSheet(e.target.value); setAsPlan(null); }}
+                    style={{ fontSize: 12.5, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, color: INK, background: "#fff", maxWidth: 420 }}>
+                    {(asPool.sheets as any[] || []).map((sh) => (
+                      <option key={sh.key} value={sh.key}>{sh.key} · {sh.count.toLocaleString()} assignable</option>
+                    ))}
+                    <option value="__all">Every batch · {(asPool.sheets as any[] || []).reduce((n: number, sh: any) => n + sh.count, 0).toLocaleString()} assignable</option>
+                  </select>
+                  {(() => {
+                    const rj = asPool.pool.rejected || {};
+                    const bits = [
+                      rj.claimed && `${rj.claimed.toLocaleString()} already assigned`,
+                      rj.alreadyDone && `${rj.alreadyDone.toLocaleString()} already done`,
+                      rj.noAudio && `${rj.noAudio.toLocaleString()} no audio`,
+                      rj.tooShort && `${rj.tooShort.toLocaleString()} under 20s`
+                    ].filter(Boolean);
+                    return bits.length ? (
+                      <span style={{ fontSize: 11.5, color: FAINT }}>Held back: {bits.join(" · ")}</span>
+                    ) : null;
+                  })()}
                 </div>
 
                 <div style={{ height: 1, background: LINE }} />
