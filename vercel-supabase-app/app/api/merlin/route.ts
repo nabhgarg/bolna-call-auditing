@@ -54,20 +54,29 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing or invalid fields" }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin()
-    .from("merlin_judgments")
-    .upsert(
-      {
-        item_id,
-        reviewer,
-        preference,
-        confidence,
-        tags_a: cleanTags(body.tags_a),
-        tags_b: cleanTags(body.tags_b),
-        reason
-      },
-      { onConflict: "reviewer,item_id" }
-    );
+  // Insert, and on a duplicate fall back to update — NOT upsert. Upsert's
+  // ON CONFLICT DO UPDATE has to read the conflicting row, which needs a
+  // SELECT policy this table deliberately doesn't have (judgments are not
+  // client-readable). Plain INSERT and filtered UPDATE both work under the
+  // insert/update-only policies.
+  const row = {
+    item_id,
+    reviewer,
+    preference,
+    confidence,
+    tags_a: cleanTags(body.tags_a),
+    tags_b: cleanTags(body.tags_b),
+    reason
+  };
+  const db = supabaseAdmin();
+  let { error } = await db.from("merlin_judgments").insert(row);
+  if (error && error.code === "23505") {
+    ({ error } = await db
+      .from("merlin_judgments")
+      .update(row)
+      .eq("reviewer", reviewer)
+      .eq("item_id", item_id));
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
