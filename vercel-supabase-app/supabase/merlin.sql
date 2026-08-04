@@ -37,3 +37,11 @@ create policy merlin_judgments_insert on public.merlin_judgments
 drop policy if exists merlin_judgments_update on public.merlin_judgments;
 create policy merlin_judgments_update on public.merlin_judgments
   for update to public using (true) with check (true);
+
+-- Select policy: required by the ops console's aggregate feed
+-- (/api/ops/merlin). NOTE: RLS select with NO policy returns zero rows
+-- silently rather than erroring — without this, ops shows 0 judgments
+-- forever. Matches the app's posture for its other tables (reviews etc.).
+drop policy if exists merlin_judgments_select on public.merlin_judgments;
+create policy merlin_judgments_select on public.merlin_judgments
+  for select to public using (true);
