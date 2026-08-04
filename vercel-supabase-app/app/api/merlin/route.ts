@@ -8,8 +8,15 @@ export const dynamic = "force-dynamic";
 // GET serves the blinded pairs — the unblinding key (lib/merlin-key.json) is
 // deliberately never imported here, so no route can leak which side is which.
 export async function GET() {
+  // `db` names the Supabase host this deployment writes to — public info
+  // (it's a NEXT_PUBLIC_ var), kept here because "policies exist but writes
+  // fail" has once already meant "prod points at a different project".
+  let db = "";
+  try {
+    db = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "").host;
+  } catch {}
   return NextResponse.json(
-    { items },
+    { items, db },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
