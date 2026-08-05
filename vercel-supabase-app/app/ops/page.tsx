@@ -1443,6 +1443,62 @@ export default function Ops() {
               </div>
             </div>
 
+            {/* who agrees with WHOM · the reviewer table's numbers, unfolded
+                into every pair. Follows the same window toggle. */}
+            {(() => {
+              const m = detail.transcription.matrix;
+              if (!m || m.names.length < 2) return null;
+              const cells = m[trRev];
+              const short = (n: string) => { const p = n.split(" "); return p.length > 1 ? `${p[0]} ${p[1][0]}` : p[0]; };
+              const shade = (p: number) => p >= 85 ? "var(--submitted)" : p >= 75 ? "var(--pick-bg)" : "var(--wash-warn-bg)";
+              return (
+                <div style={{ ...card, overflow: "hidden" }}>
+                  <div style={{ padding: "14px 20px", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                    <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Pairwise agreement</span>
+                    <span style={{ fontSize: 12, color: MUT }}>
+                      every reviewer × every reviewer · {trRev === "day" ? "today" : trRev === "week" ? "last 7 days" : "all time"} · uses the toggle above
+                    </span>
+                  </div>
+                  <div style={{ overflowX: "auto", padding: "6px 8px 2px" }}>
+                    <table style={{ borderCollapse: "separate", borderSpacing: 3, margin: "0 auto" }}>
+                      <thead>
+                        <tr>
+                          <th />
+                          {m.names.map((n) => (
+                            <th key={n} className={mono.className} style={{ fontSize: 9.5, fontWeight: 600, color: MUT, padding: "4px 2px", maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{short(n)}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {m.names.map((rn, i) => (
+                          <tr key={rn}>
+                            <td style={{ fontSize: 11.5, fontWeight: 500, color: INK, padding: "2px 8px 2px 10px", whiteSpace: "nowrap" }}>{short(rn)}</td>
+                            {m.names.map((cn, j) => {
+                              const c = cells[i][j];
+                              return (
+                                <td key={cn} title={i === j ? rn : c ? `${rn} × ${cn} · ${c.pct}% over ${c.n.toLocaleString()} segment comparisons` : `${rn} × ${cn} · no shared segments in this window`}
+                                  className={mono.className}
+                                  style={{
+                                    width: 46, height: 30, textAlign: "center", fontSize: 11, borderRadius: 5,
+                                    background: i === j ? "transparent" : c && c.pct !== null ? shade(c.pct) : "var(--panel-3)",
+                                    color: i === j ? "transparent" : c && c.pct !== null ? (c.pct >= 75 ? INK : AMBER) : FAINT
+                                  }}>
+                                  {i === j ? "·" : c && c.pct !== null ? `${c.pct}` : "—"}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{ padding: "10px 20px 14px", fontSize: 11.5, color: MUT, lineHeight: 1.65 }}>
+                    Cell = word agreement between the row and column reviewer on segments both transcribed, % of words. Hover for the number of comparisons behind a cell — a pair can only disagree as much as they overlapped. Green ≥85, tinted 75–84, amber below 75, &quot;—&quot; means the pair shared nothing in this window. The matrix is symmetric.
+                  </div>
+                </div>
+              );
+            })()}
+
             <div style={{ ...card, padding: "18px 20px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 240 }}>
                 <div className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Golden transcription dataset</div>

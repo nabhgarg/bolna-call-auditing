@@ -117,10 +117,19 @@ export type OpsClientDetail = {
     /** per reviewer · agreement with co-raters and with experts, per window ·
      *  day = today, week = last 7 days, all = whole history */
     reviewers: {
+      email: string;
       name: string;
       panel: Record<"day" | "week" | "all", { pct: number | null; n: number }>;
       gt: Record<"day" | "week" | "all", { pct: number | null; n: number }>;
     }[];
+    /** pairwise n×n agreement · rows/cols in `names` order, diagonal null,
+     *  a cell null when that pair shares no segments in the window */
+    matrix: {
+      names: string[];
+      day: Array<Array<{ pct: number | null; n: number } | null>>;
+      week: Array<Array<{ pct: number | null; n: number } | null>>;
+      all: Array<Array<{ pct: number | null; n: number } | null>>;
+    };
     gt: { i: number; value: number }[];
     lastCalibrated: string;
     /** segment-level word agreement of the panel against expert transcriptions */

@@ -846,6 +846,9 @@ export async function GET() {
       };
       const week7 = new Set(lastNDays(7, today));
       const windowsOf = (d: string) => ["all", ...(week7.has(d) ? ["week"] : []), ...(d === today ? ["day"] : [])];
+      // pair × window accumulator for the n×n matrix · a pair comparison is
+      // dated to the LATER of the two ratings, the day it became possible.
+      const pairAcc = new Map<string, Record<string, Acc>>();
       for (const [, texts] of allSeg) {
         const experts = texts.filter((t) => EXPERT_IDS.has(t.who));
         for (let a = 0; a < texts.length; a++) {
@@ -854,6 +857,14 @@ export async function GET() {
             for (const t of [texts[a], texts[b]]) {
               const acc = trRow(t.who).p;
               for (const w of windowsOf(t.d)) { acc[w].s += sc; acc[w].n++; }
+            }
+            const wA = texts[a].who, wB = texts[b].who;
+            if (wA !== wB && !EXPERT_IDS.has(wA) && !EXPERT_IDS.has(wB)) {
+              const pk = wA < wB ? `${wA}|${wB}` : `${wB}|${wA}`;
+              if (!pairAcc.has(pk)) pairAcc.set(pk, mkAcc());
+              const acc = pairAcc.get(pk) as Record<string, Acc>;
+              const later = texts[a].d > texts[b].d ? texts[a].d : texts[b].d;
+              for (const w of windowsOf(later)) { acc[w].s += sc; acc[w].n++; }
             }
           }
           if (!EXPERT_IDS.has(texts[a].who) && experts.length) {
@@ -876,12 +887,28 @@ export async function GET() {
       const trReviewers = [...trBy.entries()]
         .filter(([w]) => !EXPERT_IDS.has(w))
         .map(([w, v]) => ({
+          email: w,
           name: nameOf.get(w) || w.split("@")[0],
           panel: { day: stat(v.p.day), week: stat(v.p.week), all: stat(v.p.all) },
           gt: { day: stat(v.g.day), week: stat(v.g.week), all: stat(v.g.all) }
         }))
         .filter((r) => r.panel.all.n || r.gt.all.n)
         .sort((a, b) => (a.panel.all.pct ?? 101) - (b.panel.all.pct ?? 101));
+
+      // The n×n view of the same numbers · rows and columns in the reviewer
+      // table's order, each cell that pair's agreement in each window. The
+      // matrix is symmetric by construction, and a cell's small n is the
+      // honest reason two people can "disagree" · they barely overlapped.
+      const trMatrix = (() => {
+        const emails = trReviewers.map((r) => r.email);
+        const cellFor = (a: string, b: string, w: string) => {
+          const acc = pairAcc.get(a < b ? `${a}|${b}` : `${b}|${a}`);
+          if (!acc || !acc[w].n) return null;
+          return { pct: pct(acc[w]), n: acc[w].n };
+        };
+        const win = (w: string) => emails.map((a) => emails.map((b) => (a === b ? null : cellFor(a, b, w))));
+        return { names: trReviewers.map((r) => r.name), day: win("day"), week: win("week"), all: win("all") };
+      })();
 
       // ---- per-person calibration: deviation from panel consensus ----
       // Leave-one-out consensus · including a reviewer in the average they are
@@ -979,6 +1006,7 @@ export async function GET() {
           base: { segs: trAll.segs, calls: trAll.calls, pct: trAll.pct,
                   weekSegs: trThisWeek.segs, weekCalls: trThisWeek.calls, weekPct: trThisWeek.pct },
           reviewers: trReviewers,
+          matrix: trMatrix,
           lastCalibrated: lastExpertTr ? day(lastExpertTr) : "never",
           gtAgreement: gtN ? Math.round((gtScore / gtN) * 100) : null,
           gtSegments: gtN,
