@@ -7,16 +7,21 @@ export const dynamic = "force-dynamic";
 // Public review panel for the Merlin router audit (review.realloop.in/merlin).
 // GET serves the blinded pairs — the unblinding key (lib/merlin-key.json) is
 // deliberately never imported here, so no route can leak which side is which.
-export async function GET() {
-  // `db` names the Supabase host this deployment writes to — public info
-  // (it's a NEXT_PUBLIC_ var), kept here because "policies exist but writes
-  // fail" has once already meant "prod points at a different project".
-  let db = "";
-  try {
-    db = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "").host;
-  } catch {}
+// With ?reviewer=<name>, also returns the item_ids that reviewer has already
+// submitted, so progress resumes from the SERVER on any device or reload —
+// localStorage is only a same-session cache.
+export async function GET(req: Request) {
+  let done: string[] = [];
+  const reviewer = new URL(req.url).searchParams.get("reviewer")?.trim();
+  if (reviewer) {
+    const { data } = await supabaseAdmin()
+      .from("merlin_judgments")
+      .select("item_id")
+      .eq("reviewer", reviewer);
+    done = (data || []).map((r) => r.item_id);
+  }
   return NextResponse.json(
-    { items, db },
+    { items, done },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

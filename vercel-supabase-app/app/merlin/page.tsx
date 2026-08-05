@@ -3,9 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 
 // Public blind-review panel for the Merlin router audit.
-// Anyone can grade: enter a name, judge each blinded pair, done.
+// Identity: the review.realloop.in login when present (auditReviewerEmail in
+// localStorage, same origin), else a remembered guest name. Progress is
+// SERVER-truth: on load we fetch the item_ids this reviewer has already
+// submitted, so reloads and device switches resume exactly where they left
+// off. The left sidebar lists every question with its submitted/pending state.
 // Which AI produced which side lives only in lib/merlin-key.json (server-side,
-// never imported by any route this page can reach).
+// imported only by the ops route — never by anything this page can reach).
 
 type Item = { item_id: string; category: string; prompt: string; A: string; B: string };
 type Judgment = {
@@ -22,6 +26,7 @@ const TAGS = [
   "wrong", "incomplete", "ignored-constraint", "truncated",
   "hallucinated", "format", "padding", "refused"
 ];
+const NAME_KEY = "merlinReviewerName";
 
 const blank = (): Judgment => ({ preference: "", confidence: "", tags_a: [], tags_b: [], reason: "" });
 
@@ -66,47 +71,86 @@ function mdToHtml(src: string): string {
 export default function MerlinReview() {
   const [items, setItems] = useState<Item[]>([]);
   const [name, setName] = useState("");
+  const [rosterEmail, setRosterEmail] = useState("");
+  const [nameInput, setNameInput] = useState("");
   const [started, setStarted] = useState(false);
+  const [loadingResume, setLoadingResume] = useState(true);
   const [idx, setIdx] = useState(0);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [j, setJ] = useState<Judgment>(blank());
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
-  const [rosterEmail, setRosterEmail] = useState("");
+  const storeKey = useMemo(() => `merlin-done::${name.trim().toLowerCase()}`, [name]);
+
+  // Load items + resume state. Identity comes from the reviewer-app login
+  // (same origin) or a remembered guest name; server-side done-list wins over
+  // whatever this browser remembers.
+  async function loadFor(identity: string) {
+    const res = await fetch(`/api/merlin?reviewer=${encodeURIComponent(identity)}`);
+    const d = await res.json();
+    const its: Item[] = d.items || [];
+    const doneMap: Record<string, boolean> = {};
+    try {
+      Object.assign(doneMap, JSON.parse(localStorage.getItem(`merlin-done::${identity.trim().toLowerCase()}`) || "{}"));
+    } catch {}
+    for (const iid of d.done || []) doneMap[iid] = true;
+    setItems(its);
+    setDone(doneMap);
+    const next = its.findIndex((it) => !doneMap[it.item_id]);
+    setIdx(next === -1 ? 0 : next);
+    setStarted(true);
+    setLoadingResume(false);
+  }
 
   useEffect(() => {
-    fetch("/api/merlin")
-      .then((r) => r.json())
-      .then((d) => setItems(d.items || []))
-      .catch(() => setErr("Could not load review items."));
-    // Same-origin session from the reviewer app: if this person is logged in
-    // to review.realloop.in, adopt that identity so their judgments join
-    // their roster accuracy record. Guests (no login) just type a name —
-    // the panel stays open to anyone.
+    let identity = "";
     try {
       const e = (window.localStorage.getItem("auditReviewerEmail") || "").trim().toLowerCase();
       if (e) {
         setRosterEmail(e);
-        setName(e);
+        identity = e;
+      } else {
+        identity = (window.localStorage.getItem(NAME_KEY) || "").trim();
       }
     } catch {}
+    if (identity) {
+      setName(identity);
+      loadFor(identity).catch(() => { setErr("Could not load review items."); setLoadingResume(false); });
+    } else {
+      // No identity yet: fetch items so the intro can show the count.
+      fetch("/api/merlin")
+        .then((r) => r.json())
+        .then((d) => setItems(d.items || []))
+        .catch(() => setErr("Could not load review items."))
+        .finally(() => setLoadingResume(false));
+    }
   }, []);
 
-  const storeKey = useMemo(() => `merlin-done::${name.trim().toLowerCase()}`, [name]);
-
   function begin() {
-    if (!name.trim()) return;
-    const prev = JSON.parse(localStorage.getItem(storeKey) || "{}");
-    setDone(prev);
-    const next = items.findIndex((it) => !prev[it.item_id]);
-    setIdx(next === -1 ? 0 : next);
-    setStarted(true);
+    const n = nameInput.trim();
+    if (!n) return;
+    try { localStorage.setItem(NAME_KEY, n); } catch {}
+    setName(n);
+    setLoadingResume(true);
+    loadFor(n).catch(() => { setErr("Could not load review items."); setLoadingResume(false); });
+  }
+
+  function switchReviewer() {
+    try { localStorage.removeItem(NAME_KEY); } catch {}
+    setName(""); setRosterEmail(""); setStarted(false); setNameInput(""); setDone({}); setJ(blank());
   }
 
   const it = items[idx];
-  const nDone = Object.keys(done).length;
-  const finished = items.length > 0 && nDone >= items.length;
+  const nDone = Object.values(done).filter(Boolean).length;
+  const allDone = items.length > 0 && nDone >= items.length;
+
+  function jumpTo(i: number) {
+    setIdx(i);
+    setJ(blank());
+    setErr("");
+    window.scrollTo(0, 0);
+  }
 
   function toggleTag(side: "tags_a" | "tags_b", t: string) {
     setJ((p) => ({
@@ -134,7 +178,7 @@ export default function MerlinReview() {
     }
     const nextDone = { ...done, [it.item_id]: true };
     setDone(nextDone);
-    localStorage.setItem(storeKey, JSON.stringify(nextDone));
+    try { localStorage.setItem(storeKey, JSON.stringify(nextDone)); } catch {}
     setJ(blank());
     const next = items.findIndex((x) => !nextDone[x.item_id]);
     if (next !== -1) setIdx(next);
@@ -148,16 +192,18 @@ export default function MerlinReview() {
       <header className="mr-head">
         <div>
           <span className="mr-brand">realloop</span>
-          <span className="mr-sub">· Merlin router audit — blind review</span>
+          <span className="mr-sub">· Merlin audit — blind review</span>
         </div>
-        {started && !finished && (
+        {started && (
           <span className="mr-progress">
-            {nDone} / {items.length} graded
+            {nDone} / {items.length} submitted{name ? ` · ${name}` : ""}
           </span>
         )}
       </header>
 
-      {!started && (
+      {loadingResume && <main className="mr-intro"><p className="mr-mutedline">Loading…</p></main>}
+
+      {!loadingResume && !started && (
         <main className="mr-intro">
           <h1>Which answer is better? You decide.</h1>
           <p>
@@ -169,8 +215,8 @@ export default function MerlinReview() {
           <p>
             For each pair: pick the better answer, say how confident you are, tag
             anything broken, and give a one-line reason. Two to three minutes per
-            pair, {items.length || "…"} pairs total. Your progress saves in this
-            browser, so you can leave and come back.
+            pair, {items.length || "…"} pairs total. Your progress is saved to your
+            name, so you can leave and come back — from any device.
           </p>
           <ul>
             <li>The question is the spec — if it asked for 5 bullets, count them.</li>
@@ -180,142 +226,169 @@ export default function MerlinReview() {
           <div className="mr-startrow">
             <input
               placeholder="Your name"
-              value={name}
-              readOnly={!!rosterEmail}
-              onChange={(e) => setName(e.target.value)}
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && begin()}
             />
-            <button className="mr-primary" onClick={begin} disabled={!name.trim() || !items.length}>
+            <button className="mr-primary" onClick={begin} disabled={!nameInput.trim() || !items.length}>
               Start reviewing
             </button>
           </div>
-          {rosterEmail && (
-            <p className="mr-mutedline">
-              Signed in as {rosterEmail} — your judgments count toward your reviewer record.{" "}
-              <a href="#" onClick={(e) => { e.preventDefault(); setRosterEmail(""); setName(""); }}>
-                Not you?
-              </a>
-            </p>
-          )}
+          <p className="mr-mutedline">
+            On the reviewer roster? <a href="/?next=/merlin">Sign in</a> instead — your
+            judgments then count toward your reviewer record.
+          </p>
           {err && <p className="mr-err">{err}</p>}
         </main>
       )}
 
-      {started && finished && (
-        <main className="mr-intro">
-          <h1>That&apos;s all of them — thank you.</h1>
-          <p>
-            You graded {nDone} pairs. Every judgment feeds an independent audit of
-            automatic AI model selection, reviewed by multiple people so no single
-            opinion decides anything.
-          </p>
-          <p className="mr-mutedline">
-            Curious what this is? realloop runs human evaluation pipelines for AI
-            products — this panel is a live slice of one.
-          </p>
-        </main>
-      )}
-
-      {started && !finished && it && (
-        <main>
-          <section className="mr-prompt">
-            <span className="mr-cat">{it.category}</span>
-            <div className="mr-prompttext">{it.prompt}</div>
-          </section>
-
-          <section className="mr-pair">
-            {(["A", "B"] as const).map((side) => (
-              <article key={side} className="mr-resp">
-                <h3>Response {side}</h3>
-                <div className="mr-resptext" dangerouslySetInnerHTML={{ __html: mdToHtml(it[side]) }} />
-              </article>
-            ))}
-          </section>
-
-          <section className="mr-qs">
-            <div className="mr-q">
-              <label>Which response better serves the person who asked?</label>
-              <div className="mr-opts">
-                {PREFS.map((p) => (
-                  <button
-                    key={p}
-                    className={j.preference === p ? "mr-on" : ""}
-                    onClick={() => setJ({ ...j, preference: p })}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
+      {!loadingResume && started && (
+        <div className="mr-cols">
+          <aside className="mr-side">
+            <div className="mr-sidehead">
+              <span>{nDone}/{items.length} done</span>
             </div>
-
-            <div className="mr-q">
-              <label>How confident are you?</label>
-              <div className="mr-opts">
-                {CONF.map((c) => (
-                  <button
-                    key={c}
-                    className={j.confidence === c ? "mr-on" : ""}
-                    onClick={() => setJ({ ...j, confidence: c })}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
+            <div className="mr-sidelist">
+              {items.map((x, i) => (
+                <button
+                  key={x.item_id}
+                  className={`mr-siderow ${i === idx ? "mr-current" : ""}`}
+                  onClick={() => jumpTo(i)}
+                >
+                  <span className={`mr-dot ${done[x.item_id] ? "mr-dot-done" : ""}`}>
+                    {done[x.item_id] ? "✓" : ""}
+                  </span>
+                  <span className="mr-sidenum">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="mr-sidecat">{x.category}</span>
+                </button>
+              ))}
             </div>
+            <div className="mr-sidefoot">
+              <span className="mr-mutedline">{rosterEmail || name}</span>
+              {!rosterEmail && (
+                <a href="#" onClick={(e) => { e.preventDefault(); switchReviewer(); }}>switch</a>
+              )}
+            </div>
+          </aside>
 
-            {(["tags_a", "tags_b"] as const).map((side) => (
-              <div className="mr-q" key={side}>
-                <label>Anything broken in Response {side === "tags_a" ? "A" : "B"}? (optional)</label>
-                <div className="mr-opts mr-tags">
-                  {TAGS.map((t) => (
-                    <button
-                      key={t}
-                      className={j[side].includes(t) ? "mr-on-warn" : ""}
-                      onClick={() => toggleTag(side, t)}
-                    >
-                      {t}
-                    </button>
+          <main className="mr-main">
+            {allDone && (
+              <div className="mr-banner">
+                All {items.length} pairs submitted — thank you. You can revisit any
+                question from the sidebar; resubmitting replaces your earlier answer.
+              </div>
+            )}
+            {it && (
+              <>
+                {done[it.item_id] && (
+                  <div className="mr-banner mr-banner-soft">
+                    Already submitted. Grading it again will replace your earlier answer.
+                  </div>
+                )}
+                <section className="mr-prompt">
+                  <span className="mr-cat">{it.category} · {idx + 1} of {items.length}</span>
+                  <div className="mr-prompttext">{it.prompt}</div>
+                </section>
+
+                <section className="mr-pair">
+                  {(["A", "B"] as const).map((side) => (
+                    <article key={side} className="mr-resp">
+                      <h3>Response {side}</h3>
+                      <div className="mr-resptext" dangerouslySetInnerHTML={{ __html: mdToHtml(it[side]) }} />
+                    </article>
                   ))}
-                </div>
-              </div>
-            ))}
+                </section>
 
-            <div className="mr-q">
-              <label>One-line reason — the decisive difference</label>
-              <textarea
-                value={j.reason}
-                placeholder="e.g., A answered the actual question; B's list is missing 14 entries"
-                onChange={(e) => setJ({ ...j, reason: e.target.value })}
-              />
-            </div>
+                <section className="mr-qs">
+                  <div className="mr-q">
+                    <label>Which response better serves the person who asked?</label>
+                    <div className="mr-opts">
+                      {PREFS.map((p) => (
+                        <button key={p} className={j.preference === p ? "mr-on" : ""} onClick={() => setJ({ ...j, preference: p })}>
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-            {err && <p className="mr-err">{err}</p>}
-            <div className="mr-navrow">
-              <button className="mr-primary" onClick={submit} disabled={saving}>
-                {saving ? "Saving…" : "Save & next"}
-              </button>
-              <span className="mr-mutedline">Blind review — don&apos;t try to guess which system is which.</span>
-            </div>
-          </section>
-        </main>
+                  <div className="mr-q">
+                    <label>How confident are you?</label>
+                    <div className="mr-opts">
+                      {CONF.map((c) => (
+                        <button key={c} className={j.confidence === c ? "mr-on" : ""} onClick={() => setJ({ ...j, confidence: c })}>
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(["tags_a", "tags_b"] as const).map((side) => (
+                    <div className="mr-q" key={side}>
+                      <label>Anything broken in Response {side === "tags_a" ? "A" : "B"}? (optional)</label>
+                      <div className="mr-opts mr-tags">
+                        {TAGS.map((t) => (
+                          <button key={t} className={j[side].includes(t) ? "mr-on-warn" : ""} onClick={() => toggleTag(side, t)}>
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="mr-q">
+                    <label>One-line reason — the decisive difference</label>
+                    <textarea
+                      value={j.reason}
+                      placeholder="e.g., A answered the actual question; B's list is missing 14 entries"
+                      onChange={(e) => setJ({ ...j, reason: e.target.value })}
+                    />
+                  </div>
+
+                  {err && <p className="mr-err">{err}</p>}
+                  <div className="mr-navrow">
+                    <button className="mr-primary" onClick={submit} disabled={saving}>
+                      {saving ? "Saving…" : done[it.item_id] ? "Resubmit" : "Save & next"}
+                    </button>
+                    <span className="mr-mutedline">Blind review — don&apos;t try to guess which system is which.</span>
+                  </div>
+                </section>
+              </>
+            )}
+          </main>
+        </div>
       )}
     </div>
   );
 }
 
 const css = `
-.mr-wrap { max-width: 1160px; margin: 0 auto; padding: 0 20px 60px; }
-.mr-head { display:flex; justify-content:space-between; align-items:baseline; padding:18px 0; border-bottom:1px solid var(--line); margin-bottom:22px; }
+.mr-wrap { max-width: 1360px; margin: 0 auto; padding: 0 20px 60px; }
+.mr-head { display:flex; justify-content:space-between; align-items:baseline; padding:16px 0; border-bottom:1px solid var(--line); margin-bottom:20px; }
 .mr-brand { font-family: var(--font-display); font-weight:700; font-size:18px; }
 .mr-sub { color: var(--muted); margin-left:6px; }
 .mr-progress { font-family: var(--font-mono); font-size:13px; color: var(--muted); }
 .mr-intro { max-width:640px; margin:40px auto; }
 .mr-intro h1 { font-family: var(--font-display); font-size:28px; margin:0 0 14px; }
 .mr-intro p, .mr-intro li { color:#2c3944; line-height:1.6; }
-.mr-startrow { display:flex; gap:10px; margin-top:22px; }
+.mr-startrow { display:flex; gap:10px; margin-top:22px; margin-bottom:10px; }
 .mr-startrow input { flex:1; border:1px solid var(--line); border-radius:6px; padding:10px 12px; background:var(--panel); }
 .mr-primary { background: var(--accent); border-color: var(--accent); color:#fff; font-weight:600; }
 .mr-primary:hover { background: var(--accent-strong); }
+.mr-cols { display:grid; grid-template-columns:210px minmax(0,1fr); gap:18px; align-items:start; }
+@media (max-width: 980px) { .mr-cols { grid-template-columns:1fr; } .mr-side { display:none; } }
+.mr-side { position:sticky; top:14px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); display:flex; flex-direction:column; max-height:calc(100vh - 40px); }
+.mr-sidehead { padding:10px 14px; border-bottom:1px solid var(--line); font-family:var(--font-mono); font-size:12px; color:var(--muted); }
+.mr-sidelist { overflow-y:auto; padding:6px; }
+.mr-siderow { display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:none; background:none; padding:6px 8px; border-radius:6px; cursor:pointer; min-height:0; }
+.mr-siderow:hover { background:var(--soft); }
+.mr-current { background:var(--soft); outline:1px solid var(--line); }
+.mr-dot { width:16px; height:16px; flex:none; border-radius:9px; border:1px solid var(--line); font-size:10px; line-height:14px; text-align:center; color:#fff; background:transparent; }
+.mr-dot-done { background:var(--accent); border-color:var(--accent); }
+.mr-sidenum { font-family:var(--font-mono); font-size:11.5px; color:var(--muted); }
+.mr-sidecat { font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mr-sidefoot { padding:9px 14px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:space-between; align-items:center; font-size:12px; }
+.mr-banner { background:#eef6f1; border:1px solid #cfe6da; color:var(--accent-strong); border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:13.5px; }
+.mr-banner-soft { background:#fdf7ea; border-color:#eadfc0; color:var(--warn); }
 .mr-prompt { background: var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; box-shadow: var(--shadow); margin-bottom:14px; }
 .mr-cat { font-family: var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:1px; color: var(--accent-strong); }
 .mr-prompttext { white-space:pre-wrap; margin-top:6px; max-height:200px; overflow-y:auto; }
