@@ -69,6 +69,27 @@ function mdToHtml(src: string): string {
   return out.join("\n");
 }
 
+// Prompts reference source documents as "[ASSET:TEXT1 in assets.md]". Render
+// those as links to /merlin/source/<NAME> — a reviewer judging a summary has to
+// be able to read the original. Opens in a new tab so their place is kept.
+function promptWithSources(prompt: string) {
+  const parts: React.ReactNode[] = [];
+  const re = /\[ASSET:(\w+)[^\]]*\]/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(prompt))) {
+    if (m.index > last) parts.push(prompt.slice(last, m.index));
+    parts.push(
+      <a key={m.index} href={`/merlin/source/${m[1]}`} target="_blank" rel="noreferrer" className="mr-srclink">
+        open the source document ({m[1]}) ↗
+      </a>
+    );
+    last = m.index + m[0].length;
+  }
+  parts.push(prompt.slice(last));
+  return parts;
+}
+
 export default function MerlinReview() {
   const [items, setItems] = useState<Item[]>([]);
   const [name, setName] = useState("");
@@ -312,7 +333,7 @@ export default function MerlinReview() {
                 )}
                 <section className="mr-prompt">
                   <span className="mr-cat">{it.category} · {idx + 1} of {items.length}</span>
-                  <div className="mr-prompttext">{it.prompt}</div>
+                  <div className="mr-prompttext">{promptWithSources(it.prompt)}</div>
                 </section>
 
                 <section className="mr-pair">
@@ -422,6 +443,8 @@ const css = `
 .mr-prompt { background: var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; box-shadow: var(--shadow); margin-bottom:14px; }
 .mr-cat { font-family: var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:1px; color: var(--accent-strong); }
 .mr-prompttext { white-space:pre-wrap; margin-top:6px; max-height:200px; overflow-y:auto; }
+.mr-srclink { display:inline-block; background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:1px 9px; margin:0 2px; font-size:13px; font-weight:600; color:var(--accent-strong); text-decoration:none; }
+.mr-srclink:hover { background:var(--panel); border-color:var(--accent); }
 .mr-pair { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 @media (max-width: 860px) { .mr-pair { grid-template-columns:1fr; } }
 .mr-resp { background: var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; box-shadow: var(--shadow); }
