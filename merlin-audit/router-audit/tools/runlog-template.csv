@@ -1,0 +1,2 @@
+prompt_id,arm,run_ts,surface,model_badge,credit_cost,search_used,latency_s,anomaly,ground_truth,ground_truth_source,response_text
+F21,MAGIC,2026-08-10T10:15:00+05:30,chat,gpt-4.1-mini,3,no,6,,"iPhone 17, Rs 82900","https://www.apple.com/in/ (checked 2026-08-10)","(paste full response verbatim)"

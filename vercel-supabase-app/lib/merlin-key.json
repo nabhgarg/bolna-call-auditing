@@ -320,5 +320,19 @@
   "B_arm": "claude-sonnet-5",
   "pair_type": "H45_VS_S5",
   "magic_model": ""
+ },
+ "w_S51": {
+  "prompt_id": "S51",
+  "A_arm": "DIRECT",
+  "B_arm": "MERLIN",
+  "pair_type": "WRAPPER",
+  "magic_model": "Gemini 3.1 Pro"
+ },
+ "w_S17": {
+  "prompt_id": "S17",
+  "A_arm": "MERLIN",
+  "B_arm": "DIRECT",
+  "pair_type": "WRAPPER",
+  "magic_model": "Gemini 3.1 Pro"
  }
 }

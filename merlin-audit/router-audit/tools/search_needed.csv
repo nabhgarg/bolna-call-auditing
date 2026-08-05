@@ -1,0 +1,31 @@
+prompt_id,search_needed,why
+F01,no,stable fact
+F02,no,stable fact
+F03,no,stable science
+F04,no,stable fact
+F05,no,stable fact
+F06,no,stable science
+F07,no,stable fact
+F08,no,stable fact
+F09,no,stable concept
+F10,no,stable history
+F11,either,changed 2023; fresh model may know
+F12,either,specs fixed once released; verify
+F13,no,stable science
+F14,either,ranks drift slowly
+F15,no,stable history
+F16,no,stable science
+F17,either,changes rarely
+F18,yes,recent annual award
+F19,no,stable myth
+F20,yes,recent-change probe
+F21,yes,current product/price
+F22,yes,current + recency clause
+F23,yes,yesterday's market close
+F24,yes,past month
+F25,yes,recent match
+F26,yes,current product state
+F27,yes,live rate
+F28,yes,latest release
+F29,yes,future schedule
+F30,yes,current models + prices

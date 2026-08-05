@@ -1,0 +1,49 @@
+{
+ "prompt_id": "S51",
+ "test": "OUTPUT COMPLETENESS / input truncation",
+ "run_date": "2026-08-05",
+ "arm_A_merlin": {
+  "badge": "Gemini 3.1 Pro",
+  "items_listed": 29,
+  "self_claimed_count": 27,
+  "canaries": {
+   "A_core_hours": true,
+   "B_stipend": true,
+   "C_5k_preapproval": true,
+   "D_coworking": true,
+   "E_final_para": true
+  },
+  "unique_catches": [
+   "Version 4.2"
+  ],
+  "misses_vs_B": [
+   "section-6 cross-ref",
+   "section-3 cross-ref",
+   "'one party insufficient' exceptions rule"
+  ],
+  "errors": [
+   "summary says 27 distinct instances but 29 are listed"
+  ]
+ },
+ "arm_B_direct": {
+  "model": "Gemini 3.1 Pro (direct)",
+  "items_listed": 31,
+  "self_claimed_count": null,
+  "canaries": {
+   "A_core_hours": true,
+   "B_stipend": true,
+   "C_5k_preapproval": true,
+   "D_coworking": true,
+   "E_final_para": true
+  },
+  "unique_catches": [
+   "section-6 cross-ref",
+   "section-3 cross-ref",
+   "'one party insufficient' exceptions rule"
+  ],
+  "misses_vs_A": [
+   "Version 4.2"
+  ],
+  "errors": []
+ }
+}

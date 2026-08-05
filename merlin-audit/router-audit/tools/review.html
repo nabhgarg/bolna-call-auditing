@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Realloop · Blind Pairwise Review</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#0f1117; --card:#181b23; --line:#2a2e3a; --text:#e6e8ee; --dim:#9aa0ae;
+          --accent:#4f8cff; --good:#3ecf8e; --warn:#f5a623; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.55 -apple-system,'Segoe UI',Roboto,sans-serif;
+         background:var(--bg); color:var(--text); }
+  header { display:flex; gap:12px; align-items:center; padding:12px 20px;
+           border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:5; }
+  header h1 { font-size:15px; margin:0 12px 0 0; font-weight:600; }
+  header input[type=text]{ background:var(--card); border:1px solid var(--line); color:var(--text);
+           border-radius:6px; padding:6px 10px; width:160px; }
+  #progress { color:var(--dim); font-size:13px; margin-left:auto; }
+  button { background:var(--card); color:var(--text); border:1px solid var(--line);
+           border-radius:6px; padding:7px 14px; cursor:pointer; font-size:14px; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.4; cursor:default; }
+  main { max-width:1200px; margin:0 auto; padding:20px; }
+  .prompt { background:#1d2130; border:1px solid var(--line); border-radius:10px;
+            padding:14px 16px; white-space:pre-wrap; margin-bottom:16px; }
+  .prompt b { color:var(--accent); }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .resp { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+          white-space:pre-wrap; max-height:52vh; overflow-y:auto; }
+  .resp h3 { margin:0 0 8px; font-size:13px; letter-spacing:1px; color:var(--accent); }
+  .qs { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-top:16px; }
+  .qs .row { margin-bottom:14px; }
+  .qs label.q { display:block; font-weight:600; margin-bottom:6px; }
+  .opts { display:flex; flex-wrap:wrap; gap:8px; }
+  .opts label { background:#1d2130; border:1px solid var(--line); border-radius:20px;
+                padding:5px 12px; cursor:pointer; font-size:13.5px; user-select:none; }
+  .opts input { display:none; }
+  .opts label:has(input:checked) { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; }
+  .tags label { border-radius:6px; }
+  .tags label:has(input:checked) { background:var(--warn); border-color:var(--warn); color:#111; }
+  textarea { width:100%; background:#1d2130; border:1px solid var(--line); color:var(--text);
+             border-radius:6px; padding:8px 10px; min-height:44px; font:inherit; }
+  nav { display:flex; gap:10px; margin-top:16px; align-items:center; }
+  #saveState { color:var(--good); font-size:13px; }
+  #setup { text-align:center; padding:80px 20px; }
+  .hint { color:var(--dim); font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Realloop · Blind Review</h1>
+  <input type="text" id="reviewer" placeholder="Your name">
+  <span id="progress"></span>
+  <button id="export">Export judgments</button>
+</header>
+
+<main>
+  <div id="setup">
+    <p>Load <code>review_items.json</code> to begin. Read <b>rubric.md</b> first.</p>
+    <input type="file" id="file" accept=".json">
+    <p class="hint">Progress saves automatically in this browser. Judge only what is on screen —
+    you do not know which AI produced which response.</p>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="prompt" id="promptBox"></div>
+    <div class="pair">
+      <div class="resp"><h3>RESPONSE A</h3><div id="respA"></div></div>
+      <div class="resp"><h3>RESPONSE B</h3><div id="respB"></div></div>
+    </div>
+    <div class="qs">
+      <div class="row">
+        <label class="q">Q1 · Which response better serves the person who asked?</label>
+        <div class="opts" id="q1"></div>
+      </div>
+      <div class="row">
+        <label class="q">Q2 · Confidence</label>
+        <div class="opts" id="q2"></div>
+      </div>
+      <div class="row">
+        <label class="q">Q3 · Failure tags — Response A</label>
+        <div class="opts tags" id="tagsA"></div>
+      </div>
+      <div class="row">
+        <label class="q">Q3 · Failure tags — Response B</label>
+        <div class="opts tags" id="tagsB"></div>
+      </div>
+      <div class="row">
+        <label class="q">Q4 · One-line reason (the decisive difference)</label>
+        <textarea id="reason" placeholder="e.g., A captured the date conflict, B missed it entirely"></textarea>
+      </div>
+    </div>
+    <nav>
+      <button id="prev">← Prev</button>
+      <button id="next" class="primary">Save & Next →</button>
+      <span id="saveState"></span>
+    </nav>
+  </div>
+</main>
+
+<script>
+const PREFS = ["A much better","A slightly better","Tie","B slightly better","B much better"];
+const CONF  = ["Certain","Moderate"];
+const TAGS  = ["wrong","incomplete","ignored-constraint","truncated","hallucinated","format","padding","refused"];
+let items = [], idx = 0;
+
+const $ = id => document.getElementById(id);
+const store = () => `judgments::${$("reviewer").value.trim() || "anon"}`;
+const load  = () => JSON.parse(localStorage.getItem(store()) || "{}");
+const save  = d => localStorage.setItem(store(), JSON.stringify(d));
+
+function radio(el, name, opts) {
+  el.innerHTML = opts.map(o =>
+    `<label><input type="radio" name="${name}" value="${o}">${o}</label>`).join("");
+}
+function checks(el, name, opts) {
+  el.innerHTML = opts.map(o =>
+    `<label><input type="checkbox" name="${name}" value="${o}">${o}</label>`).join("");
+}
+
+$("file").addEventListener("change", async e => {
+  items = JSON.parse(await e.target.files[0].text());
+  $("setup").style.display = "none"; $("app").style.display = "block";
+  radio($("q1"), "pref", PREFS); radio($("q2"), "conf", CONF);
+  checks($("tagsA"), "tA", TAGS); checks($("tagsB"), "tB", TAGS);
+  const done = Object.keys(load()).length;
+  idx = Math.min(done, items.length - 1);
+  render();
+});
+
+function render() {
+  const it = items[idx], j = load()[it.item_id] || {};
+  $("promptBox").innerHTML = "<b>PROMPT</b>\n" + esc(it.prompt);
+  $("respA").textContent = it.A; $("respB").textContent = it.B;
+  document.querySelectorAll('input[name=pref]').forEach(r => r.checked = r.value === j.preference);
+  document.querySelectorAll('input[name=conf]').forEach(r => r.checked = r.value === j.confidence);
+  document.querySelectorAll('input[name=tA]').forEach(c => c.checked = (j.tags_A||[]).includes(c.value));
+  document.querySelectorAll('input[name=tB]').forEach(c => c.checked = (j.tags_B||[]).includes(c.value));
+  $("reason").value = j.reason || "";
+  $("progress").textContent = `${idx+1} / ${items.length} · ${Object.keys(load()).length} saved`;
+  $("prev").disabled = idx === 0;
+  $("saveState").textContent = j.preference ? "saved ✓" : "";
+  document.querySelector(".resp").scrollTop = 0;
+  window.scrollTo(0,0);
+}
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+
+function collect() {
+  const get = n => (document.querySelector(`input[name=${n}]:checked`)||{}).value || "";
+  const getAll = n => [...document.querySelectorAll(`input[name=${n}]:checked`)].map(c=>c.value);
+  return { preference:get("pref"), confidence:get("conf"),
+           tags_A:getAll("tA"), tags_B:getAll("tB"), reason:$("reason").value.trim() };
+}
+
+$("next").addEventListener("click", () => {
+  const j = collect();
+  if (!j.preference || !j.confidence || !j.reason) { alert("Q1, Q2 and Q4 are required."); return; }
+  const d = load(); d[items[idx].item_id] = j; save(d);
+  if (idx < items.length - 1) { idx++; render(); }
+  else { $("progress").textContent = `All ${items.length} done — export now.`; render(); }
+});
+$("prev").addEventListener("click", () => { if (idx>0){ idx--; render(); } });
+
+$("export").addEventListener("click", () => {
+  const name = $("reviewer").value.trim();
+  if (!name) { alert("Enter your name first."); return; }
+  const d = load();
+  const rows = [["item_id","reviewer","preference","confidence","tags_A","tags_B","reason"]];
+  for (const [iid, j] of Object.entries(d))
+    rows.push([iid, name, j.preference, j.confidence,
+               (j.tags_A||[]).join("|"), (j.tags_B||[]).join("|"), j.reason]);
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
+  a.download = `judgments_${name.replace(/\s+/g,"_")}.csv`; a.click();
+});
+</script>
+</body>
+</html>
