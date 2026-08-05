@@ -94,13 +94,17 @@ const ID_CHUNK = 300;
 async function selectAllByIds(
   build: () => any,
   column: string,
-  ids: string[]
+  ids: string[],
+  orderBy: string = column
 ): Promise<{ data: any[]; error: any }> {
   const rows: any[] = [];
   for (let i = 0; i < ids.length; i += ID_CHUNK) {
     const chunk = ids.slice(i, i + ID_CHUNK);
     for (let from = 0; ; from += PAGE_SIZE) {
-      const { data, error } = await build().in(column, chunk).range(from, from + PAGE_SIZE - 1);
+      const { data, error } = await build()
+        .in(column, chunk)
+        .order(orderBy, { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
       if (error) return { data: rows, error };
       rows.push(...(data || []));
       if (!data || data.length < PAGE_SIZE) break;
@@ -138,6 +142,7 @@ export async function GET(request: Request) {
       .select("call_id,assigned_reviewer,audit_mode,source_sheet")
       .or(queueModeMatches(auditMode))
       .order("audit_mode", { ascending: true })
+      .order("call_id", { ascending: true })
       .range(from, from + pageSize - 1);
     if (error) { queueError = error; break; }
     queueData = queueData.concat(data || []);
@@ -177,7 +182,8 @@ export async function GET(request: Request) {
           return orFilter ? q.or(orFilter) : q;
         },
         "call_id",
-        callIds
+        callIds,
+        "id"
       )
     ]);
 

@@ -20,10 +20,17 @@ export const dynamic = "force-dynamic";
 
 const PAGE = 1000;
 
-async function selectAll(build: () => any): Promise<any[]> {
+// Every paged read below orders by a UNIQUE key before slicing into pages.
+// Ordering by a non-unique column (audit_mode, say) lets Postgres return rows
+// in a different order per page, so the same row arrives twice and another is
+// never seen at all. That is not theoretical: it hid 8 assigned calls from a
+// reviewer's screen while the ops count still counted them as pending.
+async function selectAll(build: () => any, orderBy?: string): Promise<any[]> {
   const rows: any[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await build().range(from, from + PAGE - 1);
+    const q = build();
+    const { data, error } = await (orderBy ? q.order(orderBy, { ascending: true }) : q)
+      .range(from, from + PAGE - 1);
     if (error) throw new Error(error.message);
     rows.push(...(data || []));
     if (!data || data.length < PAGE) break;
@@ -41,9 +48,9 @@ export async function GET() {
   try {
     const supabase = supabaseAdmin();
     const [people, queue, reviews] = await Promise.all([
-      selectAll(() => supabase.from("reviewers").select("email,display_name,role,is_active,created_at")),
-      selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode,assigned_reviewer")),
-      selectAll(() => supabase.from("reviews").select("call_id,reviewer_email,review_mode"))
+      selectAll(() => supabase.from("reviewers").select("email,display_name,role,is_active,created_at"), "email"),
+      selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode,assigned_reviewer").order("audit_mode", { ascending: true }), "call_id"),
+      selectAll(() => supabase.from("reviews").select("call_id,reviewer_email,review_mode"), "id")
     ]);
 
     const done = new Set<string>();
@@ -139,7 +146,7 @@ export async function PATCH(request: Request) {
       const queue = await selectAll(() =>
         supabase.from("call_audit_queue").select("call_id,audit_mode").eq("assigned_reviewer", email));
       const reviews = await selectAll(() =>
-        supabase.from("reviews").select("call_id,review_mode").eq("reviewer_email", email));
+        supabase.from("reviews").select("call_id,review_mode").eq("reviewer_email", email), "id");
       const done = new Set(reviews.map((r: any) => `${r.call_id}|${r.review_mode}`));
 
       const byMode = new Map<string, string[]>();

@@ -19,10 +19,17 @@ export const dynamic = "force-dynamic";
 const PAGE = 1000;
 const CHUNK = 300;
 
-async function selectAll(build: () => any): Promise<any[]> {
+// Every paged read below orders by a UNIQUE key before slicing into pages.
+// Ordering by a non-unique column (audit_mode, say) lets Postgres return rows
+// in a different order per page, so the same row arrives twice and another is
+// never seen at all. That is not theoretical: it hid 8 assigned calls from a
+// reviewer's screen while the ops count still counted them as pending.
+async function selectAll(build: () => any, orderBy?: string): Promise<any[]> {
   const rows: any[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await build().range(from, from + PAGE - 1);
+    const q = build();
+    const { data, error } = await (orderBy ? q.order(orderBy, { ascending: true }) : q)
+      .range(from, from + PAGE - 1);
     if (error) throw new Error(error.message);
     rows.push(...(data || []));
     if (!data || data.length < PAGE) break;
@@ -70,8 +77,8 @@ async function loadPool(mode: string, client: string, sheet: string) {
   const supabase = supabaseAdmin();
   const [calls, queue, reviews] = await Promise.all([
     selectAll(() => supabase.from("calls").select("execution_id,source_sheet,created_at_ist,duration_sec,recording_url,imported_at").order("created_at_ist", { ascending: true })),
-    selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode")),
-    selectAll(() => supabase.from("reviews").select("call_id,review_mode").eq("review_mode", mode))
+    selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode").order("audit_mode", { ascending: true }), "call_id"),
+    selectAll(() => supabase.from("reviews").select("call_id,review_mode").eq("review_mode", mode), "id")
   ]);
 
   const taken = new Set<string>();
@@ -150,8 +157,8 @@ export async function GET(request: Request) {
     // calls onto someone who is already forty behind.
     const supabase = supabaseAdmin();
     const [queue, reviews] = await Promise.all([
-      selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode,assigned_reviewer")),
-      selectAll(() => supabase.from("reviews").select("call_id,reviewer_email,review_mode"))
+      selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode,assigned_reviewer").order("audit_mode", { ascending: true }), "call_id"),
+      selectAll(() => supabase.from("reviews").select("call_id,reviewer_email,review_mode"), "id")
     ]);
     const done = new Set(reviews.map((r: any) => `${r.call_id}|${String(r.reviewer_email || "").toLowerCase()}|${r.review_mode}`));
     const open: Record<string, number> = {};
@@ -246,7 +253,7 @@ export async function POST(request: Request) {
     // Re-check the pool as it stands right now. If anything in the approved
     // plan has been assigned since the preview was drawn, stop.
     const supabase = supabaseAdmin();
-    const live = await selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode"));
+    const live = await selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode").order("audit_mode", { ascending: true }), "call_id");
     const takenNow = new Set(
       live.filter((q: any) => baseMode(q.audit_mode) === mode && isActive(q.audit_mode)).map((q: any) => q.call_id)
     );

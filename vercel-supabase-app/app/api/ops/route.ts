@@ -27,10 +27,17 @@ export const dynamic = "force-dynamic";
 const PAGE = 1000;
 const CHUNK = 300;
 
-async function selectAll(build: () => any): Promise<any[]> {
+// Every paged read below orders by a UNIQUE key before slicing into pages.
+// Ordering by a non-unique column (audit_mode, say) lets Postgres return rows
+// in a different order per page, so the same row arrives twice and another is
+// never seen at all. That is not theoretical: it hid 8 assigned calls from a
+// reviewer's screen while the ops count still counted them as pending.
+async function selectAll(build: () => any, orderBy?: string): Promise<any[]> {
   const rows: any[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await build().range(from, from + PAGE - 1);
+    const q = build();
+    const { data, error } = await (orderBy ? q.order(orderBy, { ascending: true }) : q)
+      .range(from, from + PAGE - 1);
     if (error) throw new Error(error.message);
     rows.push(...(data || []));
     if (!data || data.length < PAGE) break;
@@ -167,10 +174,10 @@ export async function GET() {
     const today = nowIso.slice(0, 10);
 
     const [queue, reviews, calls, reviewerRows] = await Promise.all([
-      selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode,assigned_reviewer,source_sheet,imported_at")),
-      selectAll(() => supabase.from("reviews").select("call_id,reviewer_name,reviewer_email,review_mode,vibe_score,issues_json,submitted_at,duration_taken_sec,sheets_sync_error")),
-      selectAll(() => supabase.from("calls").select("execution_id,source_sheet,org_name,agent_name,duration_sec")),
-      selectAll(() => supabase.from("reviewers").select("email,display_name,role"))
+      selectAll(() => supabase.from("call_audit_queue").select("call_id,audit_mode,assigned_reviewer,source_sheet,imported_at").order("audit_mode", { ascending: true }), "call_id"),
+      selectAll(() => supabase.from("reviews").select("call_id,reviewer_name,reviewer_email,review_mode,vibe_score,issues_json,submitted_at,duration_taken_sec,sheets_sync_error"), "id"),
+      selectAll(() => supabase.from("calls").select("execution_id,source_sheet,org_name,agent_name,duration_sec"), "execution_id"),
+      selectAll(() => supabase.from("reviewers").select("email,display_name,role"), "email")
     ]);
 
     // ---- identity: one person, one id (aliases resolved once, here) --------
