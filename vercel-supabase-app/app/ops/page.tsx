@@ -141,6 +141,7 @@ export default function Ops() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [weekly, setWeekly] = useState(false);
   const [period, setPeriod] = useState<"daily" | "weekly">("daily");
+  const [trPeriod, setTrPeriod] = useState<"daily" | "weekly">("daily");
 
   const [merlin, setMerlin] = useState<any>(null);
 
@@ -1326,9 +1327,16 @@ export default function Ops() {
           <>
             <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
               <div style={{ ...card, flex: "1 1 560px", minWidth: 0, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 13 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Panel reliability · against each other</span>
                   <span style={{ fontSize: 12, color: MUT }}>script-insensitive word agreement · same timestamp, same call</span>
+                  <span style={{ flex: 1 }} />
+                  <span style={{ display: "flex", background: "#f2f5f8", borderRadius: 7, padding: 3 }}>
+                    {(["daily", "weekly"] as const).map((p) => (
+                      <span key={p} onClick={() => setTrPeriod(p)}
+                        style={{ fontSize: 11.5, fontWeight: 600, background: trPeriod === p ? "#fff" : "transparent", color: trPeriod === p ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer", textTransform: "capitalize", boxShadow: trPeriod === p ? "0 1px 2px rgba(16,24,31,.06)" : "none" }}>{p}</span>
+                    ))}
+                  </span>
                 </div>
                 {/* the base the headline stands on · a percentage without its
                     denominator is exactly how this tab used to mislead */}
@@ -1342,37 +1350,29 @@ export default function Ops() {
                     <span style={{ color: FAINT }}> · {detail.transcription.base.weekSegs.toLocaleString()} segments on {detail.transcription.base.weekCalls.toLocaleString()} calls</span>
                   </span>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
-                  {detail.transcription.panel.map((p) => (
-                    <div key={p.label} title={p.segs ? `${p.segs} shared segments · ${p.calls} calls` : "no shared segments"} style={{
-                      border: `1px solid ${p.value ? BORDER : LINE}`, borderRadius: 8,
-                      background: p.value ? "#fbfcfd" : "#fff",
-                      padding: "8px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2
-                    }}>
-                      <span className={mono.className} style={{ fontSize: 16, color: p.value ? (p.value >= 75 ? INK : AMBER) : FAINT }}>{p.value ? `${p.value}%` : "·"}</span>
-                      <span className={mono.className} style={{ fontSize: 9.5, color: FAINT }}>{p.label}</span>
-                      <span className={mono.className} style={{ fontSize: 9, color: p.segs ? MUT : "transparent" }}>{p.segs ? `${p.segs} seg` : "·"}</span>
+                {(() => {
+                  const daily = trPeriod === "daily";
+                  const series = daily ? detail.transcription.panel : detail.transcription.weekly;
+                  return (
+                    <div style={{ display: "grid", gridTemplateColumns: `repeat(${daily ? 7 : 8}, 1fr)`, gap: 8 }}>
+                      {series.map((p) => (
+                        <div key={p.label} title={p.segs ? `${p.segs} shared segments · ${p.calls} calls` : "no shared segments"} style={{
+                          border: `1px solid ${p.value ? BORDER : LINE}`, borderRadius: 8,
+                          background: p.value ? "#fbfcfd" : "#fff",
+                          padding: "8px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2
+                        }}>
+                          <span className={mono.className} style={{ fontSize: daily ? 16 : 14.5, color: p.value ? (p.value >= 75 ? INK : AMBER) : FAINT }}>{p.value ? `${p.value}%` : "·"}</span>
+                          <span className={mono.className} style={{ fontSize: 9.5, color: FAINT }}>{daily ? p.label : `wk ${p.label}`}</span>
+                          <span className={mono.className} style={{ fontSize: 9, color: p.segs ? MUT : "transparent" }}>{p.segs ? `${p.segs} seg` : "·"}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <span style={head}>By week · cross-day overlap counts here</span>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 8 }}>
-                    {detail.transcription.weekly.map((p) => (
-                      <div key={p.label} title={p.segs ? `${p.segs} shared segments · ${p.calls} calls` : "no shared segments"} style={{
-                        border: `1px solid ${p.value ? BORDER : LINE}`, borderRadius: 8,
-                        background: p.value ? "#fbfcfd" : "#fff",
-                        padding: "8px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2
-                      }}>
-                        <span className={mono.className} style={{ fontSize: 14.5, color: p.value ? (p.value >= 75 ? INK : AMBER) : FAINT }}>{p.value ? `${p.value}%` : "·"}</span>
-                        <span className={mono.className} style={{ fontSize: 9, color: FAINT }}>wk {p.label}</span>
-                        <span className={mono.className} style={{ fontSize: 9, color: p.segs ? MUT : "transparent" }}>{p.segs ? `${p.segs} seg` : "·"}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                  );
+                })()}
                 <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 11, fontSize: 11.5, color: MUT, lineHeight: 1.6 }}>
-                  Each number is averaged over every segment two or more reviewers both transcribed, and its base is printed with it · a dot means no shared segments, not zero. Days only pair same-day work, weeks also pair reviewers who did the same call on different days. Under 75% shows amber.
+                  {trPeriod === "daily"
+                    ? "Last 14 days · each number is averaged over every segment two or more reviewers both transcribed that day, base printed under it. A dot means no shared segments, not zero. Days only pair same-day work — flip to weekly to also pair reviewers who did the same call on different days. Under 75% shows amber."
+                    : "Last 8 weeks · each number pairs every segment two or more reviewers both transcribed inside that week, including on different days — which the daily view structurally cannot see. Base printed under each week. Under 75% shows amber."}
                 </div>
               </div>
 
