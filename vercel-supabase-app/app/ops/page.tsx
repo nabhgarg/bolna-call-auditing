@@ -1330,20 +1330,49 @@ export default function Ops() {
                   <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Panel reliability · against each other</span>
                   <span style={{ fontSize: 12, color: MUT }}>script-insensitive word agreement · same timestamp, same call</span>
                 </div>
+                {/* the base the headline stands on · a percentage without its
+                    denominator is exactly how this tab used to mislead */}
+                <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "baseline" }}>
+                  <span className={mono.className} style={{ fontSize: 12.5, color: INK }}>
+                    all time {detail.transcription.base.pct === null ? "—" : `${detail.transcription.base.pct}%`}
+                    <span style={{ color: FAINT }}> · {detail.transcription.base.segs.toLocaleString()} shared segments on {detail.transcription.base.calls.toLocaleString()} calls</span>
+                  </span>
+                  <span className={mono.className} style={{ fontSize: 12.5, color: detail.transcription.base.weekPct === null ? FAINT : INK }}>
+                    this week {detail.transcription.base.weekPct === null ? "—" : `${detail.transcription.base.weekPct}%`}
+                    <span style={{ color: FAINT }}> · {detail.transcription.base.weekSegs.toLocaleString()} segments on {detail.transcription.base.weekCalls.toLocaleString()} calls</span>
+                  </span>
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
                   {detail.transcription.panel.map((p) => (
-                    <div key={p.label} style={{
+                    <div key={p.label} title={p.segs ? `${p.segs} shared segments · ${p.calls} calls` : "no shared segments"} style={{
                       border: `1px solid ${p.value ? BORDER : LINE}`, borderRadius: 8,
                       background: p.value ? "#fbfcfd" : "#fff",
-                      padding: "9px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 3
+                      padding: "8px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2
                     }}>
                       <span className={mono.className} style={{ fontSize: 16, color: p.value ? (p.value >= 75 ? INK : AMBER) : FAINT }}>{p.value ? `${p.value}%` : "·"}</span>
                       <span className={mono.className} style={{ fontSize: 9.5, color: FAINT }}>{p.label}</span>
+                      <span className={mono.className} style={{ fontSize: 9, color: p.segs ? MUT : "transparent" }}>{p.segs ? `${p.segs} seg` : "·"}</span>
                     </div>
                   ))}
                 </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={head}>By week · cross-day overlap counts here</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 8 }}>
+                    {detail.transcription.weekly.map((p) => (
+                      <div key={p.label} title={p.segs ? `${p.segs} shared segments · ${p.calls} calls` : "no shared segments"} style={{
+                        border: `1px solid ${p.value ? BORDER : LINE}`, borderRadius: 8,
+                        background: p.value ? "#fbfcfd" : "#fff",
+                        padding: "8px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2
+                      }}>
+                        <span className={mono.className} style={{ fontSize: 14.5, color: p.value ? (p.value >= 75 ? INK : AMBER) : FAINT }}>{p.value ? `${p.value}%` : "·"}</span>
+                        <span className={mono.className} style={{ fontSize: 9, color: FAINT }}>wk {p.label}</span>
+                        <span className={mono.className} style={{ fontSize: 9, color: p.segs ? MUT : "transparent" }}>{p.segs ? `${p.segs} seg` : "·"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 11, fontSize: 11.5, color: MUT, lineHeight: 1.6 }}>
-                  One number per day, over every segment two or more reviewers both transcribed · a dot means no shared segments that day, not zero. Under 75% shows amber.
+                  Each number is averaged over every segment two or more reviewers both transcribed, and its base is printed with it · a dot means no shared segments, not zero. Days only pair same-day work, weeks also pair reviewers who did the same call on different days. Under 75% shows amber.
                 </div>
               </div>
 
@@ -1364,6 +1393,43 @@ export default function Ops() {
                 <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 12, fontSize: 11.5, color: MUT, lineHeight: 1.6 }}>
                   Panel-vs-panel says whether reviewers agree; this says whether they are right. A standing weekly expert batch (~20 calls) keeps it fresh.
                 </div>
+              </div>
+            </div>
+
+            {/* who agrees with the room, and who agrees with the experts ·
+                the two questions the tab exists to answer, per person */}
+            <div style={{ ...card, overflow: "hidden" }}>
+              <div style={{ padding: "14px 20px", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Reviewer reliability</span>
+                <span style={{ fontSize: 12, color: MUT }}>same word agreement, split per person · sorted weakest first</span>
+              </div>
+              <div style={{ display: "flex", gap: 12, padding: "8px 20px", borderBottom: `1px solid ${LINE}`, ...head }}>
+                <span style={{ flex: 1 }}>Reviewer</span>
+                <span style={{ width: 150, textAlign: "right" }}>vs panel · all time</span>
+                <span style={{ width: 130, textAlign: "right" }}>vs panel · 7d</span>
+                <span style={{ width: 150, textAlign: "right" }}>vs ground truth</span>
+              </div>
+              {detail.transcription.reviewers.map((r) => {
+                const cell = (p: number | null, n: number, floor: number) => (
+                  <span className={mono.className} title={n ? `${n.toLocaleString()} segment comparisons` : "no shared segments"}
+                    style={{ textAlign: "right", fontSize: 12, color: p === null ? FAINT : p >= floor ? INK : AMBER }}>
+                    {p === null ? "—" : `${p}%`}<span style={{ color: FAINT, fontSize: 10.5 }}> · {n ? n.toLocaleString() : "0"}</span>
+                  </span>
+                );
+                return (
+                  <div key={r.name} style={{ display: "flex", gap: 12, alignItems: "center", padding: "9px 20px", borderTop: `1px solid ${LINE}` }}>
+                    <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500 }}>{r.name}</span>
+                    <span style={{ width: 150, display: "flex", justifyContent: "flex-end" }}>{cell(r.panelPct, r.panelN, 75)}</span>
+                    <span style={{ width: 130, display: "flex", justifyContent: "flex-end" }}>{cell(r.weekPct, r.weekN, 75)}</span>
+                    <span style={{ width: 150, display: "flex", justifyContent: "flex-end" }}>{cell(r.gtPct, r.gtN, 75)}</span>
+                  </div>
+                );
+              })}
+              {!detail.transcription.reviewers.length && (
+                <div style={{ padding: 18, fontSize: 12.5, color: MUT }}>No reviewer has shared segments yet.</div>
+              )}
+              <div style={{ padding: "12px 20px", borderTop: `1px solid ${LINE}`, fontSize: 11.5, color: MUT, lineHeight: 1.65 }}>
+                vs panel is that reviewer&apos;s word agreement with every co-rater on segments both transcribed, whole history and last 7 days. vs ground truth is the same measure against expert transcriptions only · it says who is right, not just who agrees. The small number is how many segment comparisons the percentage stands on — read a low base as &quot;not enough data&quot;, never as a score.
               </div>
             </div>
 

@@ -775,68 +775,106 @@ export async function GET() {
       // the reviewer heard. So agreement is measured segment by segment on the
       // same timestamp of the same call, which is the unit reviewers actually
       // disagree on. (notes only holds a summary line like "6 spikes".)
-      const trDays = lastNDays(14, today);
-      const trDayIdx = new Map(trDays.map((d, i) => [d, i]));
-      // day -> "callId@timestamp" -> heard text per reviewer
-      const segBuckets: Map<string, string[]>[] = trDays.map(() => new Map());
-      for (const r of tr) {
-        const i = trDayIdx.get(day(r.submitted_at));
-        if (i === undefined) continue;
-        const segs = Array.isArray(r.issues_json) ? r.issues_json : [];
-        for (const s of segs) {
-          if (!s || typeof s !== "object") continue;
-          const heard = String((s as any).audio_said || "").trim();
-          const ts = String((s as any).timestamp || "").trim();
-          if (!heard || !ts || heard.startsWith("(")) continue;
-          const key = `${r.call_id}@${ts}`;
-          const b = segBuckets[i];
-          if (!b.has(key)) b.set(key, []);
-          (b.get(key) as string[]).push(heard);
-        }
-      }
-      const trDaily = trDays.map((d, i) => {
-        let score = 0, n = 0;
-        for (const texts of segBuckets[i].values()) {
-          if (texts.length < 2) continue;
-          for (let a = 0; a < texts.length; a++) for (let b = a + 1; b < texts.length; b++) {
-            n++;
-            score += wordAgreement(texts[a], texts[b]);
-          }
-        }
-        return { label: d.slice(8), value: n ? Math.round((score / n) * 100) : 0 };
-      });
-
-      // ---- transcription vs GT · panel segments against expert segments on
-      // the same timestamp of the same call, all time (GT is sparse) ----
+      //
+      // ONE index feeds everything below · the daily strip, the weekly strip,
+      // the calls-base line and the per-reviewer table all read the same
+      // segments, so no two numbers on the tab can disagree about the data.
       const segsOf = (r: any) => (Array.isArray(r.issues_json) ? r.issues_json : [])
         .map((s: any) => ({ ts: String(s?.timestamp || "").trim(), heard: String(s?.audio_said || "").trim() }))
         .filter((s: any) => s.ts && s.heard && !s.heard.startsWith("("));
-      const expertSeg = new Map<string, string[]>();
+      const allSeg = new Map<string, Array<{ who: string; heard: string; d: string }>>();
       let lastExpertTr = "";
       for (const r of tr) {
-        if (!EXPERT_IDS.has((r as any)._who)) continue;
-        const t = String(r.submitted_at || "");
-        if (t > lastExpertTr) lastExpertTr = t;
+        const who = (r as any)._who;
+        const dd = day(r.submitted_at);
+        if (EXPERT_IDS.has(who) && String(r.submitted_at || "") > lastExpertTr) lastExpertTr = String(r.submitted_at || "");
         for (const s of segsOf(r)) {
           const key = `${r.call_id}@${s.ts}`;
-          if (!expertSeg.has(key)) expertSeg.set(key, []);
-          (expertSeg.get(key) as string[]).push(s.heard);
+          if (!allSeg.has(key)) allSeg.set(key, []);
+          (allSeg.get(key) as any[]).push({ who, heard: s.heard, d: dd });
         }
       }
+      const callOf = (key: string) => key.slice(0, key.indexOf("@"));
+
+      // Panel agreement over an arbitrary day-window · returns the score plus
+      // the base it stands on, because a percentage without its denominator is
+      // exactly how the console used to mislead.
+      const trWindow = (days: Set<string> | null) => {
+        let score = 0, n = 0; const segK = new Set<string>(), callK = new Set<string>();
+        for (const [key, texts] of allSeg) {
+          const inWin = days ? texts.filter((t) => days.has(t.d)) : texts;
+          if (inWin.length < 2) continue;
+          segK.add(key); callK.add(callOf(key));
+          for (let a = 0; a < inWin.length; a++) for (let b = a + 1; b < inWin.length; b++) {
+            n++; score += wordAgreement(inWin[a].heard, inWin[b].heard);
+          }
+        }
+        return { pct: n ? Math.round((score / n) * 100) : null, segs: segK.size, calls: callK.size };
+      };
+
+      const trDays = lastNDays(14, today);
+      const trDaily = trDays.map((d) => {
+        const w = trWindow(new Set([d]));
+        return { label: d.slice(8), value: w.pct || 0, segs: w.segs, calls: w.calls };
+      });
+      const trDays56 = lastNDays(56, today);
+      const trWeekly = Array.from({ length: 8 }, (_, i) => {
+        const wk = trDays56.slice(i * 7, i * 7 + 7);
+        const w = trWindow(new Set(wk));
+        return { label: wk[0].slice(5), value: w.pct || 0, segs: w.segs, calls: w.calls };
+      });
+      const trAll = trWindow(null);
+      const trThisWeek = trWindow(new Set(lastNDays(7, today)));
+
+      // ---- transcription vs GT · panel segments against expert segments on
+      // the same timestamp of the same call, all time (GT is sparse) ----
       let gtScore = 0, gtN = 0;
       const gtCallSet = new Set<string>();
-      for (const r of tr) {
-        if (EXPERT_IDS.has((r as any)._who)) continue;
-        for (const s of segsOf(r)) {
-          const gts = expertSeg.get(`${r.call_id}@${s.ts}`);
-          if (!gts) continue;
-          for (const g of gts) {
-            gtN++;
-            gtScore += wordAgreement(s.heard, g);
-            gtCallSet.add(r.call_id);
+      // ---- and both numbers PER REVIEWER · who agrees with the room, and
+      // who agrees with the experts, on how many segments each ----
+      const trBy = new Map<string, { pS: number; pN: number; wS: number; wN: number; gS: number; gN: number }>();
+      const trRow = (w: string) => {
+        if (!trBy.has(w)) trBy.set(w, { pS: 0, pN: 0, wS: 0, wN: 0, gS: 0, gN: 0 });
+        return trBy.get(w) as any;
+      };
+      const week7 = new Set(lastNDays(7, today));
+      for (const [, texts] of allSeg) {
+        const experts = texts.filter((t) => EXPERT_IDS.has(t.who));
+        for (let a = 0; a < texts.length; a++) {
+          for (let b = a + 1; b < texts.length; b++) {
+            const sc = wordAgreement(texts[a].heard, texts[b].heard);
+            for (const t of [texts[a], texts[b]]) {
+              const row = trRow(t.who);
+              row.pS += sc; row.pN++;
+              if (week7.has(t.d)) { row.wS += sc; row.wN++; }
+            }
+          }
+          if (!EXPERT_IDS.has(texts[a].who) && experts.length) {
+            for (const e of experts) {
+              const sc = wordAgreement(texts[a].heard, e.heard);
+              gtN++; gtScore += sc;
+              const row = trRow(texts[a].who);
+              row.gS += sc; row.gN++;
+            }
           }
         }
       }
+      // gtCallSet needs the call id, not the reviewer · recompute cleanly
+      gtCallSet.clear();
+      for (const [key, texts] of allSeg) {
+        if (texts.some((t) => EXPERT_IDS.has(t.who)) && texts.some((t) => !EXPERT_IDS.has(t.who))) gtCallSet.add(callOf(key));
+      }
+      const pct=(sum:number,n:number)=> n ? Math.round((sum / n) * 100) : null;
+      const trReviewers = [...trBy.entries()]
+        .filter(([w]) => !EXPERT_IDS.has(w))
+        .map(([w, v]) => ({
+          name: nameOf.get(w) || w.split("@")[0],
+          panelPct: pct(v.pS, v.pN), panelN: v.pN,
+          weekPct: pct(v.wS, v.wN), weekN: v.wN,
+          gtPct: pct(v.gS, v.gN), gtN: v.gN
+        }))
+        .filter((r) => r.panelN || r.gtN)
+        .sort((a, b) => (a.panelPct ?? 101) - (b.panelPct ?? 101));
 
       // ---- per-person calibration: deviation from panel consensus ----
       // Leave-one-out consensus · including a reviewer in the average they are
@@ -930,7 +968,10 @@ export async function GET() {
         issueMix, issueTrend, issueAgreement, vibeMatrix, vibeVsGT, vibeVsPeers,
         deliveries, agents, agreement,
         transcription: {
-          panel: trDaily, gt: [],
+          panel: trDaily, weekly: trWeekly, gt: [],
+          base: { segs: trAll.segs, calls: trAll.calls, pct: trAll.pct,
+                  weekSegs: trThisWeek.segs, weekCalls: trThisWeek.calls, weekPct: trThisWeek.pct },
+          reviewers: trReviewers,
           lastCalibrated: lastExpertTr ? day(lastExpertTr) : "never",
           gtAgreement: gtN ? Math.round((gtScore / gtN) * 100) : null,
           gtSegments: gtN,
