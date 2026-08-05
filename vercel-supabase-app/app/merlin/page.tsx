@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ThemeToggle from "../../lib/ThemeToggle";
 
 // Public blind-review panel for the Merlin router audit.
@@ -119,9 +119,17 @@ export default function MerlinReview() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [sideOpen, setSideOpen] = useState(true);
+  // Personal queue preference: push the still-pending Merlin pairs (item ids
+  // starting "m_") to the front. Stored per browser, so one reviewer choosing
+  // it doesn't change anyone else's queue. Applied only on load and on toggle —
+  // never on submit, so the list can't reshuffle under you mid-session.
+  const [merlinFirst, setMerlinFirst] = useState(false);
 
   useEffect(() => {
-    try { setSideOpen(localStorage.getItem("merlinSideOpen") !== "0"); } catch {}
+    try {
+      setSideOpen(localStorage.getItem("merlinSideOpen") !== "0");
+      setMerlinFirst(localStorage.getItem("merlinPairsFirst") === "1");
+    } catch {}
   }, []);
   function toggleSide() {
     setSideOpen((v) => {
@@ -131,6 +139,7 @@ export default function MerlinReview() {
   }
 
   const storeKey = useMemo(() => `merlin-done::${name.trim().toLowerCase()}`, [name]);
+  const baseOrder = useRef<string[]>([]);
 
   // Load items + resume state. Identity comes from the reviewer-app login
   // (same origin) or a remembered guest name; server-side done-list wins over
@@ -144,12 +153,39 @@ export default function MerlinReview() {
       Object.assign(doneMap, JSON.parse(localStorage.getItem(`merlin-done::${identity.trim().toLowerCase()}`) || "{}"));
     } catch {}
     for (const iid of d.done || []) doneMap[iid] = true;
-    setItems(its);
+    let pref = false;
+    try { pref = localStorage.getItem("merlinPairsFirst") === "1"; } catch {}
+    const arranged = arrange(its, doneMap, pref);
+    setItems(arranged);
     setDone(doneMap);
-    const next = its.findIndex((it) => !doneMap[it.item_id]);
+    const next = arranged.findIndex((it) => !doneMap[it.item_id]);
     setIdx(next === -1 ? 0 : next);
     setStarted(true);
     setLoadingResume(false);
+  }
+
+  // Pending Merlin pairs first, everything else back in server order — so
+  // toggling off restores the original queue exactly.
+  function arrange(its: Item[], doneMap: Record<string, boolean>, first: boolean) {
+    const base = baseOrder.current.length ? baseOrder.current : its.map((x) => x.item_id);
+    if (!baseOrder.current.length) baseOrder.current = base;
+    const byBase = [...its].sort((a, b) => base.indexOf(a.item_id) - base.indexOf(b.item_id));
+    if (!first) return byBase;
+    const hot = byBase.filter((x) => x.item_id.startsWith("m_") && !doneMap[x.item_id]);
+    const hotIds = new Set(hot.map((x) => x.item_id));
+    return [...hot, ...byBase.filter((x) => !hotIds.has(x.item_id))];
+  }
+
+  function toggleMerlinFirst() {
+    const next = !merlinFirst;
+    setMerlinFirst(next);
+    try { localStorage.setItem("merlinPairsFirst", next ? "1" : "0"); } catch {}
+    const arranged = arrange(items, done, next);
+    setItems(arranged);
+    const firstPending = arranged.findIndex((x) => !done[x.item_id]);
+    setIdx(firstPending === -1 ? 0 : firstPending);
+    setJ(blank());
+    window.scrollTo(0, 0);
   }
 
   useEffect(() => {
@@ -192,6 +228,7 @@ export default function MerlinReview() {
 
   const it = items[idx];
   const nDone = Object.values(done).filter(Boolean).length;
+  const merlinPending = items.filter((x) => x.item_id.startsWith("m_") && !done[x.item_id]).length;
   const allDone = items.length > 0 && nDone >= items.length;
 
   function jumpTo(i: number) {
@@ -306,6 +343,14 @@ export default function MerlinReview() {
             </div>
             {sideOpen ? (
               <>
+                <button
+                  className={`mr-priority ${merlinFirst ? "mr-priority-on" : ""}`}
+                  onClick={toggleMerlinFirst}
+                  title="Only affects your own queue on this browser"
+                >
+                  {merlinFirst ? "✓ " : ""}Merlin pairs first
+                  {merlinPending > 0 && <span className="mr-pill">{merlinPending} left</span>}
+                </button>
                 <div className="mr-sidelist">
                   {items.map((x, i) => (
                     <button
@@ -318,6 +363,7 @@ export default function MerlinReview() {
                       </span>
                       <span className="mr-sidenum">{String(i + 1).padStart(2, "0")}</span>
                       <span className="mr-sidecat">{x.category}</span>
+                      {x.item_id.startsWith("m_") && <span className="mr-mtag">M</span>}
                     </button>
                   ))}
                 </div>
@@ -445,6 +491,11 @@ const css = `
 .mr-sidetoggle { border:none; background:none; min-height:0; padding:2px 6px; color:var(--muted); font-size:14px; line-height:1; cursor:pointer; border-radius:5px; }
 .mr-sidetoggle:hover { background:var(--soft); color:var(--ink); }
 .mr-railcount { writing-mode:vertical-rl; text-align:center; padding:8px 0 12px; font-family:var(--font-mono); font-size:11.5px; color:var(--muted); }
+.mr-priority { display:flex; align-items:center; gap:6px; margin:8px 8px 0; padding:6px 10px; width:calc(100% - 16px); justify-content:flex-start; border:1px solid var(--line); border-radius:7px; background:var(--panel); font-size:12.5px; font-weight:600; color:var(--muted); min-height:0; cursor:pointer; }
+.mr-priority:hover { border-color:var(--accent); color:var(--ink); }
+.mr-priority-on { background:var(--accent); border-color:var(--accent); color:#fff; }
+.mr-pill { margin-left:auto; font-family:var(--font-mono); font-size:10.5px; opacity:.85; }
+.mr-mtag { margin-left:auto; font-family:var(--font-mono); font-size:9.5px; font-weight:700; color:var(--accent-strong); background:var(--soft); border-radius:4px; padding:1px 4px; }
 .mr-sidelist { overflow-y:auto; padding:6px; }
 .mr-siderow { display:flex; align-items:center; justify-content:flex-start; gap:8px; width:100%; text-align:left; border:none; background:none; padding:6px 8px; border-radius:6px; cursor:pointer; min-height:0; }
 .mr-siderow:hover { background:var(--soft); }
