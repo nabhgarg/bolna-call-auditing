@@ -832,29 +832,36 @@ export async function GET() {
       const gtCallSet = new Set<string>();
       // ---- and both numbers PER REVIEWER · who agrees with the room, and
       // who agrees with the experts, on how many segments each ----
-      const trBy = new Map<string, { pS: number; pN: number; wS: number; wN: number; gS: number; gN: number }>();
+      // Three windows per reviewer · today, last 7 days, whole history ·
+      // for both questions (vs the room, vs the experts). One accumulator
+      // per (reviewer × window × question), filled in a single pass.
+      type Acc = { s: number; n: number };
+      const mkAcc = (): Record<string, Acc> => ({
+        day: { s: 0, n: 0 }, week: { s: 0, n: 0 }, all: { s: 0, n: 0 }
+      });
+      const trBy = new Map<string, { p: Record<string, Acc>; g: Record<string, Acc> }>();
       const trRow = (w: string) => {
-        if (!trBy.has(w)) trBy.set(w, { pS: 0, pN: 0, wS: 0, wN: 0, gS: 0, gN: 0 });
-        return trBy.get(w) as any;
+        if (!trBy.has(w)) trBy.set(w, { p: mkAcc(), g: mkAcc() });
+        return trBy.get(w) as { p: Record<string, Acc>; g: Record<string, Acc> };
       };
       const week7 = new Set(lastNDays(7, today));
+      const windowsOf = (d: string) => ["all", ...(week7.has(d) ? ["week"] : []), ...(d === today ? ["day"] : [])];
       for (const [, texts] of allSeg) {
         const experts = texts.filter((t) => EXPERT_IDS.has(t.who));
         for (let a = 0; a < texts.length; a++) {
           for (let b = a + 1; b < texts.length; b++) {
             const sc = wordAgreement(texts[a].heard, texts[b].heard);
             for (const t of [texts[a], texts[b]]) {
-              const row = trRow(t.who);
-              row.pS += sc; row.pN++;
-              if (week7.has(t.d)) { row.wS += sc; row.wN++; }
+              const acc = trRow(t.who).p;
+              for (const w of windowsOf(t.d)) { acc[w].s += sc; acc[w].n++; }
             }
           }
           if (!EXPERT_IDS.has(texts[a].who) && experts.length) {
             for (const e of experts) {
               const sc = wordAgreement(texts[a].heard, e.heard);
               gtN++; gtScore += sc;
-              const row = trRow(texts[a].who);
-              row.gS += sc; row.gN++;
+              const acc = trRow(texts[a].who).g;
+              for (const w of windowsOf(texts[a].d)) { acc[w].s += sc; acc[w].n++; }
             }
           }
         }
@@ -864,17 +871,17 @@ export async function GET() {
       for (const [key, texts] of allSeg) {
         if (texts.some((t) => EXPERT_IDS.has(t.who)) && texts.some((t) => !EXPERT_IDS.has(t.who))) gtCallSet.add(callOf(key));
       }
-      const pct=(sum:number,n:number)=> n ? Math.round((sum / n) * 100) : null;
+      const pct = (a: Acc) => (a.n ? Math.round((a.s / a.n) * 100) : null);
+      const stat = (a: Acc) => ({ pct: pct(a), n: a.n });
       const trReviewers = [...trBy.entries()]
         .filter(([w]) => !EXPERT_IDS.has(w))
         .map(([w, v]) => ({
           name: nameOf.get(w) || w.split("@")[0],
-          panelPct: pct(v.pS, v.pN), panelN: v.pN,
-          weekPct: pct(v.wS, v.wN), weekN: v.wN,
-          gtPct: pct(v.gS, v.gN), gtN: v.gN
+          panel: { day: stat(v.p.day), week: stat(v.p.week), all: stat(v.p.all) },
+          gt: { day: stat(v.g.day), week: stat(v.g.week), all: stat(v.g.all) }
         }))
-        .filter((r) => r.panelN || r.gtN)
-        .sort((a, b) => (a.panelPct ?? 101) - (b.panelPct ?? 101));
+        .filter((r) => r.panel.all.n || r.gt.all.n)
+        .sort((a, b) => (a.panel.all.pct ?? 101) - (b.panel.all.pct ?? 101));
 
       // ---- per-person calibration: deviation from panel consensus ----
       // Leave-one-out consensus · including a reviewer in the average they are

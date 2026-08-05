@@ -142,6 +142,7 @@ export default function Ops() {
   const [weekly, setWeekly] = useState(false);
   const [period, setPeriod] = useState<"daily" | "weekly">("daily");
   const [trPeriod, setTrPeriod] = useState<"daily" | "weekly">("daily");
+  const [trRev, setTrRev] = useState<"day" | "week" | "all">("all");
 
   const [merlin, setMerlin] = useState<any>(null);
 
@@ -1363,7 +1364,7 @@ export default function Ops() {
                         }}>
                           <span className={mono.className} style={{ fontSize: daily ? 16 : 14.5, color: p.value ? (p.value >= 75 ? INK : AMBER) : FAINT }}>{p.value ? `${p.value}%` : "·"}</span>
                           <span className={mono.className} style={{ fontSize: 9.5, color: FAINT }}>{daily ? p.label : `wk ${p.label}`}</span>
-                          <span className={mono.className} style={{ fontSize: 9, color: p.segs ? MUT : "transparent" }}>{p.segs ? `${p.segs} seg` : "·"}</span>
+                          <span className={mono.className} style={{ fontSize: 9, color: p.segs ? MUT : "transparent", textAlign: "center", lineHeight: 1.5 }}>{p.segs ? `${p.segs} seg · ${p.calls} calls` : "·"}</span>
                         </div>
                       ))}
                     </div>
@@ -1399,29 +1400,36 @@ export default function Ops() {
             {/* who agrees with the room, and who agrees with the experts ·
                 the two questions the tab exists to answer, per person */}
             <div style={{ ...card, overflow: "hidden" }}>
-              <div style={{ padding: "14px 20px", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ padding: "14px 20px", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Reviewer reliability</span>
                 <span style={{ fontSize: 12, color: MUT }}>same word agreement, split per person · sorted weakest first</span>
+                <span style={{ flex: 1 }} />
+                <span style={{ display: "flex", background: "#f2f5f8", borderRadius: 7, padding: 3 }}>
+                  {([["day", "Daily"], ["week", "Weekly"], ["all", "All time"]] as const).map(([k, label]) => (
+                    <span key={k} onClick={() => setTrRev(k)}
+                      style={{ fontSize: 11.5, fontWeight: 600, background: trRev === k ? "#fff" : "transparent", color: trRev === k ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer", boxShadow: trRev === k ? "0 1px 2px rgba(16,24,31,.06)" : "none" }}>{label}</span>
+                  ))}
+                </span>
               </div>
               <div style={{ display: "flex", gap: 12, padding: "8px 20px", borderBottom: `1px solid ${LINE}`, ...head }}>
                 <span style={{ flex: 1 }}>Reviewer</span>
-                <span style={{ width: 150, textAlign: "right" }}>vs panel · all time</span>
-                <span style={{ width: 130, textAlign: "right" }}>vs panel · 7d</span>
-                <span style={{ width: 150, textAlign: "right" }}>vs ground truth</span>
+                <span style={{ width: 170, textAlign: "right" }}>vs panel · {trRev === "day" ? "today" : trRev === "week" ? "last 7 days" : "all time"}</span>
+                <span style={{ width: 170, textAlign: "right" }}>vs ground truth · {trRev === "day" ? "today" : trRev === "week" ? "last 7 days" : "all time"}</span>
               </div>
-              {detail.transcription.reviewers.map((r) => {
-                const cell = (p: number | null, n: number, floor: number) => (
-                  <span className={mono.className} title={n ? `${n.toLocaleString()} segment comparisons` : "no shared segments"}
-                    style={{ textAlign: "right", fontSize: 12, color: p === null ? FAINT : p >= floor ? INK : AMBER }}>
-                    {p === null ? "—" : `${p}%`}<span style={{ color: FAINT, fontSize: 10.5 }}> · {n ? n.toLocaleString() : "0"}</span>
+              {[...detail.transcription.reviewers]
+                .sort((a, b) => (a.panel[trRev].pct ?? 101) - (b.panel[trRev].pct ?? 101))
+                .map((r) => {
+                const cell = (v: { pct: number | null; n: number }, floor: number) => (
+                  <span className={mono.className} title={v.n ? `${v.n.toLocaleString()} segment comparisons` : "no shared segments in this window"}
+                    style={{ textAlign: "right", fontSize: 12, color: v.pct === null ? FAINT : v.pct >= floor ? INK : AMBER }}>
+                    {v.pct === null ? "—" : `${v.pct}%`}<span style={{ color: FAINT, fontSize: 10.5 }}> · {v.n ? v.n.toLocaleString() : "0"}</span>
                   </span>
                 );
                 return (
                   <div key={r.name} style={{ display: "flex", gap: 12, alignItems: "center", padding: "9px 20px", borderTop: `1px solid ${LINE}` }}>
                     <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500 }}>{r.name}</span>
-                    <span style={{ width: 150, display: "flex", justifyContent: "flex-end" }}>{cell(r.panelPct, r.panelN, 75)}</span>
-                    <span style={{ width: 130, display: "flex", justifyContent: "flex-end" }}>{cell(r.weekPct, r.weekN, 75)}</span>
-                    <span style={{ width: 150, display: "flex", justifyContent: "flex-end" }}>{cell(r.gtPct, r.gtN, 75)}</span>
+                    <span style={{ width: 170, display: "flex", justifyContent: "flex-end" }}>{cell(r.panel[trRev], 75)}</span>
+                    <span style={{ width: 170, display: "flex", justifyContent: "flex-end" }}>{cell(r.gt[trRev], 75)}</span>
                   </div>
                 );
               })}
@@ -1429,7 +1437,7 @@ export default function Ops() {
                 <div style={{ padding: 18, fontSize: 12.5, color: MUT }}>No reviewer has shared segments yet.</div>
               )}
               <div style={{ padding: "12px 20px", borderTop: `1px solid ${LINE}`, fontSize: 11.5, color: MUT, lineHeight: 1.65 }}>
-                vs panel is that reviewer&apos;s word agreement with every co-rater on segments both transcribed, whole history and last 7 days. vs ground truth is the same measure against expert transcriptions only · it says who is right, not just who agrees. The small number is how many segment comparisons the percentage stands on — read a low base as &quot;not enough data&quot;, never as a score.
+                vs panel is that reviewer&apos;s word agreement with every co-rater on segments both transcribed, in the window picked above. vs ground truth is the same measure against expert transcriptions only · it says who is right, not just who agrees. The small number is how many segment comparisons the percentage stands on — read a low base as &quot;not enough data&quot;, never as a score.
               </div>
             </div>
 

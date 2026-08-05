@@ -114,8 +114,13 @@ export type OpsClientDetail = {
     weekly: { label: string; value: number; segs: number; calls: number }[];
     /** the denominator, stated · all-time and this week */
     base: { segs: number; calls: number; pct: number | null; weekSegs: number; weekCalls: number; weekPct: number | null };
-    /** per reviewer · agreement with co-raters (all-time and 7d) and with experts */
-    reviewers: { name: string; panelPct: number | null; panelN: number; weekPct: number | null; weekN: number; gtPct: number | null; gtN: number }[];
+    /** per reviewer · agreement with co-raters and with experts, per window ·
+     *  day = today, week = last 7 days, all = whole history */
+    reviewers: {
+      name: string;
+      panel: Record<"day" | "week" | "all", { pct: number | null; n: number }>;
+      gt: Record<"day" | "week" | "all", { pct: number | null; n: number }>;
+    }[];
     gt: { i: number; value: number }[];
     lastCalibrated: string;
     /** segment-level word agreement of the panel against expert transcriptions */
