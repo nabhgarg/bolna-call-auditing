@@ -80,6 +80,17 @@ export default function MerlinReview() {
   const [j, setJ] = useState<Judgment>(blank());
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [sideOpen, setSideOpen] = useState(true);
+
+  useEffect(() => {
+    try { setSideOpen(localStorage.getItem("merlinSideOpen") !== "0"); } catch {}
+  }, []);
+  function toggleSide() {
+    setSideOpen((v) => {
+      try { localStorage.setItem("merlinSideOpen", v ? "0" : "1"); } catch {}
+      return !v;
+    });
+  }
 
   const storeKey = useMemo(() => `merlin-done::${name.trim().toLowerCase()}`, [name]);
 
@@ -243,32 +254,42 @@ export default function MerlinReview() {
       )}
 
       {!loadingResume && started && (
-        <div className="mr-cols">
+        <div className={`mr-cols ${sideOpen ? "" : "mr-collapsed"}`}>
           <aside className="mr-side">
             <div className="mr-sidehead">
-              <span>{nDone}/{items.length} done</span>
+              {sideOpen && <span>{nDone}/{items.length} done</span>}
+              <button className="mr-sidetoggle" onClick={toggleSide}
+                title={sideOpen ? "Collapse list" : "Show all questions"}>
+                {sideOpen ? "«" : "»"}
+              </button>
             </div>
-            <div className="mr-sidelist">
-              {items.map((x, i) => (
-                <button
-                  key={x.item_id}
-                  className={`mr-siderow ${i === idx ? "mr-current" : ""}`}
-                  onClick={() => jumpTo(i)}
-                >
-                  <span className={`mr-dot ${done[x.item_id] ? "mr-dot-done" : ""}`}>
-                    {done[x.item_id] ? "✓" : ""}
-                  </span>
-                  <span className="mr-sidenum">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="mr-sidecat">{x.category}</span>
-                </button>
-              ))}
-            </div>
-            <div className="mr-sidefoot">
-              <span className="mr-mutedline">{rosterEmail || name}</span>
-              {!rosterEmail && (
-                <a href="#" onClick={(e) => { e.preventDefault(); switchReviewer(); }}>switch</a>
-              )}
-            </div>
+            {sideOpen ? (
+              <>
+                <div className="mr-sidelist">
+                  {items.map((x, i) => (
+                    <button
+                      key={x.item_id}
+                      className={`mr-siderow ${i === idx ? "mr-current" : ""}`}
+                      onClick={() => jumpTo(i)}
+                    >
+                      <span className={`mr-dot ${done[x.item_id] ? "mr-dot-done" : ""}`}>
+                        {done[x.item_id] ? "✓" : ""}
+                      </span>
+                      <span className="mr-sidenum">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="mr-sidecat">{x.category}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mr-sidefoot">
+                  <span className="mr-mutedline">{rosterEmail || name}</span>
+                  {!rosterEmail && (
+                    <a href="#" onClick={(e) => { e.preventDefault(); switchReviewer(); }}>switch</a>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="mr-railcount">{nDone}/{items.length}</div>
+            )}
           </aside>
 
           <main className="mr-main">
@@ -375,11 +396,16 @@ const css = `
 .mr-primary { background: var(--accent); border-color: var(--accent); color:#fff; font-weight:600; }
 .mr-primary:hover { background: var(--accent-strong); }
 .mr-cols { display:grid; grid-template-columns:210px minmax(0,1fr); gap:18px; align-items:start; }
-@media (max-width: 980px) { .mr-cols { grid-template-columns:1fr; } .mr-side { display:none; } }
+.mr-cols.mr-collapsed { grid-template-columns:46px minmax(0,1fr); gap:12px; }
+@media (max-width: 980px) { .mr-cols, .mr-cols.mr-collapsed { grid-template-columns:1fr; } .mr-side { display:none; } }
 .mr-side { position:sticky; top:14px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); display:flex; flex-direction:column; max-height:calc(100vh - 40px); }
-.mr-sidehead { padding:10px 14px; border-bottom:1px solid var(--line); font-family:var(--font-mono); font-size:12px; color:var(--muted); }
+.mr-sidehead { padding:8px 8px 8px 14px; border-bottom:1px solid var(--line); font-family:var(--font-mono); font-size:12px; color:var(--muted); display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.mr-collapsed .mr-sidehead { padding:8px 4px; justify-content:center; border-bottom:none; }
+.mr-sidetoggle { border:none; background:none; min-height:0; padding:2px 6px; color:var(--muted); font-size:14px; line-height:1; cursor:pointer; border-radius:5px; }
+.mr-sidetoggle:hover { background:var(--soft); color:var(--ink); }
+.mr-railcount { writing-mode:vertical-rl; text-align:center; padding:8px 0 12px; font-family:var(--font-mono); font-size:11.5px; color:var(--muted); }
 .mr-sidelist { overflow-y:auto; padding:6px; }
-.mr-siderow { display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:none; background:none; padding:6px 8px; border-radius:6px; cursor:pointer; min-height:0; }
+.mr-siderow { display:flex; align-items:center; justify-content:flex-start; gap:8px; width:100%; text-align:left; border:none; background:none; padding:6px 8px; border-radius:6px; cursor:pointer; min-height:0; }
 .mr-siderow:hover { background:var(--soft); }
 .mr-current { background:var(--soft); outline:1px solid var(--line); }
 .mr-dot { width:16px; height:16px; flex:none; border-radius:9px; border:1px solid var(--line); font-size:10px; line-height:14px; text-align:center; color:#fff; background:transparent; }
