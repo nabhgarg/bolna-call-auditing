@@ -69,21 +69,37 @@ function mdToHtml(src: string): string {
   return out.join("\n");
 }
 
-// Prompts reference source documents as "[ASSET:TEXT1 in assets.md]". Render
-// those as links to /merlin/source/<NAME> — a reviewer judging a summary has to
-// be able to read the original. Opens in a new tab so their place is kept.
+// A reviewer judging whether a summary is faithful has to be able to see what
+// was summarised. Two kinds of source appear in prompts:
+//   [ASSET:TEXT1 in assets.md] -> our own copy at /merlin/source/<NAME>
+//   https://…                  -> the page/video itself
+// Both open in a new tab so the reviewer keeps their place and their draft.
 function promptWithSources(prompt: string) {
   const parts: React.ReactNode[] = [];
-  const re = /\[ASSET:(\w+)[^\]]*\]/g;
+  const re = /\[ASSET:(\w+)[^\]]*\]|https?:\/\/[^\s)]+/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(prompt))) {
     if (m.index > last) parts.push(prompt.slice(last, m.index));
-    parts.push(
-      <a key={m.index} href={`/merlin/source/${m[1]}`} target="_blank" rel="noreferrer" className="mr-srclink">
-        open the source document ({m[1]}) ↗
-      </a>
-    );
+    if (m[1]) {
+      parts.push(
+        <a key={m.index} href={`/merlin/source/${m[1]}`} target="_blank" rel="noreferrer" className="mr-srclink">
+          open the source document ({m[1]}) ↗
+        </a>
+      );
+    } else {
+      // Trailing punctuation belongs to the sentence, not the URL.
+      const url = m[0].replace(/[.,;:]+$/, "");
+      const label = url.includes("youtube.com") || url.includes("youtu.be")
+        ? "open the video"
+        : "open the page";
+      parts.push(
+        <a key={m.index} href={url} target="_blank" rel="noreferrer" className="mr-srclink">
+          {label} ↗
+        </a>
+      );
+      parts.push(m[0].slice(url.length));
+    }
     last = m.index + m[0].length;
   }
   parts.push(prompt.slice(last));
