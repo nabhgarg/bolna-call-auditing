@@ -334,5 +334,12 @@
   "B_arm": "DIRECT",
   "pair_type": "WRAPPER",
   "magic_model": "Gemini 3.1 Pro"
+ },
+ "w_S52": {
+  "prompt_id": "S52",
+  "A_arm": "DIRECT",
+  "B_arm": "MERLIN",
+  "pair_type": "WRAPPER",
+  "magic_model": "Gemini 3.1 Pro"
  }
 }
