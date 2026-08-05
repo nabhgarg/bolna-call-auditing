@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ThemeToggle from "../../lib/ThemeToggle";
 
 // Public blind-review panel for the Merlin router audit.
 // Identity: the review.realloop.in login when present (auditReviewerEmail in
@@ -205,11 +206,14 @@ export default function MerlinReview() {
           <span className="mr-brand">realloop</span>
           <span className="mr-sub">· Merlin audit — blind review</span>
         </div>
-        {started && (
-          <span className="mr-progress">
-            {nDone} / {items.length} submitted{name ? ` · ${name}` : ""}
-          </span>
-        )}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+          {started && (
+            <span className="mr-progress">
+              {nDone} / {items.length} submitted{name ? ` · ${name}` : ""}
+            </span>
+          )}
+          <ThemeToggle compact />
+        </span>
       </header>
 
       {loadingResume && <main className="mr-intro"><p className="mr-mutedline">Loading…</p></main>}
@@ -390,10 +394,10 @@ const css = `
 .mr-progress { font-family: var(--font-mono); font-size:13px; color: var(--muted); }
 .mr-intro { max-width:640px; margin:40px auto; }
 .mr-intro h1 { font-family: var(--font-display); font-size:28px; margin:0 0 14px; }
-.mr-intro p, .mr-intro li { color:#2c3944; line-height:1.6; }
+.mr-intro p, .mr-intro li { color:var(--ink-2); line-height:1.6; }
 .mr-startrow { display:flex; gap:10px; margin-top:22px; margin-bottom:10px; }
 .mr-startrow input { flex:1; border:1px solid var(--line); border-radius:6px; padding:10px 12px; background:var(--panel); }
-.mr-primary { background: var(--accent); border-color: var(--accent); color:#fff; font-weight:600; }
+.mr-primary { background: var(--accent); border-color: var(--accent); color:var(--on-accent); font-weight:600; }
 .mr-primary:hover { background: var(--accent-strong); }
 .mr-cols { display:grid; grid-template-columns:210px minmax(0,1fr); gap:18px; align-items:start; }
 .mr-cols.mr-collapsed { grid-template-columns:46px minmax(0,1fr); gap:12px; }
@@ -408,13 +412,13 @@ const css = `
 .mr-siderow { display:flex; align-items:center; justify-content:flex-start; gap:8px; width:100%; text-align:left; border:none; background:none; padding:6px 8px; border-radius:6px; cursor:pointer; min-height:0; }
 .mr-siderow:hover { background:var(--soft); }
 .mr-current { background:var(--soft); outline:1px solid var(--line); }
-.mr-dot { width:16px; height:16px; flex:none; border-radius:9px; border:1px solid var(--line); font-size:10px; line-height:14px; text-align:center; color:#fff; background:transparent; }
+.mr-dot { width:16px; height:16px; flex:none; border-radius:9px; border:1px solid var(--line); font-size:10px; line-height:14px; text-align:center; color:var(--on-accent); background:transparent; }
 .mr-dot-done { background:var(--accent); border-color:var(--accent); }
 .mr-sidenum { font-family:var(--font-mono); font-size:11.5px; color:var(--muted); }
 .mr-sidecat { font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mr-sidefoot { padding:9px 14px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:space-between; align-items:center; font-size:12px; }
-.mr-banner { background:#eef6f1; border:1px solid #cfe6da; color:var(--accent-strong); border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:13.5px; }
-.mr-banner-soft { background:#fdf7ea; border-color:#eadfc0; color:var(--warn); }
+.mr-banner { background:var(--submitted); border:1px solid var(--tx-preview-line); color:var(--accent-strong); border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:13.5px; }
+.mr-banner-soft { background:var(--wash-cream); border-color:var(--wash-warn-line); color:var(--warn); }
 .mr-prompt { background: var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; box-shadow: var(--shadow); margin-bottom:14px; }
 .mr-cat { font-family: var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:1px; color: var(--accent-strong); }
 .mr-prompttext { white-space:pre-wrap; margin-top:6px; max-height:200px; overflow-y:auto; }
@@ -434,10 +438,10 @@ const css = `
 .mr-opts { display:flex; flex-wrap:wrap; gap:8px; }
 .mr-opts button { border-radius:20px; padding:6px 14px; font-size:13.5px; }
 .mr-opts.mr-tags button { border-radius:6px; font-family: var(--font-mono); font-size:12.5px; }
-.mr-on { background: var(--accent) !important; border-color: var(--accent) !important; color:#fff !important; }
-.mr-on-warn { background: var(--warn) !important; border-color: var(--warn) !important; color:#fff !important; }
+.mr-on { background: var(--accent) !important; border-color: var(--accent) !important; color:var(--on-accent) !important; }
+.mr-on-warn { background: var(--warn) !important; border-color: var(--warn) !important; color:var(--on-accent) !important; }
 .mr-q textarea { width:100%; min-height:48px; border:1px solid var(--line); border-radius:6px; padding:9px 11px; background:var(--panel); }
 .mr-navrow { display:flex; align-items:center; gap:14px; }
 .mr-mutedline { color: var(--muted); font-size:13px; }
-.mr-err { color:#b03030; font-size:13.5px; }
+.mr-err { color:var(--red-bar); font-size:13.5px; }
 `;

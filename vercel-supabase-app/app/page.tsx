@@ -1,5 +1,6 @@
 "use client";
 
+import ThemeToggle from "../lib/ThemeToggle";
 import React, { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { readRole, writeRole, clearRole } from "../lib/role";
 
@@ -268,21 +269,21 @@ export default function Page() {
     const { peaks, duration } = waveform;
     const W = canvas.width, H = canvas.height, mid = H / 2;
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "#e6ebe9";
+    ctx.fillStyle = "var(--tx-centerline)";
     ctx.fillRect(0, mid - 0.5, W, 1);
     const bars = peaks[0].length;
     const bw = W / bars;
     for (let i = 0; i < bars; i++) {
       const up = (peaks[0][i] || 0) * (mid - 2);
       const down = (peaks[1]?.[i] || 0) * (mid - 2);
-      ctx.fillStyle = "#1f7a5c";
+      ctx.fillStyle = "var(--tx-green)";
       ctx.fillRect(i * bw, mid - up, Math.max(bw - 0.5, 0.5), up);
-      ctx.fillStyle = "#5b8def";
+      ctx.fillStyle = "var(--tx-blue)";
       ctx.fillRect(i * bw, mid, Math.max(bw - 0.5, 0.5), down);
     }
     if (duration > 0) {
       const x = (playheadSec / duration) * W;
-      ctx.fillStyle = "#d64545";
+      ctx.fillStyle = "var(--tx-red)";
       ctx.fillRect(x - 1, 0, 2, H);
     }
   }, [waveform, playheadSec]);
@@ -1170,6 +1171,7 @@ export default function Page() {
               <p>{reviewerEmail ? `${reviewerDisplay} · ${modeLabel(auditMode)}` : "Internal review cockpit"}</p>
             </div>
             <div className="brand-actions">
+              <ThemeToggle compact />
               <button className="ghost" onClick={logout}>Switch</button>
             </div>
           </div>
@@ -1179,12 +1181,12 @@ export default function Page() {
               href="/transcribe"
               style={{
                 display: "block", margin: "0 0 10px", padding: "9px 11px", borderRadius: 8,
-                background: "#e7f4ee", border: "1px solid #cde8db", color: "#0e8a5f",
+                background: "var(--submitted)", border: "1px solid var(--tx-preview-line)", color: "var(--accent)",
                 textDecoration: "none", fontSize: 12.5, fontWeight: 600, lineHeight: 1.35
               }}
             >
               {txPending} transcription {txPending === 1 ? "call" : "calls"} waiting
-              <span style={{ display: "block", fontWeight: 400, color: "#4d5a66" }}>
+              <span style={{ display: "block", fontWeight: 400, color: "var(--tx-slate2)" }}>
                 Open the transcription tool →
               </span>
             </a>
@@ -1246,7 +1248,7 @@ export default function Page() {
               <button key={rowKey(call)} className={`call-card ${call.reviewed ? "reviewed submitted" : ""} ${currentQueueId === rowKey(call) ? "active" : ""}`} onClick={() => selectCall(call.execution_id, rowKey(call))}>
                 <span className="call-id">
                   ID {shortCallId(call.execution_id)}
-                  {isPriority(call) && <span style={{ marginLeft: 6, color: "#b7791f", fontWeight: 700 }}>★ priority</span>}
+                  {isPriority(call) && <span style={{ marginLeft: 6, color: "var(--tx-amber)", fontWeight: 700 }}>★ priority</span>}
                 </span>
                 <strong>{call.agent_name || "Unknown agent"}</strong>
                 <span>{call.org_name || ""} · {formatTime(Number(call.duration_sec || 0))} · {call.language || ""}</span>
@@ -1285,7 +1287,7 @@ export default function Page() {
                 className="waveform"
                 width={1400}
                 height={96}
-                style={{ width: "100%", height: 48, cursor: "pointer", display: "block", borderRadius: 8, background: "#f2f5f4" }}
+                style={{ width: "100%", height: 48, cursor: "pointer", display: "block", borderRadius: 8, background: "var(--chip)" }}
                 onClick={(event) => {
                   if (!audioRef.current || !waveform) return;
                   const rect = (event.target as HTMLCanvasElement).getBoundingClientRect();
@@ -1506,8 +1508,8 @@ export default function Page() {
                             padding: "12px 4px",
                             borderRadius: 10,
                             border: vibeScore === value ? "2px solid var(--accent)" : "1px solid var(--line)",
-                            background: vibeScore === value ? "var(--accent)" : "#fff",
-                            color: vibeScore === value ? "#fff" : "#2b3a35",
+                            background: vibeScore === value ? "var(--accent)" : "var(--panel)",
+                            color: vibeScore === value ? "var(--panel)" : "var(--deep-green-ink)",
                             cursor: "pointer",
                             textAlign: "center"
                           }}
@@ -1572,9 +1574,9 @@ export default function Page() {
                 </section>
               )}
 
-              <section className="rating-card" style={{ borderColor: flagCall === true ? "#b7791f" : undefined, background: flagCall === true ? "#fffaf0" : undefined }}>
+              <section className="rating-card" style={{ borderColor: flagCall === true ? "var(--tx-amber)" : undefined, background: flagCall === true ? "var(--wash-cream)" : undefined }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                  <strong style={{ fontSize: 13 }}>Flag this call for further discussion? <span style={{ color: "#647084", fontWeight: 500 }}>(optional)</span></strong>
+                  <strong style={{ fontSize: 13 }}>Flag this call for further discussion? <span style={{ color: "var(--tx-slate)", fontWeight: 500 }}>(optional)</span></strong>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
                       type="button"
@@ -1585,7 +1587,7 @@ export default function Page() {
                     <button
                       type="button"
                       className=""
-                      style={flagCall === true ? { minWidth: 64, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { minWidth: 64 }}
+                      style={flagCall === true ? { minWidth: 64, background: "var(--tx-amber)", borderColor: "var(--tx-amber)", color: "var(--on-accent)" } : { minWidth: 64 }}
                       onClick={() => setFlagCall(flagCall === true ? null : true)}
                     >Yes</button>
                   </div>
@@ -1643,11 +1645,11 @@ export default function Page() {
                     const editorOpenHere = insertAt === pos;
 
                     const editorBox = (key: string) => (
-                      <div key={key} style={{ border: "1px dashed #1f7a5c", borderRadius: 8, padding: 10, margin: "6px 0", background: "#f2faf7" }}>
+                      <div key={key} style={{ border: "1px dashed var(--tx-green)", borderRadius: 8, padding: 10, margin: "6px 0", background: "var(--tx-preview-bg)" }}>
                         <div style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center", flexWrap: "wrap" }}>
                           <strong style={{ fontSize: 12 }}>Missing user speech</strong>
                           <span style={{ display: "inline-flex", gap: 6, alignItems: "center", marginLeft: "auto" }}>
-                            <label style={{ fontSize: 12, color: "#2b3a35" }}>at</label>
+                            <label style={{ fontSize: 12, color: "var(--deep-green-ink)" }}>at</label>
                             <input
                               value={insertTime}
                               onChange={(e) => setInsertTime(e.target.value)}
@@ -1665,11 +1667,11 @@ export default function Page() {
                         </div>
                         <textarea autoFocus value={insertText} onChange={(e) => setInsertText(e.target.value)} rows={2} placeholder={insertUnclear === "Yes" ? "Optional · leave blank if you can't make it out" : "What was said in the audio but missing from the transcript"} style={{ width: "100%" }} />
                         <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
-                          <div style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div style={{ fontSize: 12, color: "var(--tx-sec)", display: "flex", flexDirection: "column", gap: 4 }}>
                             Was the audio clear?
                             <div style={{ display: "flex", gap: 6 }}>
                               <button type="button" className={insertUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 13, minWidth: 52 }} onClick={() => setInsertUnclear("No")}>Yes</button>
-                              <button type="button" className="ghost" style={insertUnclear === "Yes" ? { fontSize: 13, minWidth: 52, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 13, minWidth: 52 }} onClick={() => setInsertUnclear("Yes")}>No</button>
+                              <button type="button" className="ghost" style={insertUnclear === "Yes" ? { fontSize: 13, minWidth: 52, background: "var(--tx-amber)", borderColor: "var(--tx-amber)", color: "var(--on-accent)" } : { fontSize: 13, minWidth: 52 }} onClick={() => setInsertUnclear("Yes")}>No</button>
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
@@ -1687,7 +1689,7 @@ export default function Page() {
                           className="add-missing-btn"
                           onClick={() => openInsertEditor(pos, slot, null)}
                           title="Pause at the missing speech, then add what was said"
-                          style={{ border: "none", background: "transparent", color: "#9ab0a8", cursor: "pointer", fontSize: 12, padding: "0 6px", lineHeight: "16px" }}
+                          style={{ border: "none", background: "transparent", color: "var(--tx-dis)", cursor: "pointer", fontSize: 12, padding: "0 6px", lineHeight: "16px" }}
                         >＋ add missing speech</button>
                       </div>
                     );
@@ -1705,7 +1707,7 @@ export default function Page() {
                         parts.push(editorBox(`ins-${pos}-editor`));
                       } else {
                         parts.push(
-                          <div key={`ins-${pos}-${slot}`} style={{ border: "1px dashed #b7791f", borderRadius: 8, padding: 8, margin: "6px 0", background: "#fffaf0", fontSize: 13 }}>
+                          <div key={`ins-${pos}-${slot}`} style={{ border: "1px dashed var(--tx-amber)", borderRadius: 8, padding: 8, margin: "6px 0", background: "var(--wash-cream)", fontSize: 13 }}>
                             <strong>＋ missing (added by you){insert.timestamp ? ` @ ${insert.timestamp}` : ""}{insert.audio_unclear === "Yes" ? " · audio unclear" : ""}:</strong> {insert.audio_said.replace(/^user:\s*/, "").trim() || "(audio unclear · not transcribed)"}
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => openInsertEditor(pos, slot, insert)}>Edit</button>
                             <button type="button" className="ghost" style={{ marginLeft: 8, fontSize: 12 }} onClick={() => removeInsert(insert)}>Remove</button>
@@ -1730,7 +1732,7 @@ export default function Page() {
 
                     if (editingTurn === index) {
                       nodes.push(
-                        <div className={`turn ${turn.role}`} key={`e-${index}`} style={{ border: "1px solid #1f7a5c", background: "#f2faf7" }}>
+                        <div className={`turn ${turn.role}`} key={`e-${index}`} style={{ border: "1px solid var(--tx-green)", background: "var(--tx-preview-bg)" }}>
                           <div className="turn-role">
                             <span>{index + 1}. {turn.role} · correcting</span>
                             <span className="turn-time">{exact !== undefined ? formatTime(exact) : `~${formatTime(estimate)}`}</span>
@@ -1740,17 +1742,17 @@ export default function Page() {
                             <textarea autoFocus value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} style={{ width: "100%" }} placeholder={editUnclear === "Yes" ? "Optional · leave blank if you can't make it out" : "Corrected transcript for this turn"} />
                             <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
                               <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
-                                <label style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: 12, color: "var(--tx-sec)", display: "flex", flexDirection: "column", gap: 4 }}>
                                   Transcription error
                                   <select value={editErrorType} onChange={(e) => setEditErrorType(e.target.value)} style={{ fontSize: 13, padding: "6px 8px", width: "100%", maxWidth: 340 }}>
                                     {CORRECTION_ERROR_TYPES.map((o) => <option key={o} value={o}>{o}</option>)}
                                   </select>
                                 </label>
-                                <div style={{ fontSize: 12, color: "#5b6b64", display: "flex", flexDirection: "column", gap: 4 }}>
+                                <div style={{ fontSize: 12, color: "var(--tx-sec)", display: "flex", flexDirection: "column", gap: 4 }}>
                                   Was the audio clear?
                                   <div style={{ display: "flex", gap: 6 }}>
                                     <button type="button" className={editUnclear === "No" ? "primary" : "ghost"} style={{ fontSize: 13, minWidth: 52 }} onClick={() => setEditUnclear("No")}>Yes</button>
-                                    <button type="button" className="ghost" style={editUnclear === "Yes" ? { fontSize: 13, minWidth: 52, background: "#b7791f", borderColor: "#b7791f", color: "#fff" } : { fontSize: 13, minWidth: 52 }} onClick={() => setEditUnclear("Yes")}>No</button>
+                                    <button type="button" className="ghost" style={editUnclear === "Yes" ? { fontSize: 13, minWidth: 52, background: "var(--tx-amber)", borderColor: "var(--tx-amber)", color: "var(--on-accent)" } : { fontSize: 13, minWidth: 52 }} onClick={() => setEditUnclear("Yes")}>No</button>
                                   </div>
                                 </div>
                               </div>
@@ -1769,8 +1771,8 @@ export default function Page() {
                           className={`turn ${turn.role}`}
                           key={`${turn.role}-${index}`}
                           style={deleted
-                            ? { background: "#fff5f5", borderLeft: "3px solid #c53030", opacity: 0.75 }
-                            : edit ? { background: "#fffaf0", borderLeft: "3px solid #b7791f" } : undefined}
+                            ? { background: "var(--wash-red-bg)", borderLeft: "3px solid var(--red-strong)", opacity: 0.75 }
+                            : edit ? { background: "var(--wash-cream)", borderLeft: "3px solid var(--tx-amber)" } : undefined}
                           onClick={() => { if (audioRef.current) audioRef.current.currentTime = jumpTime; }}
                         >
                           <div className="turn-role">
@@ -1799,16 +1801,16 @@ export default function Page() {
                           </div>
                           {deleted && edit ? (
                             <div>
-                              <div style={{ textDecoration: "line-through", color: "#c53030" }}>{turn.text}</div>
+                              <div style={{ textDecoration: "line-through", color: "var(--red-strong)" }}>{turn.text}</div>
                               <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
-                                <span style={{ fontSize: 12, fontStyle: "italic", color: "#c53030" }}>Deleted · wrongly captured</span>
+                                <span style={{ fontSize: 12, fontStyle: "italic", color: "var(--red-strong)" }}>Deleted · wrongly captured</span>
                                 <button type="button" className="ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); removeIssue(edit); }}>Undo delete</button>
                               </div>
                             </div>
                           ) : edit ? (
                             <div>
-                              <div style={{ textDecoration: "line-through", color: "#b0784a" }}>{turn.text}</div>
-                              <div>{edit.audio_said}{edit.audio_unclear === "Yes" ? <span style={{ color: "#b7791f", fontSize: 12 }}> · audio unclear</span> : null}</div>
+                              <div style={{ textDecoration: "line-through", color: "var(--tx-orange)" }}>{turn.text}</div>
+                              <div>{edit.audio_said}{edit.audio_unclear === "Yes" ? <span style={{ color: "var(--tx-amber)", fontSize: 12 }}> · audio unclear</span> : null}</div>
                               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                                 <button type="button" className="ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); startEditTurn(index); }}>Edit correction</button>
                                 <button type="button" className="ghost" style={{ fontSize: 12 }} onClick={(e) => { e.stopPropagation(); removeIssue(edit); }}>Undo correction</button>

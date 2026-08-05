@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Space_Grotesk, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import { INK, MUT, GREEN, RED } from "../../lib/ui";
 import { isExpert } from "../../lib/role";
+import ThemeToggle from "../../lib/ThemeToggle";
 import type { OpsPayload, OpsClientDetail, OpsReviewer } from "../../lib/ops-shape";
 import { bodyFor, subjectFor } from "../../lib/weekly-report";
 
@@ -17,21 +18,21 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600"
 const instrument = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
 
-const AMBER = "#b07a15";
-const AMBER_BAR = "#e0a52a";
-const RED_BAR = "#c0393f";
-const SLATE = "#c9d4de";
-const LINE = "#eef2f6";
-const BORDER = "#e2e8ee";
-const FAINT = "#96a1ad";
+const AMBER = "var(--warn)";
+const AMBER_BAR = "var(--warn-bar)";
+const RED_BAR = "var(--red-bar)";
+const SLATE = "var(--slate)";
+const LINE = "var(--hairline)";
+const BORDER = "var(--line)";
+const FAINT = "var(--faint)";
 
 const card: React.CSSProperties = {
-  background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12,
-  boxShadow: "0 1px 2px rgba(16,24,31,.04)"
+  background: "var(--panel)", border: `1px solid ${BORDER}`, borderRadius: 12,
+  boxShadow: "var(--shadow)"
 };
 const head: React.CSSProperties = {
   fontSize: 10.5, fontWeight: 600, letterSpacing: ".06em",
-  textTransform: "uppercase", color: "#8b96a2"
+  textTransform: "uppercase", color: "var(--head)"
 };
 
 function Bars({ vals, h = 24, color }: { vals: number[]; h?: number; color?: (v: number, i: number, n: number) => string }) {
@@ -62,11 +63,11 @@ function Line({ series, lo, hi, threshold, height = 150 }: {
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: H, display: "block", overflow: "visible" }}>
       <line x1={0} x2={W} y1={y((lo + hi) / 2)} y2={y((lo + hi) / 2)} stroke={LINE} strokeWidth={1} />
       {threshold !== undefined && (
-        <line x1={0} x2={W} y1={y(threshold)} y2={y(threshold)} stroke="#d6484f" strokeWidth={1.5} strokeDasharray="5 4" />
+        <line x1={0} x2={W} y1={y(threshold)} y2={y(threshold)} stroke="var(--red)" strokeWidth={1.5} strokeDasharray="5 4" />
       )}
       <polyline points={d} fill="none" stroke={INK} strokeWidth={2} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       {pts.map((p, i) => (
-        <circle key={i} cx={i * step} cy={y(p.value)} r={2.5} fill={threshold !== undefined && p.value < threshold ? "#d6484f" : INK} />
+        <circle key={i} cx={i * step} cy={y(p.value)} r={2.5} fill={threshold !== undefined && p.value < threshold ? "var(--red)" : INK} />
       ))}
     </svg>
   );
@@ -264,10 +265,10 @@ export default function Ops() {
     r.state === "idle" ? RED_BAR : r.state === "behind" ? AMBER : GREEN;
 
   return (
-    <div className={instrument.className} style={{ background: "#f7f8fa", minHeight: "100vh", color: INK }}>
+    <div className={instrument.className} style={{ background: "var(--bg)", minHeight: "100vh", color: INK }}>
 
       {/* top bar */}
-      <div style={{ background: "#fff", borderBottom: `1px solid ${BORDER}`, padding: "14px 28px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+      <div style={{ background: "var(--panel)", borderBottom: `1px solid ${BORDER}`, padding: "14px 28px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600, cursor: "pointer" }} onClick={() => setLevel({ view: "home" })}>RealLoop ops</span>
         {level.view === "client" && detail && (
           <>
@@ -300,10 +301,11 @@ export default function Ops() {
           <span style={{ width: 6, height: 6, borderRadius: 3, background: GREEN }} />live · as of {asOf}
         </span>
         <span style={{ flex: 1 }} />
+        <ThemeToggle />
       </div>
 
       {level.view === "client" && detail && (
-        <div style={{ background: "#fff", borderBottom: `1px solid ${BORDER}`, padding: "0 28px", display: "flex", gap: 20 }}>
+        <div style={{ background: "var(--panel)", borderBottom: `1px solid ${BORDER}`, padding: "0 28px", display: "flex", gap: 20 }}>
           {["Vibe", "Issues", "Transcription", "Coverage", "Agents"].map((t) => (
             <span key={t} onClick={() => setLevel({ ...level, tab: t })}
               style={{
@@ -346,8 +348,8 @@ export default function Ops() {
                   <span style={{ fontSize: 12, color: MUT }}>Monday to Friday · {wk.panel.reviewers} reviewers · {wk.panel.total.toLocaleString()} calls</span>
                 </div>
                 <span style={{ display: "flex", gap: 4 }}>
-                  <button onClick={prevWeek} style={{ fontSize: 12, padding: "5px 10px", borderRadius: 6, border: `1px solid ${BORDER}`, background: "#fff", cursor: "pointer" }}>← earlier</button>
-                  <button onClick={nextWeek} style={{ fontSize: 12, padding: "5px 10px", borderRadius: 6, border: `1px solid ${BORDER}`, background: "#fff", cursor: "pointer" }}>later →</button>
+                  <button onClick={prevWeek} style={{ fontSize: 12, padding: "5px 10px", borderRadius: 6, border: `1px solid ${BORDER}`, background: "var(--panel)", cursor: "pointer" }}>← earlier</button>
+                  <button onClick={nextWeek} style={{ fontSize: 12, padding: "5px 10px", borderRadius: 6, border: `1px solid ${BORDER}`, background: "var(--panel)", cursor: "pointer" }}>later →</button>
                 </span>
                 <span style={{ flex: 1 }} />
                 <span className={mono.className} style={{ fontSize: 11.5, color: MUT }}>
@@ -361,17 +363,17 @@ export default function Ops() {
                   <span style={{ fontSize: 12, color: MUT }}>{chosen.length} selected · click a name to read the exact email</span>
                   <span style={{ flex: 1 }} />
                   <button onClick={() => send(true)} disabled={wkSending || !chosen.length}
-                    style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 13px", borderRadius: 8, border: `1px solid ${BORDER}`, background: "#fff", color: INK, cursor: chosen.length ? "pointer" : "not-allowed" }}>
+                    style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 13px", borderRadius: 8, border: `1px solid ${BORDER}`, background: "var(--panel)", color: INK, cursor: chosen.length ? "pointer" : "not-allowed" }}>
                     {wkSending ? "…" : "Dry run"}
                   </button>
                   <button onClick={() => { if (window.confirm(`Send the weekly email to ${chosen.length} reviewer${chosen.length === 1 ? "" : "s"}? This goes to their real inboxes.`)) send(false); }}
                     disabled={wkSending || !chosen.length}
-                    style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 15px", borderRadius: 8, border: "none", background: chosen.length ? GREEN : SLATE, color: "#fff", cursor: chosen.length ? "pointer" : "not-allowed" }}>
+                    style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 15px", borderRadius: 8, border: "none", background: chosen.length ? GREEN : SLATE, color: "var(--on-accent)", cursor: chosen.length ? "pointer" : "not-allowed" }}>
                     Send to {chosen.length}
                   </button>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "var(--panel-3)", borderBottom: `1px solid ${LINE}`, ...head }}>
                   <span style={{ width: 26, flex: "none" }} />
                   <span style={{ width: 150, flex: "none" }}>Reviewer</span>
                   <span style={{ width: 60, flex: "none", textAlign: "right" }}>Calls</span>
@@ -385,7 +387,7 @@ export default function Ops() {
                   const open = wkOpen === r.email;
                   const max = Math.max(1, ...r.byDay);
                   return (
-                    <div key={r.email} style={{ borderBottom: `1px solid #f2f5f8`, background: open ? "#fbfcfd" : "#fff" }}>
+                    <div key={r.email} style={{ borderBottom: `1px solid var(--chip)`, background: open ? "var(--panel-3)" : "var(--panel)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px" }}>
                         <input type="checkbox" checked={!!wkPick[r.email]} onChange={(e) => setWkPick({ ...wkPick, [r.email]: e.target.checked })}
                           style={{ width: 26, flex: "none" }} />
@@ -435,7 +437,7 @@ export default function Ops() {
                           <div style={{ padding: "0 18px 16px 56px", display: "flex", flexDirection: "column", gap: 7 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <span style={head}>The email {r.name.split(" ")[0]} receives · editable</span>
-                              {dirty && <span className={mono.className} style={{ fontSize: 10, color: AMBER, background: "#fdf4e3", border: "1px solid #f0e2c4", borderRadius: 999, padding: "1px 7px" }}>edited</span>}
+                              {dirty && <span className={mono.className} style={{ fontSize: 10, color: AMBER, background: "var(--wash-warn-bg)", border: "1px solid var(--wash-warn-line)", borderRadius: 999, padding: "1px 7px" }}>edited</span>}
                               <span style={{ flex: 1 }} />
                               {dirty && (
                                 <button onClick={() => { const n = { ...wkEdit }; delete n[key]; setWkEdit(n); }}
@@ -447,11 +449,11 @@ export default function Ops() {
                             <div className={mono.className} style={{ fontSize: 11, color: MUT }}>To: {r.email}</div>
                             <input value={sub} onChange={(e) => setEdit({ subject: e.target.value })}
                               className={mono.className}
-                              style={{ width: "100%", fontSize: 11.5, padding: "8px 10px", border: `1px solid ${dirty ? "#f0e2c4" : BORDER}`, borderRadius: 8, color: INK, fontFamily: "inherit" }} />
+                              style={{ width: "100%", fontSize: 11.5, padding: "8px 10px", border: `1px solid ${dirty ? "var(--wash-warn-line)" : BORDER}`, borderRadius: 8, color: INK, fontFamily: "inherit" }} />
                             <textarea value={bod} onChange={(e) => setEdit({ body: e.target.value })}
                               rows={18} spellCheck
                               className={mono.className}
-                              style={{ width: "100%", fontSize: 11.5, lineHeight: 1.65, padding: "12px 14px", border: `1px solid ${dirty ? "#f0e2c4" : BORDER}`, borderRadius: 8, color: INK, resize: "vertical", fontFamily: "inherit" }} />
+                              style={{ width: "100%", fontSize: 11.5, lineHeight: 1.65, padding: "12px 14px", border: `1px solid ${dirty ? "var(--wash-warn-line)" : BORDER}`, borderRadius: 8, color: INK, resize: "vertical", fontFamily: "inherit" }} />
                             <span style={{ fontSize: 11, color: FAINT }}>
                               Edits are kept until you reload, and are sent verbatim · the numbers are not recomputed at send time.
                             </span>
@@ -465,7 +467,7 @@ export default function Ops() {
               </div>
 
               {wkResult && (
-                <div style={{ ...card, padding: "14px 18px", borderColor: wkResult.error || wkResult.failed?.length ? "#f0cfd1" : BORDER, background: wkResult.error || wkResult.failed?.length ? "#fdf5f5" : "#fff" }}>
+                <div style={{ ...card, padding: "14px 18px", borderColor: wkResult.error || wkResult.failed?.length ? "var(--wash-red-line)" : BORDER, background: wkResult.error || wkResult.failed?.length ? "var(--wash-red-bg)" : "var(--panel)" }}>
                   {wkResult.error ? (
                     <span style={{ fontSize: 12.5, color: RED_BAR }}>{wkResult.error}</span>
                   ) : (
@@ -537,7 +539,7 @@ export default function Ops() {
           };
           const chip = (on: boolean): React.CSSProperties => ({
             fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 999, cursor: "pointer",
-            background: on ? INK : "#fff", color: on ? "#fff" : MUT, border: `1px solid ${on ? INK : BORDER}`
+            background: on ? INK : "var(--panel)", color: on ? "var(--on-accent)" : MUT, border: `1px solid ${on ? INK : BORDER}`
           });
 
           return (
@@ -567,7 +569,7 @@ export default function Ops() {
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span style={head}>Source batch</span>
                   <select value={asSheet} onChange={(e) => { setAsSheet(e.target.value); setAsPlan(null); }}
-                    style={{ fontSize: 12.5, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, color: INK, background: "#fff", maxWidth: 420 }}>
+                    style={{ fontSize: 12.5, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, color: INK, background: "var(--panel)", maxWidth: 420 }}>
                     {(asPool.sheets as any[] || []).map((sh) => (
                       <option key={sh.key} value={sh.key}>{sh.key} · {sh.count.toLocaleString()} assignable</option>
                     ))}
@@ -636,11 +638,11 @@ export default function Ops() {
                 </div>
                 {(asPool.reviewers as any[]).map((r) => (
                   <div key={r.email} onClick={() => { setAsPick({ ...asPick, [r.email]: !asPick[r.email] }); setAsPlan(null); }}
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 18px", borderTop: `1px solid ${LINE}`, cursor: "pointer", background: asPick[r.email] ? "#fff" : "#fbfcfd" }}>
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 18px", borderTop: `1px solid ${LINE}`, cursor: "pointer", background: asPick[r.email] ? "var(--panel)" : "var(--panel-3)" }}>
                     <span style={{
                       width: 15, height: 15, borderRadius: 4, flex: "none",
-                      border: `1.5px solid ${asPick[r.email] ? GREEN : SLATE}`, background: asPick[r.email] ? GREEN : "#fff",
-                      color: "#fff", fontSize: 10, lineHeight: "13px", textAlign: "center"
+                      border: `1.5px solid ${asPick[r.email] ? GREEN : SLATE}`, background: asPick[r.email] ? GREEN : "var(--panel)",
+                      color: "var(--on-accent)", fontSize: 10, lineHeight: "13px", textAlign: "center"
                     }}>{asPick[r.email] ? "✓" : ""}</span>
                     <span style={{ fontSize: 12.5, fontWeight: asPick[r.email] ? 600 : 400, color: asPick[r.email] ? INK : MUT, width: 190 }}>{r.name}</span>
                     <span className={mono.className} style={{ fontSize: 11, color: FAINT, flex: 1 }}>{r.email}</span>
@@ -662,27 +664,27 @@ export default function Ops() {
                   </div>
 
                   {/* add */}
-                  <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "12px 18px", borderBottom: `1px solid ${LINE}`, background: "#fbfcfd", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "12px 18px", borderBottom: `1px solid ${LINE}`, background: "var(--panel-3)", flexWrap: "wrap" }}>
                     <input placeholder="Full name" value={newP.name} onChange={(e) => setNewP({ ...newP, name: e.target.value })}
                       style={{ fontSize: 12.5, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, width: 180, color: INK }} />
                     <input placeholder="name@realloop.in" value={newP.email} onChange={(e) => setNewP({ ...newP, email: e.target.value })}
                       className={mono.className}
                       style={{ fontSize: 12, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, width: 240, color: INK, fontFamily: "inherit" }} />
                     <select value={newP.role} onChange={(e) => setNewP({ ...newP, role: e.target.value })}
-                      style={{ fontSize: 12.5, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, color: INK, background: "#fff" }}>
+                      style={{ fontSize: 12.5, padding: "7px 10px", border: `1px solid ${BORDER}`, borderRadius: 7, color: INK, background: "var(--panel)" }}>
                       <option value="reviewer">Reviewer</option>
                       <option value="expert">Expert · internal</option>
                       <option value="client">Client · portal only</option>
                       <option value="viewer">Viewer · no call audio</option>
                     </select>
                     <button onClick={addPerson} disabled={rosterBusy === "add" || !newP.email || !newP.name}
-                      style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 15px", borderRadius: 8, border: "none", cursor: newP.email && newP.name ? "pointer" : "not-allowed", background: newP.email && newP.name ? GREEN : "#eef1f4", color: newP.email && newP.name ? "#fff" : FAINT }}>
+                      style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 15px", borderRadius: 8, border: "none", cursor: newP.email && newP.name ? "pointer" : "not-allowed", background: newP.email && newP.name ? GREEN : "var(--chip)", color: newP.email && newP.name ? "var(--panel)" : FAINT }}>
                       {rosterBusy === "add" ? "Adding…" : "Add to panel"}
                     </button>
                   </div>
 
                   {rosterMsg && (
-                    <div style={{ padding: "10px 18px", borderBottom: `1px solid ${LINE}`, fontSize: 12, lineHeight: 1.6, color: rosterMsg.error ? RED_BAR : MUT, background: rosterMsg.error ? "#fdf5f5" : "#fff" }}>
+                    <div style={{ padding: "10px 18px", borderBottom: `1px solid ${LINE}`, fontSize: 12, lineHeight: 1.6, color: rosterMsg.error ? RED_BAR : MUT, background: rosterMsg.error ? "var(--wash-red-bg)" : "var(--panel)" }}>
                       {rosterMsg.error || rosterMsg.note || "Done."}
                     </div>
                   )}
@@ -693,7 +695,7 @@ export default function Ops() {
                     <div key={p.email} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 18px", borderTop: `1px solid ${LINE}`, opacity: p.active ? 1 : 0.62 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 500, width: 190, color: p.active ? INK : MUT }}>{p.name}</span>
                       <span className={mono.className} style={{ fontSize: 11, color: FAINT, flex: 1 }}>{p.email}</span>
-                      <span style={{ fontSize: 10.5, fontWeight: 600, color: MUT, background: "#f2f5f8", borderRadius: 999, padding: "2px 9px" }}>{p.role}</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: MUT, background: "var(--chip)", borderRadius: 999, padding: "2px 9px" }}>{p.role}</span>
                       <span className={mono.className} title="reviews they have already submitted · kept forever"
                         style={{ width: 110, textAlign: "right", fontSize: 11, color: p.reviews ? MUT : FAINT }}>
                         {p.reviews ? `${p.reviews.toLocaleString()} reviews` : "no reviews"}
@@ -705,20 +707,20 @@ export default function Ops() {
                         confirmOff === p.email ? (
                           <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                             <button onClick={() => setActive(p.email, false)} disabled={rosterBusy === p.email}
-                              style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 11px", borderRadius: 7, border: "none", background: RED_BAR, color: "#fff", cursor: "pointer" }}>
+                              style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 11px", borderRadius: 7, border: "none", background: RED_BAR, color: "var(--on-accent)", cursor: "pointer" }}>
                               {rosterBusy === p.email ? "Removing…" : p.open ? `Remove · free ${p.open}` : "Remove"}
                             </button>
                             <span onClick={() => setConfirmOff("")} style={{ fontSize: 11.5, color: MUT, cursor: "pointer" }}>cancel</span>
                           </span>
                         ) : (
                           <button onClick={() => setConfirmOff(p.email)}
-                            style={{ fontSize: 11.5, padding: "5px 11px", borderRadius: 7, border: `1px solid ${BORDER}`, background: "#fff", color: MUT, cursor: "pointer" }}>
+                            style={{ fontSize: 11.5, padding: "5px 11px", borderRadius: 7, border: `1px solid ${BORDER}`, background: "var(--panel)", color: MUT, cursor: "pointer" }}>
                             Remove
                           </button>
                         )
                       ) : (
                         <button onClick={() => setActive(p.email, true)} disabled={rosterBusy === p.email}
-                          style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 11px", borderRadius: 7, border: `1px solid ${BORDER}`, background: "#fff", color: GREEN, cursor: "pointer" }}>
+                          style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 11px", borderRadius: 7, border: `1px solid ${BORDER}`, background: "var(--panel)", color: GREEN, cursor: "pointer" }}>
                           {rosterBusy === p.email ? "…" : "Restore"}
                         </button>
                       )}
@@ -738,11 +740,11 @@ export default function Ops() {
                 {short && <span style={{ fontSize: 12, color: RED_BAR }}>Not enough free calls · lower the per-person count or pick fewer reviewers.</span>}
                 <span style={{ flex: 1 }} />
                 <button disabled={!ready || asBusy} onClick={() => plan(false)}
-                  style={{ fontSize: 12.5, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: ready && !asBusy ? "pointer" : "not-allowed", background: "#fff", color: ready ? INK : FAINT, border: `1px solid ${BORDER}` }}>
+                  style={{ fontSize: 12.5, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: ready && !asBusy ? "pointer" : "not-allowed", background: "var(--panel)", color: ready ? INK : FAINT, border: `1px solid ${BORDER}` }}>
                   {asBusy && !asPlan ? "Planning…" : "Preview plan"}
                 </button>
                 <button disabled={!asPlan || asBusy || !!asDone?.written} onClick={() => plan(true)}
-                  style={{ fontSize: 12.5, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: asPlan && !asBusy && !asDone?.written ? "pointer" : "not-allowed", background: asPlan && !asDone?.written ? GREEN : "#eef1f4", color: asPlan && !asDone?.written ? "#fff" : FAINT, border: "none" }}>
+                  style={{ fontSize: 12.5, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: asPlan && !asBusy && !asDone?.written ? "pointer" : "not-allowed", background: asPlan && !asDone?.written ? GREEN : "var(--chip)", color: asPlan && !asDone?.written ? "var(--panel)" : FAINT, border: "none" }}>
                   {asBusy && asPlan ? "Assigning…" : `Assign ${asPlan ? asPlan.willWrite.toLocaleString() : ""} calls`}
                 </button>
               </div>
@@ -756,7 +758,7 @@ export default function Ops() {
                     <span className={mono.className} style={{ fontSize: 11, color: FAINT }}>{asPlan.willWrite.toLocaleString()} queue rows</span>
                   </div>
                   {(asPlan.plan.warnings || []).map((w: string, i: number) => (
-                    <div key={i} style={{ padding: "10px 18px", borderBottom: `1px solid ${LINE}`, fontSize: 12, color: AMBER, background: "#fdf9f0" }}>{w}</div>
+                    <div key={i} style={{ padding: "10px 18px", borderBottom: `1px solid ${LINE}`, fontSize: 12, color: AMBER, background: "var(--wash-warn-bg)" }}>{w}</div>
                   ))}
                   <div style={{ display: "flex", gap: 12, padding: "8px 18px", borderBottom: `1px solid ${LINE}`, ...head }}>
                     <span style={{ flex: 1 }}>Reviewer</span>
@@ -783,7 +785,7 @@ export default function Ops() {
               )}
 
               {asDone && (
-                <div style={{ ...card, padding: "14px 18px", borderColor: asDone.error ? "#f0cfd1" : BORDER, background: asDone.error ? "#fdf5f5" : "#fff" }}>
+                <div style={{ ...card, padding: "14px 18px", borderColor: asDone.error ? "var(--wash-red-line)" : BORDER, background: asDone.error ? "var(--wash-red-bg)" : "var(--panel)" }}>
                   {asDone.error
                     ? <span style={{ fontSize: 12.5, color: RED_BAR }}>{asDone.error}</span>
                     : <span style={{ fontSize: 13, fontWeight: 600 }}>
@@ -807,7 +809,7 @@ export default function Ops() {
                     <span style={{ flex: 1 }} />
                     {c.alerts > 0 && (
                       <span className={mono.className} style={{
-                        fontSize: 10.5, background: c.alerts > 1 ? "#fdeceb" : "#fdf4e3",
+                        fontSize: 10.5, background: c.alerts > 1 ? "var(--wash-red-bg)" : "var(--wash-warn-bg)",
                         color: c.alerts > 1 ? RED_BAR : AMBER, padding: "2px 7px", borderRadius: 20
                       }}>{c.alerts} alert{c.alerts === 1 ? "" : "s"}</span>
                     )}
@@ -833,7 +835,7 @@ export default function Ops() {
               <div style={{ ...card, flex: "1 1 260px", minWidth: 0, padding: "15px 17px", display: "flex", flexDirection: "column", gap: 11 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span className={grotesk.className} style={{ fontSize: 16, fontWeight: 600 }}>Merlin audit</span>
-                  <span className={mono.className} style={{ fontSize: 10.5, background: "#eef6f1", color: GREEN, padding: "2px 7px", borderRadius: 20 }}>pilot</span>
+                  <span className={mono.className} style={{ fontSize: 10.5, background: "var(--submitted)", color: GREEN, padding: "2px 7px", borderRadius: 20 }}>pilot</span>
                   <span style={{ flex: 1 }} />
                   <a href="/merlin" target="_blank" style={{ fontSize: 12, fontWeight: 600, color: GREEN, textDecoration: "none" }}>open panel →</a>
                 </div>
@@ -887,15 +889,15 @@ export default function Ops() {
                         <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Assigned vs done</span>
                         <span style={{ fontSize: 12, color: MUT }}>per {period === "daily" ? "day · assigned when the batch landed, done when submitted" : "week · same counts, summed"}</span>
                         <span style={{ flex: 1 }} />
-                        <span style={{ display: "flex", background: "#f2f5f8", borderRadius: 7, padding: 3 }}>
+                        <span style={{ display: "flex", background: "var(--chip)", borderRadius: 7, padding: 3 }}>
                           {(["daily", "weekly"] as const).map((p) => (
                             <span key={p} onClick={() => setPeriod(p)}
-                              style={{ fontSize: 11.5, fontWeight: 600, background: period === p ? "#fff" : "transparent", color: period === p ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer", textTransform: "capitalize", boxShadow: period === p ? "0 1px 2px rgba(16,24,31,.06)" : "none" }}>{p}</span>
+                              style={{ fontSize: 11.5, fontWeight: 600, background: period === p ? "var(--panel)" : "transparent", color: period === p ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer", textTransform: "capitalize", boxShadow: period === p ? "var(--shadow)" : "none" }}>{p}</span>
                           ))}
                         </span>
                         <span className={mono.className} style={{ fontSize: 12 }}>{totD} done / {totA} assigned {bucketLabel}</span>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "var(--panel-3)", borderBottom: `1px solid ${LINE}`, ...head }}>
                         <span style={{ width: 130, flex: "none" }}>Reviewer</span>
                         <span style={{ flex: 1, minWidth: 0 }}>Work</span>
                         <span style={{ width: 74, flex: "none", textAlign: "right" }}>Assigned {period === "daily" ? "today" : "this wk"}</span>
@@ -908,11 +910,11 @@ export default function Ops() {
                         const b = cur(r);
                         const series = period === "daily" ? r.daily : r.weekly;
                         return (
-                          <div key={r.email} style={{ borderBottom: `1px solid #f2f5f8`, background: expanded === r.email ? "#fbfcfd" : "#fff" }}>
+                          <div key={r.email} style={{ borderBottom: `1px solid var(--chip)`, background: expanded === r.email ? "var(--panel-3)" : "var(--panel)" }}>
                             <div onClick={() => setExpanded(expanded === r.email ? null : r.email)}
                               style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 18px", cursor: "pointer" }}>
                               <span style={{ width: 130, flex: "none", fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-                              <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "#4b5762", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.useCase}</span>
+                              <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--tx-slate2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.useCase}</span>
                               <span className={mono.className} style={{ width: 74, flex: "none", textAlign: "right", fontSize: 12, color: MUT }}>{b.assigned}</span>
                               <span className={mono.className} style={{ width: 62, flex: "none", textAlign: "right", fontSize: 12, color: b.done === 0 && b.assigned > 0 ? AMBER : INK }}>{b.done}</span>
                               <span className={mono.className} style={{ width: 52, flex: "none", textAlign: "right", fontSize: 12, color: r.pendingTotal ? paceColor(r) : MUT }}>{r.pendingTotal}</span>
@@ -951,7 +953,7 @@ export default function Ops() {
                 <div style={{ padding: "14px 16px", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "center", gap: 8 }}>
                   <span className={grotesk.className} style={{ fontSize: 14.5, fontWeight: 600 }}>Alerts</span>
                   {d.alerts.length > 0 && (
-                    <span className={mono.className} style={{ fontSize: 10.5, background: "#fdeceb", color: RED_BAR, padding: "2px 7px", borderRadius: 20 }}>{d.alerts.length}</span>
+                    <span className={mono.className} style={{ fontSize: 10.5, background: "var(--wash-red-bg)", color: RED_BAR, padding: "2px 7px", borderRadius: 20 }}>{d.alerts.length}</span>
                   )}
                   <span style={{ flex: 1 }} />
                   <span className={mono.className} style={{ fontSize: 10.5, color: FAINT }}>{asOf}</span>
@@ -963,7 +965,7 @@ export default function Ops() {
                     <span style={{ fontSize: 12, color: MUT }}>Last checked {asOf} · six checks running, none tripped.</span>
                   </div>
                 ) : d.alerts.map((a, i) => (
-                  <div key={i} style={{ padding: "13px 16px", borderBottom: `1px solid #f2f5f8`, display: "flex", gap: 10 }}>
+                  <div key={i} style={{ padding: "13px 16px", borderBottom: `1px solid var(--chip)`, display: "flex", gap: 10 }}>
                     <span style={{ width: 7, height: 7, borderRadius: 4, flex: "none", marginTop: 5, background: a.sev === "red" ? RED_BAR : AMBER_BAR }} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: "block", fontSize: 12.5, lineHeight: 1.55 }}>{a.text}</span>
@@ -971,9 +973,9 @@ export default function Ops() {
                     </span>
                   </div>
                 ))}
-                <div style={{ borderTop: `1px solid #f2f5f8`, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ borderTop: `1px solid var(--chip)`, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
                   {d.checks.map((k) => (
-                    <div key={k.name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "#8b96a2" }}>
+                    <div key={k.name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--head)" }}>
                       <span style={{ width: 5, height: 5, borderRadius: 3, background: k.tripped ? AMBER_BAR : SLATE, flex: "none" }} />
                       <span style={{ flex: 1, minWidth: 0 }}>{k.name}</span>
                       <span className={mono.className} style={{ fontSize: 10.5 }}>{k.value}</span>
@@ -1003,10 +1005,10 @@ export default function Ops() {
                   <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Quality trend</span>
                   <span style={{ fontSize: 12, color: MUT }}>average vibe of reviews submitted that day · 1–4 scale</span>
                   <span style={{ flex: 1 }} />
-                  <span style={{ display: "flex", background: "#f2f5f8", borderRadius: 7, padding: 3 }}>
+                  <span style={{ display: "flex", background: "var(--chip)", borderRadius: 7, padding: 3 }}>
                     {[["Daily", false], ["Weekly", true]].map(([l, w]) => (
                       <span key={String(l)} onClick={() => setWeekly(w as boolean)}
-                        style={{ fontSize: 11.5, fontWeight: 600, background: weekly === w ? "#fff" : "transparent", color: weekly === w ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer" }}>{l}</span>
+                        style={{ fontSize: 11.5, fontWeight: 600, background: weekly === w ? "var(--panel)" : "transparent", color: weekly === w ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer" }}>{l}</span>
                     ))}
                   </span>
                 </div>
@@ -1020,7 +1022,7 @@ export default function Ops() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 11.5, color: MUT, flexWrap: "wrap" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 2, background: INK }} />avg vibe</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, borderTop: "2px dashed #d6484f" }} />2.9 needs-work threshold</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, borderTop: "2px dashed var(--red)" }} />2.9 needs-work threshold</span>
                 </div>
               </div>
 
@@ -1044,8 +1046,8 @@ export default function Ops() {
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                 {detail.agreement.map((a) => (
                   <div key={a.name} style={{
-                    flex: "1 1 220px", minWidth: 0, background: a.tone === "warn" ? "#fdfaf3" : "#fbfcfd",
-                    border: `1px solid ${a.tone === "warn" ? "#f0e2c4" : BORDER}`, borderRadius: 11, padding: "15px 17px",
+                    flex: "1 1 220px", minWidth: 0, background: a.tone === "warn" ? "var(--wash-warn-bg)" : "var(--panel-3)",
+                    border: `1px solid ${a.tone === "warn" ? "var(--wash-warn-line)" : BORDER}`, borderRadius: 11, padding: "15px 17px",
                     display: "flex", flexDirection: "column", gap: 7
                   }}>
                     <span className={mono.className} style={{ fontSize: 28, color: a.tone === "warn" ? AMBER : INK }}>{a.value}</span>
@@ -1069,7 +1071,7 @@ export default function Ops() {
                   </div>
                   {blk.rows.length === 0 && <div style={{ padding: 18, fontSize: 12, color: MUT }}>No shared calls yet.</div>}
                   {blk.rows.map((r) => (
-                    <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px", borderBottom: `1px solid #f2f5f8` }}>
+                    <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px", borderBottom: `1px solid var(--chip)` }}>
                       <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
                       <span style={{ width: 150, flex: "none", height: 6, borderRadius: 3, background: LINE, overflow: "hidden", display: "flex" }}>
                         <span style={{ width: `${r.pct ?? 0}%`, background: (r.pct ?? 0) >= 80 ? GREEN : (r.pct ?? 0) >= 60 ? AMBER_BAR : RED_BAR }} />
@@ -1098,7 +1100,7 @@ export default function Ops() {
                     ? `${first} ${rest[0][0]}` : first;
                 };
                 return (
-                  <div key={row.batch} style={{ display: "flex", alignItems: "center", gap: 14, padding: "11px 18px", borderBottom: `1px solid #f2f5f8`, flexWrap: "wrap" }}>
+                  <div key={row.batch} style={{ display: "flex", alignItems: "center", gap: 14, padding: "11px 18px", borderBottom: `1px solid var(--chip)`, flexWrap: "wrap" }}>
                     <span style={{ width: 150, flex: "none", display: "flex", flexDirection: "column", gap: 1 }}>
                       <span className={mono.className} style={{ fontSize: 12, fontWeight: 500 }}>{row.batch}</span>
                       <span className={mono.className} style={{ fontSize: 10, color: FAINT }}>assigned {row.assignedOn}</span>
@@ -1108,8 +1110,8 @@ export default function Ops() {
                       {row.per.map((p) => (
                         <span key={p.name} style={{
                           display: "flex", alignItems: "center", gap: 6, borderRadius: 7,
-                          border: `1px solid ${p.done >= p.assigned ? "#cfe6db" : "#f0e2c4"}`,
-                          background: p.done >= p.assigned ? "#f2faf6" : "#fdfaf3", padding: "3px 9px"
+                          border: `1px solid ${p.done >= p.assigned ? "var(--tx-preview-line)" : "var(--wash-warn-line)"}`,
+                          background: p.done >= p.assigned ? "var(--pick-bg)" : "var(--wash-warn-bg)", padding: "3px 9px"
                         }}>
                           <span style={{ fontSize: 11.5 }}>{chip(p)}</span>
                           <span className={mono.className} style={{ fontSize: 10.5, color: p.done >= p.assigned ? GREEN : AMBER }}>{p.done}/{p.assigned}</span>
@@ -1130,7 +1132,7 @@ export default function Ops() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(110px,1fr))", gap: 12 }}>
                 {detail.calib.map((p) => (
                   <div key={p.name} style={{
-                    border: `1px solid ${p.flag ? "#f0cfd1" : LINE}`, background: p.flag ? "#fdf5f5" : "#fbfcfd",
+                    border: `1px solid ${p.flag ? "var(--wash-red-line)" : LINE}`, background: p.flag ? "var(--wash-red-bg)" : "var(--panel-3)",
                     borderRadius: 9, padding: "9px 10px", display: "flex", flexDirection: "column", gap: 6
                   }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
@@ -1151,7 +1153,7 @@ export default function Ops() {
               <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Coverage</span>
               <span style={{ fontSize: 12, color: MUT }}>per unique call · a review from any past batch counts it done</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px", background: "var(--panel-3)", borderBottom: `1px solid ${LINE}`, ...head }}>
               <span style={{ flex: 1, minWidth: 0 }}>Calls</span>
               <span style={{ width: 80, flex: "none", textAlign: "right" }}>Total</span>
               <span style={{ width: 130, flex: "none", textAlign: "right" }}>Vibe scored</span>
@@ -1172,7 +1174,7 @@ export default function Ops() {
               };
               const [title, sub] = dl.name.split(" · ");
               return (
-                <div key={dl.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderBottom: `1px solid #f2f5f8` }}>
+                <div key={dl.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderBottom: `1px solid var(--chip)` }}>
                   <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
                     <span className={mono.className} style={{ fontSize: 12.5, fontWeight: 500 }}>{title}</span>
                     <span style={{ fontSize: 11, color: FAINT }}>{sub}</span>
@@ -1200,7 +1202,7 @@ export default function Ops() {
                 <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Low-rated funnel</span>
                 <span style={{ fontSize: 12, color: MUT }}>calls reviewed → rated 1–2 → issue logged, per day</span>
                 <span style={{ flex: 1 }} />
-                <a href="/api/ops/remarks" download style={{ fontSize: 12, fontWeight: 600, color: GREEN, border: `1px solid #cfe6db`, background: "#f2faf6", borderRadius: 7, padding: "6px 12px", textDecoration: "none" }}>
+                <a href="/api/ops/remarks" download style={{ fontSize: 12, fontWeight: 600, color: GREEN, border: `1px solid var(--tx-preview-line)`, background: "var(--pick-bg)", borderRadius: 7, padding: "6px 12px", textDecoration: "none" }}>
                   ↓ Written remarks (CSV)
                 </a>
               </div>
@@ -1242,10 +1244,10 @@ export default function Ops() {
                   <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issues captured</span>
                   <span style={{ fontSize: 12, color: MUT }}>findings logged · transcription excluded</span>
                   <span style={{ flex: 1 }} />
-                  <span style={{ display: "flex", background: "#f2f5f8", borderRadius: 7, padding: 3 }}>
+                  <span style={{ display: "flex", background: "var(--chip)", borderRadius: 7, padding: 3 }}>
                     {[["Daily", false], ["Weekly", true]].map(([l, w]) => (
                       <span key={String(l)} onClick={() => setWeekly(w as boolean)}
-                        style={{ fontSize: 11.5, fontWeight: 600, background: weekly === w ? "#fff" : "transparent", color: weekly === w ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer" }}>{l}</span>
+                        style={{ fontSize: 11.5, fontWeight: 600, background: weekly === w ? "var(--panel)" : "transparent", color: weekly === w ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer" }}>{l}</span>
                     ))}
                   </span>
                 </div>
@@ -1258,7 +1260,7 @@ export default function Ops() {
                         {series.map((s, i) => (
                           <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
                             <span className={mono.className} style={{ fontSize: 10, color: s.value ? MUT : FAINT }}>{s.value || ""}</span>
-                            <span style={{ width: "100%", borderRadius: "3px 3px 0 0", height: Math.max(s.value ? 3 : 1, Math.round(78 * (s.value / max))), background: s.value ? "#9dc4b3" : LINE }} />
+                            <span style={{ width: "100%", borderRadius: "3px 3px 0 0", height: Math.max(s.value ? 3 : 1, Math.round(78 * (s.value / max))), background: s.value ? "var(--tx-preview-line)" : LINE }} />
                             <span className={mono.className} style={{ fontSize: 9.5, color: FAINT }}>{s.label}</span>
                           </div>
                         ))}
@@ -1273,7 +1275,7 @@ export default function Ops() {
                   <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Issue mix by day</span>
                   <span style={{ fontSize: 12, color: MUT }}>findings per category · transcription excluded</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 18px", background: "#fbfcfd", borderBottom: `1px solid ${LINE}`, ...head }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 18px", background: "var(--panel-3)", borderBottom: `1px solid ${LINE}`, ...head }}>
                   <span style={{ width: 44, flex: "none" }}>Day</span>
                   {detail.issueMix.slice(0, 4).map((m) => (
                     <span key={m.name} style={{ flex: 1, minWidth: 0, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name.split(" ")[0]}</span>
@@ -1285,7 +1287,7 @@ export default function Ops() {
                   const rowTotal = detail.issueMix.reduce((s, m) => s + (m.bars[di] || 0), 0);
                   if (!rowTotal) return null;
                   return (
-                    <div key={d0.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 18px", borderBottom: `1px solid #f2f5f8` }}>
+                    <div key={d0.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 18px", borderBottom: `1px solid var(--chip)` }}>
                       <span className={mono.className} style={{ width: 44, flex: "none", fontSize: 11.5 }}>{d0.label}</span>
                       {detail.issueMix.slice(0, 4).map((m) => (
                         <span key={m.name} className={mono.className} style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 11.5, color: m.bars[di] ? INK : FAINT }}>{m.bars[di] || "·"}</span>
@@ -1294,7 +1296,7 @@ export default function Ops() {
                     </div>
                   );
                 })}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 18px", background: "#fbfcfd" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 18px", background: "var(--panel-3)" }}>
                   <span className={mono.className} style={{ width: 44, flex: "none", fontSize: 11, color: MUT }}>14d</span>
                   {detail.issueMix.slice(0, 4).map((m) => (
                     <span key={m.name} className={mono.className} style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 11.5, fontWeight: 500 }}>{m.total.toLocaleString()}</span>
@@ -1332,10 +1334,10 @@ export default function Ops() {
                   <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Panel reliability · against each other</span>
                   <span style={{ fontSize: 12, color: MUT }}>script-insensitive word agreement · same timestamp, same call</span>
                   <span style={{ flex: 1 }} />
-                  <span style={{ display: "flex", background: "#f2f5f8", borderRadius: 7, padding: 3 }}>
+                  <span style={{ display: "flex", background: "var(--chip)", borderRadius: 7, padding: 3 }}>
                     {(["daily", "weekly"] as const).map((p) => (
                       <span key={p} onClick={() => setTrPeriod(p)}
-                        style={{ fontSize: 11.5, fontWeight: 600, background: trPeriod === p ? "#fff" : "transparent", color: trPeriod === p ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer", textTransform: "capitalize", boxShadow: trPeriod === p ? "0 1px 2px rgba(16,24,31,.06)" : "none" }}>{p}</span>
+                        style={{ fontSize: 11.5, fontWeight: 600, background: trPeriod === p ? "var(--panel)" : "transparent", color: trPeriod === p ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer", textTransform: "capitalize", boxShadow: trPeriod === p ? "var(--shadow)" : "none" }}>{p}</span>
                     ))}
                   </span>
                 </div>
@@ -1359,7 +1361,7 @@ export default function Ops() {
                       {series.map((p) => (
                         <div key={p.label} title={p.segs ? `${p.segs} shared segments · ${p.calls} calls` : "no shared segments"} style={{
                           border: `1px solid ${p.value ? BORDER : LINE}`, borderRadius: 8,
-                          background: p.value ? "#fbfcfd" : "#fff",
+                          background: p.value ? "var(--panel-3)" : "var(--panel)",
                           padding: "8px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2
                         }}>
                           <span className={mono.className} style={{ fontSize: daily ? 16 : 14.5, color: p.value ? (p.value >= 75 ? INK : AMBER) : FAINT }}>{p.value ? `${p.value}%` : "·"}</span>
@@ -1404,10 +1406,10 @@ export default function Ops() {
                 <span className={grotesk.className} style={{ fontSize: 15, fontWeight: 600 }}>Reviewer reliability</span>
                 <span style={{ fontSize: 12, color: MUT }}>same word agreement, split per person · sorted weakest first</span>
                 <span style={{ flex: 1 }} />
-                <span style={{ display: "flex", background: "#f2f5f8", borderRadius: 7, padding: 3 }}>
+                <span style={{ display: "flex", background: "var(--chip)", borderRadius: 7, padding: 3 }}>
                   {([["day", "Daily"], ["week", "Weekly"], ["all", "All time"]] as const).map(([k, label]) => (
                     <span key={k} onClick={() => setTrRev(k)}
-                      style={{ fontSize: 11.5, fontWeight: 600, background: trRev === k ? "#fff" : "transparent", color: trRev === k ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer", boxShadow: trRev === k ? "0 1px 2px rgba(16,24,31,.06)" : "none" }}>{label}</span>
+                      style={{ fontSize: 11.5, fontWeight: 600, background: trRev === k ? "var(--panel)" : "transparent", color: trRev === k ? INK : MUT, borderRadius: 5, padding: "5px 10px", cursor: "pointer", boxShadow: trRev === k ? "var(--shadow)" : "none" }}>{label}</span>
                   ))}
                 </span>
               </div>
@@ -1448,7 +1450,7 @@ export default function Ops() {
                   One row per call in the format Abhijit&apos;s file used · call, word counts, ASR original and golden human transcript as timestamped lines, recording link. Expert transcription wins where one exists; otherwise the latest panel pass.
                 </div>
               </div>
-              <a href="/api/ops/golden" download style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", background: GREEN, borderRadius: 8, padding: "10px 16px", textDecoration: "none", flex: "none" }}>
+              <a href="/api/ops/golden" download style={{ fontSize: 12.5, fontWeight: 600, color: "var(--on-accent)", background: GREEN, borderRadius: 8, padding: "10px 16px", textDecoration: "none", flex: "none" }}>
                 ↓ Download golden dataset (CSV)
               </a>
             </div>
@@ -1462,7 +1464,7 @@ export default function Ops() {
               <span style={{ fontSize: 12, color: MUT }}>calls · average vibe · most common finding</span>
             </div>
             {detail.agents.map((g) => (
-              <div key={g.name} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 18px", borderBottom: `1px solid #f2f5f8` }}>
+              <div key={g.name} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 18px", borderBottom: `1px solid var(--chip)` }}>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
                 <span className={mono.className} style={{ width: 60, flex: "none", textAlign: "right", fontSize: 11.5, color: MUT }}>{g.calls}</span>
                 <span className={mono.className} style={{ width: 48, flex: "none", textAlign: "right", fontSize: 12, color: g.score !== null && g.score < 2.9 ? RED_BAR : INK }}>{g.score === null ? "—" : g.score.toFixed(2)}</span>

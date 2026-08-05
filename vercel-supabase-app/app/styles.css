@@ -10,6 +10,86 @@
   --warn: #b07a15;
   --soft: #eef2f6;
   --shadow: 0 1px 2px rgba(16, 24, 31, 0.04);
+  /* extended palette · one name per meaning, themed below. Inline style={{}}
+     accepts var(), which is what lets the React pages follow the theme. */
+  --on-accent: #ffffff;
+  --purple: #7c5cbf;
+  --red: #d6484f;
+  --blue: #5b8def;
+  --warn-bar: #e0a52a;
+  --red-bar: #c0393f;
+  --red-strong: #c53030;
+  --slate: #c9d4de;
+  --faint: #96a1ad;
+  --head: #8b96a2;
+  --panel-2: #f9fafb;
+  --panel-3: #fbfcfd;
+  --hairline: #eef2f6;
+  --ink-2: #344052;
+  --chip: #f2f5f8;
+  --line-strong: #a8b2c0;
+  --tint-green: #f7faf9;
+  --submitted: #e8f5ef;
+  --danger: #b42318;
+  --danger-bg: #fff7f5;
+  --pill: rgba(23, 32, 42, 0.08);
+  --overlay: rgba(246, 247, 249, 0.96);
+  --scrim: rgba(16, 24, 31, 0.35);
+  --glass: rgba(255, 255, 255, 0.76);
+  --shadow-pop: 0 18px 50px rgba(16, 24, 31, 0.18);
+  --shadow-bar: 0 2px 8px rgba(23, 32, 42, 0.06);
+  --wash-warn-bg: #fdf4e3;
+  --wash-warn-line: #f0e2c4;
+  --wash-warn-ink: #5b5330;
+  --wash-red-bg: #fdf5f5;
+  --wash-red-line: #f0cfd1;
+  --wash-cream: #fffaf0;
+  --pick-bg: #f2faf6;
+  --deep-green-ink: #2b3a35;
+  --wash-purple: #f1ecfa;
+
+  /* transcribe workbench (was inline in app/transcribe/page.tsx) */
+  --tx-green: #1f7a5c;
+  --tx-blue: #5b8def;
+  --tx-blue-strong: #3f6fd0;
+  --tx-orange: #c05621;
+  --tx-amber: #b7791f;
+  --tx-red: #d64545;
+  --tx-red-strong: #b03636;
+  --tx-red-deep: #9b2c2c;
+  --tx-slate: #4a5568;
+  --tx-slate2: #4d5a66;
+  --tx-ink: #1f2d28;
+  --tx-sec: #5b6b64;
+  --tx-ter: #8a988f;
+  --tx-dis: #a8b5ae;
+  --tx-border: #e2e8e5;
+  --tx-border2: #cfd9d4;
+  --tx-centerline: #e6ebe9;
+  --tx-playhead: #d64545;
+  --tx-spike-cur: rgba(183, 121, 31, 0.4);
+  --tx-spike-done: rgba(31, 122, 92, 0.25);
+  --tx-spike-pend: rgba(214, 69, 69, 0.18);
+  --tx-agent-dim: rgba(31, 122, 92, 0.22);
+  --tx-user-dim: rgba(91, 141, 239, 0.22);
+  --tx-agent-mutlab: #b6c4be;
+  --tx-user-mutlab: #bccbe8;
+  --tx-token-bg: #fdecc8;
+  --tx-token-pick: #f9dcae;
+  --tx-token-ink: #1f2d28;
+  --tx-preview-bg: #f2faf7;
+  --tx-preview-line: #cfe3da;
+  --tx-turnrow: #fdf3e3;
+  --tx-added-bg: #eef3fd;
+  --tx-added-line: #cfdcf7;
+  --tx-added-ink: #3f6fd0;
+  --tx-rules-bg: #fffbea;
+  --tx-rules-line: #f0e2b0;
+  --tx-rules-ink: #5b5330;
+  --tx-submit-dis-bg: #c8d6d0;
+  --tx-submit-dis-ink: #ffffff;
+  --tx-input-bg: #ffffff;
+  --tx-chosen-label: #ffffff;
   font-family: var(--font-body, "Instrument Sans"), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -47,7 +127,7 @@ button,
 
 button:hover,
 .export:hover {
-  border-color: #a8b2c0;
+  border-color: var(--line-strong);
 }
 
 button:disabled {
@@ -70,7 +150,7 @@ button:disabled:hover {
 }
 
 .ghost {
-  background: #f9fafb;
+  background: var(--panel-2);
 }
 
 .login-screen {
@@ -79,7 +159,7 @@ button:disabled:hover {
   z-index: 20;
   display: grid;
   place-items: center;
-  background: rgba(246, 247, 249, 0.96);
+  background: var(--overlay);
 }
 
 .login-card {
@@ -202,7 +282,7 @@ h3 {
 label {
   display: grid;
   gap: 6px;
-  color: #344052;
+  color: var(--ink-2);
   font-size: 13px;
   font-weight: 650;
 }
@@ -275,7 +355,7 @@ textarea {
 
 .queue-tabs span {
   border-radius: 999px;
-  background: rgba(23, 32, 42, 0.08);
+  background: var(--pill);
   padding: 1px 8px;
   font-size: 12px;
 }
@@ -330,7 +410,7 @@ h1, h2, .brand h1 {
 
 .call-card.submitted {
   border-color: var(--accent);
-  background: #e8f5ef;
+  background: var(--submitted);
   box-shadow: inset 4px 0 0 var(--accent);
 }
 
@@ -366,7 +446,7 @@ h1, h2, .brand h1 {
   position: sticky;
   top: 0;
   z-index: 30;
-  box-shadow: 0 2px 8px rgba(23, 32, 42, 0.06);
+  box-shadow: var(--shadow-bar);
 }
 
 .call-heading {
@@ -466,13 +546,13 @@ audio {
   grid-template-columns: 92px minmax(0, 1fr);
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid #edf0f4;
+  border-bottom: 1px solid var(--hairline);
   line-height: 1.55;
   cursor: pointer;
 }
 
 .turn:hover {
-  background: #f7faf9;
+  background: var(--tint-green);
 }
 
 .turn-role {
@@ -517,7 +597,7 @@ audio {
   border: 1px solid var(--line);
   border-left: 4px solid var(--accent);
   border-radius: 6px;
-  background: #fbfcfd;
+  background: var(--panel-3);
   padding: 10px;
 }
 
@@ -534,7 +614,7 @@ audio {
 .guide-card {
   border: 1px solid rgba(23, 107, 93, 0.22);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.76);
+  background: var(--glass);
   display: grid;
   gap: 4px;
   padding: 9px;
@@ -602,7 +682,7 @@ audio {
 .rating-card {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfcfd;
+  background: var(--panel-3);
   display: grid;
   gap: 10px;
   padding: 10px;
@@ -618,8 +698,8 @@ audio {
 .field-missing input,
 .field-missing select,
 .field-missing textarea {
-  border-color: #b42318;
-  background: #fff7f5;
+  border-color: var(--danger);
+  background: var(--danger-bg);
 }
 
 .rating-card.missing {
@@ -627,7 +707,7 @@ audio {
 }
 
 .validation-message {
-  color: #b42318;
+  color: var(--danger);
   font-size: 13px;
   font-weight: 750;
 }
@@ -654,7 +734,7 @@ audio {
   padding: 10px;
   display: grid;
   gap: 5px;
-  background: #fbfcfd;
+  background: var(--panel-3);
 }
 
 .issue-item header {
@@ -875,7 +955,7 @@ audio {
 .portal-collapsed .nav-user { display: none !important; }
 .nav-hidden { display: none !important; }
 .portal-collapsed .portal-sidebar a { justify-content: center; padding-left: 0 !important; padding-right: 0 !important; }
-.nav-toggle:hover { background: #f5f7f9 !important; color: #10181f !important; border-color: #d6dee6 !important; }
+.nav-toggle:hover { background: var(--bg) !important; color: var(--ink) !important; border-color: var(--line-strong) !important; }
 
 /* ===== Portal: mobile (collapse sidebar to top strip) ===== */
 @media (max-width: 720px) {
@@ -942,4 +1022,102 @@ audio {
   /* pay ladder rows: tighter vertical rhythm when stacked */
   .jn-pay { padding: 14px 16px !important; }
   .jn-pay > div > div:first-child { font-size: 21px !important; }
+}
+
+
+/* ============================== dark theme ==============================
+   Flipped by data-theme on <html> (set pre-paint in layout.tsx, toggled by
+   components/ThemeToggle). Values from the transcribe-dark design handoff:
+   light values are lifted verbatim from this file, dark values are the
+   handoff's deliberate derivations — hues shift rather than darken so the
+   states reviewers navigate by (pending vs current spike) stay far apart. */
+[data-theme="dark"] {
+  --bg: #101418;
+  --panel: #171d22;
+  --ink: #e8edf2;
+  --muted: #96a2ae;
+  --line: #333c45;
+  --accent: #34b184;
+  --accent-strong: #59c9a0;
+  --warn: #d9a53c;
+  --soft: #1a2b25;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --on-accent: #171d22;
+  --purple: #a98ae0;
+  --red: #ff7a7a;
+  --blue: #7ea8f5;
+  --warn-bar: #d9a53c;
+  --red-bar: #e07070;
+  --red-strong: #e07070;
+  --slate: #46525c;
+  --faint: #6e7b87;
+  --head: #7e8994;
+  --panel-2: #1a2127;
+  --panel-3: #131a1f;
+  --hairline: #242d34;
+  --ink-2: #c3ccd6;
+  --chip: #232b32;
+  --line-strong: #4a5560;
+  --tint-green: #16211d;
+  --submitted: #173028;
+  --danger: #ff8a80;
+  --danger-bg: #2b1a18;
+  --pill: rgba(232, 237, 242, 0.1);
+  --overlay: rgba(16, 20, 24, 0.96);
+  --scrim: rgba(0, 0, 0, 0.55);
+  --glass: rgba(23, 29, 34, 0.76);
+  --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.5);
+  --shadow-bar: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --wash-warn-bg: #2b2517;
+  --wash-warn-line: #4d4022;
+  --wash-warn-ink: #e0d2a8;
+  --wash-red-bg: #2b1a1a;
+  --wash-red-line: #4d2727;
+  --wash-cream: #2b2517;
+  --pick-bg: #1a2b25;
+  --deep-green-ink: #d7e2dd;
+  --wash-purple: #241d33;
+
+  --tx-green: #3fa87c;
+  --tx-blue: #7ea8f5;
+  --tx-blue-strong: #9dbcf8;
+  --tx-orange: #e08750;
+  --tx-amber: #d9a53c;
+  --tx-red: #e07070;
+  --tx-red-strong: #e07070;
+  --tx-red-deep: #e07070;
+  --tx-slate: #8b9bb0;
+  --tx-slate2: #8b9bb0;
+  --tx-ink: #e6ecea;
+  --tx-sec: #9aaaa4;
+  --tx-ter: #7b8a85;
+  --tx-dis: #5c6a66;
+  --tx-border: #333c45;
+  --tx-border2: #3f4b50;
+  --tx-centerline: #2a3438;
+  --tx-playhead: #ff7a7a;
+  --tx-spike-cur: rgba(217, 165, 60, 0.34);
+  --tx-spike-done: rgba(63, 168, 124, 0.26);
+  --tx-spike-pend: rgba(224, 112, 112, 0.2);
+  --tx-agent-dim: rgba(63, 168, 124, 0.2);
+  --tx-user-dim: rgba(126, 168, 245, 0.2);
+  --tx-agent-mutlab: #4a5a54;
+  --tx-user-mutlab: #4d5a70;
+  --tx-token-bg: rgba(217, 165, 60, 0.26);
+  --tx-token-pick: rgba(217, 165, 60, 0.48);
+  --tx-token-ink: #f0e2c4;
+  --tx-preview-bg: #15241f;
+  --tx-preview-line: #2c4a3e;
+  --tx-turnrow: #2a2317;
+  --tx-added-bg: #1b2536;
+  --tx-added-line: #2e3f5c;
+  --tx-added-ink: #9dbcf8;
+  --tx-rules-bg: #2b2517;
+  --tx-rules-line: #4d4022;
+  --tx-rules-ink: #e0d2a8;
+  --tx-submit-dis-bg: #2b3a35;
+  --tx-submit-dis-ink: #8a9a95;
+  --tx-input-bg: #131a1e;
+  --tx-chosen-label: #171d22;
+  color-scheme: dark;
 }

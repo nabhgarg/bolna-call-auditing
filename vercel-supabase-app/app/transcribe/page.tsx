@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { readRole } from "../../lib/role";
 import { isDemo, demoHref } from "../../lib/demo";
 import DemoReady from "../../lib/DemoReady";
+import ThemeToggle, { currentTheme } from "../../lib/ThemeToggle";
 
 // Sandbox reviewer for the YC partner demo · a real row in `reviewers` so the
 // queue API answers normally, but nothing it submits is ever written.
@@ -221,6 +222,10 @@ export default function Transcribe() {
   const [altPick, setAltPick] = useState<{ ti: number; alts: string[]; loading: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState("");
+  const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
+  // The canvas cannot resolve var() · it needs real values, so the waveform
+  // redraw must know when the theme flips. Everything else follows CSS alone.
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const stopAtRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -559,16 +564,28 @@ export default function Transcribe() {
   // The lane that isolation has muted draws dimmed, so what you see is what
   // you hear.
   useEffect(() => {
+    setTheme(currentTheme());
+    const h = (e: Event) => setTheme((e as CustomEvent).detail === "dark" ? "dark" : "light");
+    window.addEventListener("rl-theme", h);
+    return () => window.removeEventListener("rl-theme", h);
+  }, []);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !wave) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    // var() does not resolve inside canvas fillStyle · read the computed
+    // token values once per draw, and redraw when the theme flips (the theme
+    // dep below) or the waveform keeps the old palette until the next call.
+    const css = getComputedStyle(canvas);
+    const tok = (name: string) => css.getPropertyValue(name).trim();
     const W = canvas.width = canvas.offsetWidth * 2, H = canvas.height = 200;
     const laneH = 88, gap = H - laneH * 2;             // 24px between lanes
     const aMid = laneH / 2, uTop = laneH + gap, uMid = uTop + laneH / 2;
     const amp = laneH / 2 - 4;
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "#e6ebe9";
+    ctx.fillStyle = tok("--tx-centerline");
     ctx.fillRect(0, aMid - 0.5, W, 1);
     ctx.fillRect(0, uMid - 0.5, W, 1);
     const bars = wave.agent.length;
@@ -577,30 +594,30 @@ export default function Transcribe() {
     for (let i = 0; i < bars; i++) {
       const a = (wave.agent[i] || 0) * amp;
       const u = (wave.user[i] || 0) * amp;
-      ctx.fillStyle = aDim ? "rgba(31,122,92,0.22)" : "#1f7a5c";
+      ctx.fillStyle = aDim ? tok("--tx-agent-dim") : tok("--tx-green");
       ctx.fillRect(i * bw, aMid - a, Math.max(bw - 0.5, 0.5), Math.max(a * 2, 1));
-      ctx.fillStyle = uDim ? "rgba(91,141,239,0.22)" : "#5b8def";
+      ctx.fillStyle = uDim ? tok("--tx-user-dim") : tok("--tx-blue");
       ctx.fillRect(i * bw, uMid - u, Math.max(bw - 0.5, 0.5), Math.max(u * 2, 1));
     }
     // lane labels · drawn at 2x canvas scale
     ctx.font = "600 19px system-ui, sans-serif";
-    ctx.fillStyle = aDim ? "#b6c4be" : "#1f7a5c";
+    ctx.fillStyle = aDim ? tok("--tx-agent-mutlab") : tok("--tx-green");
     ctx.fillText(`AGENT${aDim ? " · muted" : ""}`, 8, 22);
-    ctx.fillStyle = uDim ? "#bccbe8" : "#5b8def";
+    ctx.fillStyle = uDim ? tok("--tx-user-mutlab") : tok("--tx-blue");
     ctx.fillText(`USER${uDim ? " · muted" : ""}`, 8, uTop + 22);
     // user segments: highlight the user lane only (agent lane untouched)
     segs.forEach((g, i) => {
       const x1 = (g.start / wave.duration) * W, x2 = (g.end / wave.duration) * W;
-      ctx.fillStyle = i === cur ? "rgba(183,121,31,0.4)" : st(i).status === "done" ? "rgba(31,122,92,0.25)" : "rgba(214,69,69,0.18)";
+      ctx.fillStyle = i === cur ? tok("--tx-spike-cur") : st(i).status === "done" ? tok("--tx-spike-done") : tok("--tx-spike-pend");
       ctx.fillRect(x1, uTop, Math.max(2, x2 - x1), laneH);
-      if (i === cur) { ctx.strokeStyle = "#b7791f"; ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2); }
+      if (i === cur) { ctx.strokeStyle = tok("--tx-amber"); ctx.lineWidth = 2; ctx.strokeRect(x1, 1, Math.max(2, x2 - x1), H - 2); }
     });
     if (wave.duration > 0) {
       const x = (playhead / wave.duration) * W;
-      ctx.fillStyle = "#d64545";
+      ctx.fillStyle = tok("--tx-playhead");
       ctx.fillRect(x - 1, 0, 2, H);
     }
-  }, [wave, segs, states, cur, playhead, hear]);
+  }, [wave, segs, states, cur, playhead, hear, theme]);
 
   function onRoman(i: number, value: string) {
     patch(i, { roman: value });
@@ -684,6 +701,7 @@ export default function Transcribe() {
       }).then((r) => r.json());
       if (res.error) { alert(res.error); return; }
       setSubmittedId(call.execution_id); setCall(null); setCurrentQueueId("");
+      setQueueView("pending");
     } finally { setSubmitting(false); }
   }
 
@@ -707,8 +725,8 @@ export default function Transcribe() {
   }, [call, cur, segs]);
 
   if (!email) {
-    return <main style={{ maxWidth: 560, margin: "80px auto", fontFamily: "system-ui", textAlign: "center", color: "#5b6b64" }}>
-      <h1 style={{ color: "#1f2d28" }}>Transcription</h1>
+    return <main style={{ maxWidth: 560, margin: "80px auto", fontFamily: "system-ui", textAlign: "center", color: "var(--tx-sec)" }}>
+      <h1 style={{ color: "var(--tx-ink)" }}>Transcription</h1>
       <p>Log in on the <a href="/">main review app</a> first, then come back to /transcribe.</p>
     </main>;
   }
@@ -733,13 +751,28 @@ export default function Transcribe() {
           <p>golden dataset · {display} · <a href="/">main app</a></p>
         </div>
         <div className="queue-stats">{pendingCount} pending · {queue.length - pendingCount} submitted · {queue.length} assigned</div>
+        {/* Pending / Submitted tabs · same pattern and classes as the vibe
+            app. A submitted call leaves the pending list instead of sitting
+            in it greyed out; counts come from the SAME rows as the list so
+            the rail never shows two different pending numbers 50px apart. */}
+        <div className="queue-tabs" role="tablist" aria-label="Transcription queue status">
+          <button role="tab" aria-selected={queueView === "pending"} className={queueView === "pending" ? "active" : ""}
+            onClick={() => setQueueView("pending")}>
+            Pending <span>{pendingCount}</span>
+          </button>
+          <button role="tab" aria-selected={queueView === "submitted"} className={queueView === "submitted" ? "active" : ""}
+            onClick={() => setQueueView("submitted")}>
+            Submitted <span>{queue.length - pendingCount}</span>
+          </button>
+        </div>
         <nav className="call-list">
           {/* Experiment queues render as two labeled sections: with transcript
               (txv) first, then blind (txb). Everything else renders flat. */}
           {(() => {
-            const vis = queue.filter((c) => String(c.queue_id || "").startsWith("txv_"));
-            const bl = queue.filter((c) => String(c.queue_id || "").startsWith("txb_"));
-            const rest = queue.filter((c) => !String(c.queue_id || "").startsWith("txv_") && !String(c.queue_id || "").startsWith("txb_"));
+            const shown = queue.filter((c) => (queueView === "pending" ? !c.reviewed : c.reviewed));
+            const vis = shown.filter((c) => String(c.queue_id || "").startsWith("txv_"));
+            const bl = shown.filter((c) => String(c.queue_id || "").startsWith("txb_"));
+            const rest = shown.filter((c) => !String(c.queue_id || "").startsWith("txv_") && !String(c.queue_id || "").startsWith("txb_"));
             const card = (c: QueueItem) => (
               <button key={`${c.queue_id}:${c.execution_id}`}
                 className={`call-card ${c.reviewed ? "reviewed submitted" : ""} ${currentQueueId === `${c.queue_id}:${c.execution_id}` ? "active" : ""}`}
@@ -750,17 +783,20 @@ export default function Transcribe() {
               </button>
             );
             const header = (label: string, done: number, total: number, color: string) => (
-              <div style={{ padding: "10px 6px 4px", fontSize: 12, fontWeight: 600, color, borderBottom: "1px solid #e2e8e5", marginBottom: 6 }}>
+              <div style={{ padding: "10px 6px 4px", fontSize: 12, fontWeight: 600, color, borderBottom: "1px solid var(--tx-border)", marginBottom: 6 }}>
                 {label} · {done}/{total} done
               </div>
             );
             return (
               <>
-                {vis.length > 0 && header("PART 1 · transcript shown", vis.filter((c) => c.reviewed).length, vis.length, "#1f7a5c")}
+                {queueView === "pending" && vis.length > 0 && header("PART 1 · transcript shown", vis.filter((c) => c.reviewed).length, vis.length, "var(--tx-green)")}
                 {vis.map(card)}
-                {bl.length > 0 && header("PART 2 · no transcript (listen & write)", bl.filter((c) => c.reviewed).length, bl.length, "#9b2c2c")}
+                {queueView === "pending" && bl.length > 0 && header("PART 2 · no transcript (listen & write)", bl.filter((c) => c.reviewed).length, bl.length, "var(--tx-red-deep)")}
                 {bl.map(card)}
                 {rest.map(card)}
+                {shown.length === 0 && queue.length > 0 && (
+                  <div className="queue-empty"><p>{queueView === "pending" ? "All submitted · nothing pending." : "Nothing submitted yet."}</p></div>
+                )}
               </>
             );
           })()}
@@ -771,33 +807,34 @@ export default function Transcribe() {
       <main className="workspace">
         <section className="audio-bar">
           <div>
-            <div style={{ fontSize: 12, color: "#8a988f" }}>{call ? `${doneCount}/${segs.length} spikes resolved` : "No call selected"}</div>
+            <div style={{ fontSize: 12, color: "var(--tx-ter)" }}>{call ? `${doneCount}/${segs.length} spikes resolved` : "No call selected"}</div>
             <strong style={{ fontSize: 15 }}>{call ? (call.agent_name || call.execution_id.slice(0, 8)) : "Select a call to start"}</strong>
             <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
               <audio ref={audioRef} controls preload="auto" onTimeUpdate={onTime} onPlay={stopSpikeAudio}
                 src={call ? `/api/audio?url=${encodeURIComponent(call.recording_url || "")}` : undefined} style={{ height: 32, width: "100%", maxWidth: 380 }} />
-              <div style={{ display: "inline-flex", gap: 2, border: "1px solid #cfd9d4", borderRadius: 7, overflow: "hidden" }} title="Playback speed">
+              <div style={{ display: "inline-flex", gap: 2, border: "1px solid var(--tx-border2)", borderRadius: 7, overflow: "hidden" }} title="Playback speed">
                 {[0.5, 0.75, 1].map((r) => (
                   <button key={r} onClick={() => changeRate(r)}
                     style={{ fontSize: 12, padding: "5px 9px", border: "none", cursor: "pointer",
-                      background: rate === r ? "#1f7a5c" : "#fff", color: rate === r ? "#fff" : "#5b6b64" }}>
+                      background: rate === r ? "var(--tx-green)" : "var(--tx-input-bg)", color: rate === r ? "var(--tx-chosen-label)" : "var(--tx-sec)" }}>
                     {r}×
                   </button>
                 ))}
               </div>
-              <div style={{ display: "inline-flex", gap: 2, border: "1px solid #cfd9d4", borderRadius: 7, overflow: "hidden", opacity: stereoOk ? 1 : 0.45 }}
+              <div style={{ display: "inline-flex", gap: 2, border: "1px solid var(--tx-border2)", borderRadius: 7, overflow: "hidden", opacity: stereoOk ? 1 : 0.45 }}
                 title={stereoOk ? "Which channel plays on spike playback (U to toggle user-only)" : "Mono recording · channels can't be separated"}>
                 {([["both", "Both"], ["user", "User only"], ["agent", "Agent only"]] as const).map(([k, label]) => (
                   <button key={k} onClick={() => stereoOk && pickHear(k)} disabled={!stereoOk}
                     style={{ fontSize: 12, padding: "5px 9px", border: "none", cursor: stereoOk ? "pointer" : "default",
-                      background: hear === k ? (k === "user" ? "#5b8def" : k === "agent" ? "#1f7a5c" : "#4d5a66") : "#fff",
-                      color: hear === k ? "#fff" : "#5b6b64" }}>
+                      background: hear === k ? (k === "user" ? "var(--tx-blue)" : k === "agent" ? "var(--tx-green)" : "var(--tx-slate2)") : "var(--tx-input-bg)",
+                      color: hear === k ? "var(--tx-input-bg)" : "var(--tx-sec)" }}>
                     {label}
                   </button>
                 ))}
               </div>
               <button onClick={() => setRulesOpen(!rulesOpen)} style={{ fontSize: 12 }}>{rulesOpen ? "rules ▴" : "rules ▾"}</button>
-              {approxMode && <span style={{ fontSize: 11, color: "#b7791f" }}>~approx timing</span>}
+              <ThemeToggle compact />
+              {approxMode && <span style={{ fontSize: 11, color: "var(--tx-amber)" }}>~approx timing</span>}
             </div>
           </div>
           <div>
@@ -820,25 +857,25 @@ export default function Transcribe() {
                     if (segs.some((gg) => t >= gg.start && t <= gg.end)) return;
                     addSegAt(t);
                   }} />
-                <div style={{ fontSize: 10.5, color: "#8a988f", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 10.5, color: "var(--tx-ter)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span>
-                    <span style={{ color: "#1f7a5c" }}>▮ agent</span> · <span style={{ color: "#5b8def" }}>▮ user</span> · user spikes: <span style={{ color: "#d64545" }}>pending</span> / <span style={{ color: "#1f7a5c" }}>done</span> / <span style={{ color: "#b7791f" }}>current</span> · click a spike to jump · Space replay · ←/→ · U user-only
+                    <span style={{ color: "var(--tx-green)" }}>▮ agent</span> · <span style={{ color: "var(--tx-blue)" }}>▮ user</span> · user spikes: <span style={{ color: "var(--tx-red)" }}>pending</span> / <span style={{ color: "var(--tx-green)" }}>done</span> / <span style={{ color: "var(--tx-amber)" }}>current</span> · click a spike to jump · Space replay · ←/→ · U user-only
                   </span>
                   <button onClick={() => addSegAt(playhead)}
                     title="Add a segment the detector missed, at the playhead. Or double-click anywhere on the waveform."
-                    style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px dashed #5b8def", background: "#fff", color: "#3f6fd0", cursor: "pointer" }}>
+                    style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px dashed var(--tx-blue)", background: "var(--tx-input-bg)", color: "var(--tx-blue-strong)", cursor: "pointer" }}>
                     + add segment at playhead
                   </button>
-                  <span style={{ color: "#a8b5ae" }}>or double-click the waveform</span>
+                  <span style={{ color: "var(--tx-dis)" }}>or double-click the waveform</span>
                 </div>
               </>
-            ) : call && analyzing ? <div style={{ fontSize: 12, color: "#5b6b64" }}>Analyzing waveform…</div> : null}
+            ) : call && analyzing ? <div style={{ fontSize: 12, color: "var(--tx-sec)" }}>Analyzing waveform…</div> : null}
           </div>
         </section>
 
         {rulesOpen && (
-          <section style={{ background: "#fffbea", borderBottom: "1px solid #f0e2b0", padding: "8px 18px" }}>
-            <ul style={{ margin: "4px 0", paddingLeft: 18, fontSize: 12.5, color: "#5b5330", lineHeight: 1.7 }}>
+          <section style={{ background: "var(--tx-rules-bg)", borderBottom: "1px solid var(--tx-rules-line)", padding: "8px 18px" }}>
+            <ul style={{ margin: "4px 0", paddingLeft: 18, fontSize: 12.5, color: "var(--tx-rules-ink)", lineHeight: 1.7 }}>
               {RULES.map(([k, v]) => <li key={k}><strong>{k}:</strong> {v}</li>)}
             </ul>
           </section>
@@ -846,28 +883,28 @@ export default function Transcribe() {
 
         <div style={{ padding: "14px 18px", display: "grid", gridTemplateColumns: "minmax(360px,1fr) minmax(260px,0.7fr)", gap: 14, alignItems: "start" }}>
           {!call ? (
-            <p style={{ color: "#8a988f", fontSize: 13 }}>{analyzing ? "Loading…" : "Pick a call from the left to start transcribing."}</p>
+            <p style={{ color: "var(--tx-ter)", fontSize: 13 }}>{analyzing ? "Loading…" : "Pick a call from the left to start transcribing."}</p>
           ) : analyzing ? (
-            <p style={{ color: "#5b6b64", fontSize: 13 }}>Analyzing user-channel waveform…</p>
+            <p style={{ color: "var(--tx-sec)", fontSize: 13 }}>Analyzing user-channel waveform…</p>
           ) : (
             <>
               <section>
                 {g && s && (
-                  <div style={{ border: "2px solid #b7791f", background: "#fff", borderRadius: 12, padding: 14 }}>
+                  <div style={{ border: "2px solid var(--tx-amber)", background: "var(--tx-input-bg)", borderRadius: 12, padding: 14 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                       <button onClick={() => playSeg(cur)} style={{ fontSize: 13 }}>🔁 {fmt(g.start)}-{fmt(g.end)}</button>
-                      <strong style={{ fontSize: 13, color: "#5b6b64" }}>spike {cur + 1} of {segs.length}</strong>
-                      {s.status === "done" && <span style={{ fontSize: 11, color: "#1f7a5c" }}>✓ {s.kind}</span>}
+                      <strong style={{ fontSize: 13, color: "var(--tx-sec)" }}>spike {cur + 1} of {segs.length}</strong>
+                      {s.status === "done" && <span style={{ fontSize: 11, color: "var(--tx-green)" }}>✓ {s.kind}</span>}
                       {g.manual && (
                         <span title="You added this segment · the detector did not find it"
-                          style={{ fontSize: 10.5, fontWeight: 600, color: "#3f6fd0", background: "#eef3fd", border: "1px solid #cfdcf7", borderRadius: 999, padding: "2px 8px" }}>
+                          style={{ fontSize: 10.5, fontWeight: 600, color: "var(--tx-blue-strong)", background: "var(--tx-added-bg)", border: "1px solid var(--tx-added-line)", borderRadius: 999, padding: "2px 8px" }}>
                           added by you
                         </span>
                       )}
                       <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         {g.manual && (
                           <button onClick={() => removeSeg(cur)} title="Remove this segment you added"
-                            style={{ fontSize: 12, color: "#b03636" }}>✕ remove</button>
+                            style={{ fontSize: 12, color: "var(--tx-red-strong)" }}>✕ remove</button>
                         )}
                         <button disabled={cur === 0} onClick={() => playSeg(cur - 1)} style={{ fontSize: 12 }}>← prev</button>
                         <button disabled={cur >= segs.length - 1} onClick={() => playSeg(cur + 1)} style={{ fontSize: 12 }}>next →</button>
@@ -876,33 +913,33 @@ export default function Transcribe() {
 
                     {g.asr !== null && !blind ? (
                       <>
-                        <div style={{ fontSize: 11.5, color: "#8a988f", marginTop: 10 }}>ASR heard {g.official ? "(official Bolna turn)" : ""}:</div>
-                        <p style={{ fontSize: 16, margin: "4px 0 10px", color: "#1f2d28", lineHeight: 1.6 }}>{asrText}</p>
+                        <div style={{ fontSize: 11.5, color: "var(--tx-ter)", marginTop: 10 }}>ASR heard {g.official ? "(official Bolna turn)" : ""}:</div>
+                        <p style={{ fontSize: 16, margin: "4px 0 10px", color: "var(--tx-ink)", lineHeight: 1.6 }}>{asrText}</p>
                       </>
                     ) : g.asr !== null && blind ? (
-                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "#4a5568" }}>Listen and write what the user said.</p>
+                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "var(--tx-slate)" }}>Listen and write what the user said.</p>
                     ) : (
-                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "#9b2c2c" }}>No official transcript for this spike · listen and write what was said.</p>
+                      <p style={{ fontSize: 13.5, margin: "10px 0", color: "var(--tx-red-deep)" }}>No official transcript for this spike · listen and write what was said.</p>
                     )}
 
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {g.asr !== null && !blind && (
                         <>
-                          <button onClick={() => resolve(cur, "correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #1f7a5c", background: s.kind === "correct" ? "#1f7a5c" : "#fff", color: s.kind === "correct" ? "#fff" : "#1f7a5c", cursor: "pointer" }}>✓ Correct</button>
-                          <button onClick={() => resolve(cur, "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: s.kind === "wrong" ? "#c05621" : "#fff", color: s.kind === "wrong" ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Edit · ASR is wrong</button>
+                          <button onClick={() => resolve(cur, "correct")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid var(--tx-green)", background: s.kind === "correct" ? "var(--tx-green)" : "var(--tx-input-bg)", color: s.kind === "correct" ? "var(--tx-input-bg)" : "var(--tx-green)", cursor: "pointer" }}>✓ Correct</button>
+                          <button onClick={() => resolve(cur, "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid var(--tx-orange)", background: s.kind === "wrong" ? "var(--tx-orange)" : "var(--tx-input-bg)", color: s.kind === "wrong" ? "var(--tx-input-bg)" : "var(--tx-orange)", cursor: "pointer" }}>✏ Edit · ASR is wrong</button>
                         </>
                       )}
                       {(g.asr === null || blind) && (
-                        <button onClick={() => resolve(cur, g.asr === null ? "missing" : "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #c05621", background: (s.kind === "missing" || (blind && s.kind === "wrong")) ? "#c05621" : "#fff", color: (s.kind === "missing" || (blind && s.kind === "wrong")) ? "#fff" : "#c05621", cursor: "pointer" }}>✏ Write it</button>
+                        <button onClick={() => resolve(cur, g.asr === null ? "missing" : "wrong")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid var(--tx-orange)", background: (s.kind === "missing" || (blind && s.kind === "wrong")) ? "var(--tx-orange)" : "var(--tx-input-bg)", color: (s.kind === "missing" || (blind && s.kind === "wrong")) ? "var(--tx-input-bg)" : "var(--tx-orange)", cursor: "pointer" }}>✏ Write it</button>
                       )}
-                      <button onClick={() => resolve(cur, "noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #4a5568", background: s.kind === "noise" ? "#4a5568" : "#fff", color: s.kind === "noise" ? "#fff" : "#4a5568", cursor: "pointer" }}>{"{noise}"}</button>
-                      <button onClick={() => resolve(cur, "deleted")} title="This isn't a user turn; the detector was wrong. Removes it from the transcript." style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid #b03636", background: s.kind === "deleted" ? "#b03636" : "#fff", color: s.kind === "deleted" ? "#fff" : "#b03636", cursor: "pointer" }}>🗑 Not a user turn</button>
+                      <button onClick={() => resolve(cur, "noise")} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid var(--tx-slate)", background: s.kind === "noise" ? "var(--tx-slate)" : "var(--tx-input-bg)", color: s.kind === "noise" ? "var(--tx-input-bg)" : "var(--tx-slate)", cursor: "pointer" }}>{"{noise}"}</button>
+                      <button onClick={() => resolve(cur, "deleted")} title="This isn't a user turn; the detector was wrong. Removes it from the transcript." style={{ fontSize: 13, padding: "6px 12px", borderRadius: 7, border: "1px solid var(--tx-red-strong)", background: s.kind === "deleted" ? "var(--tx-red-strong)" : "var(--tx-input-bg)", color: s.kind === "deleted" ? "var(--tx-input-bg)" : "var(--tx-red-strong)", cursor: "pointer" }}>🗑 Not a user turn</button>
                       {/* Distinct from {noise}: noise means there is no user
                           speech here at all, this means there IS speech and it
                           is hard to make out. Reviewers already use them apart
                           · only 183 of 6,512 noise segments carry this flag. */}
                       <label title="There is speech here, but it is hard to make out. Different from {noise}, which means no user speech at all."
-                        style={{ fontSize: 12, color: "#5b6b64", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto" }}>
+                        style={{ fontSize: 12, color: "var(--tx-sec)", display: "flex", gap: 4, alignItems: "center", marginLeft: "auto" }}>
                         <input type="checkbox" checked={s.unclear} onChange={(e) => patch(cur, { unclear: e.target.checked })} /> audio unclear / feeble voice
                       </label>
                     </div>
@@ -910,7 +947,7 @@ export default function Transcribe() {
                     {editorOpen && (
                       <div style={{ marginTop: 10 }}>
                         {g.asr !== null && !blind && (
-                          <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#5b6b64", marginBottom: 6 }}>
+                          <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--tx-sec)", marginBottom: 6 }}>
                             wrong in:
                             <label><input type="radio" checked={s.wrongLang === "same"} onChange={() => patch(cur, { wrongLang: "same" })} /> same language</label>
                             <label><input type="radio" checked={s.wrongLang === "different"} onChange={() => patch(cur, { wrongLang: "different" })} /> different language</label>
@@ -920,7 +957,7 @@ export default function Transcribe() {
                           placeholder="Type in Roman · hindi words convert automatically (e.g. haan didi main kaam kar rahi hoon)"
                           onChange={(e) => onRoman(cur, e.target.value)} />
                         {s.tokens.length > 0 && (
-                          <div style={{ background: "#f2faf7", border: "1px solid #cfe3da", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 15.5, lineHeight: 1.9 }}>
+                          <div style={{ background: "var(--tx-preview-bg)", border: "1px solid var(--tx-preview-line)", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 15.5, lineHeight: 1.9 }}>
                             {/* flex-wrap: adjacent spans have no whitespace between them, so
                                 without this a long sentence can't break and overflows the card */}
                             <div style={{ display: "flex", flexWrap: "wrap", columnGap: 4, rowGap: 2 }}>
@@ -936,12 +973,12 @@ export default function Transcribe() {
                                   setAltPick((p) => (p && p.ti === ti ? { ...p, loading: false } : p));
                                 }
                               }} title="click to fix this word"
-                                style={{ cursor: "pointer", padding: "1px 3px", borderRadius: 4, marginRight: 3, background: altPick?.ti === ti ? "#f9dcae" : t.converted ? "#fdecc8" : "transparent" }}>
+                                style={{ cursor: "pointer", padding: "1px 3px", borderRadius: 4, marginRight: 3, background: altPick?.ti === ti ? "var(--tx-token-pick)" : t.converted ? "var(--tx-token-bg)" : "transparent" }}>
                                 {t.converted ? t.out : t.src}
                               </span>
                             ))}
                             </div>
-                            <div style={{ fontSize: 11, color: "#8a988f", marginTop: 2 }}>highlighted = converted to Devanagari · click any word to fix it</div>
+                            <div style={{ fontSize: 11, color: "var(--tx-ter)", marginTop: 2 }}>highlighted = converted to Devanagari · click any word to fix it</div>
                             {altPick && s.tokens[altPick.ti] && (() => {
                               const tk0 = s.tokens[altPick.ti];
                               const apply = (out: string | null) => { // null = keep Roman
@@ -951,28 +988,28 @@ export default function Transcribe() {
                                 setAltPick(null);
                               };
                               return (
-                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderTop: "1px dashed #cfe3da", marginTop: 6, paddingTop: 7 }}>
-                                  <span style={{ fontSize: 12, color: "#5b6b64" }}>“{tk0.src}” =</span>
-                                  {altPick.loading && <span style={{ fontSize: 12, color: "#8a988f" }}>…</span>}
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderTop: "1px dashed var(--tx-preview-line)", marginTop: 6, paddingTop: 7 }}>
+                                  <span style={{ fontSize: 12, color: "var(--tx-sec)" }}>“{tk0.src}” =</span>
+                                  {altPick.loading && <span style={{ fontSize: 12, color: "var(--tx-ter)" }}>…</span>}
                                   {altPick.alts.map((a) => (
                                     <button key={a} onClick={() => apply(a)}
-                                      style={{ fontSize: 15, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: tk0.converted && tk0.out === a ? "2px solid #1f7a5c" : "1px solid #cfe3da", background: "#fff" }}>
+                                      style={{ fontSize: 15, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: tk0.converted && tk0.out === a ? "2px solid var(--tx-green)" : "1px solid var(--tx-preview-line)", background: "var(--tx-input-bg)" }}>
                                       {a}
                                     </button>
                                   ))}
                                   <button onClick={() => apply(null)}
-                                    style={{ fontSize: 13, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: !tk0.converted ? "2px solid #1f7a5c" : "1px solid #cfd4d1", background: "#fff", color: "#4a5568" }}>
+                                    style={{ fontSize: 13, padding: "2px 10px", borderRadius: 6, cursor: "pointer", border: !tk0.converted ? "2px solid var(--tx-green)" : "1px solid var(--tx-border2)", background: "var(--tx-input-bg)", color: "var(--tx-slate)" }}>
                                     {tk0.src}
                                   </button>
-                                  <button onClick={() => setAltPick(null)} style={{ fontSize: 12, border: "none", background: "transparent", color: "#8a988f", cursor: "pointer" }}>✕</button>
+                                  <button onClick={() => setAltPick(null)} style={{ fontSize: 12, border: "none", background: "transparent", color: "var(--tx-ter)", cursor: "pointer" }}>✕</button>
                                 </div>
                               );
                             })()}
                           </div>
                         )}
-                        {lint(goldOf(s.tokens, s.roman)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "#b7791f", marginTop: 3 }}>⚠ {w}</div>)}
+                        {lint(goldOf(s.tokens, s.roman)).map((w) => <div key={w} style={{ fontSize: 11.5, color: "var(--tx-amber)", marginTop: 3 }}>⚠ {w}</div>)}
                         <button onClick={() => saveEdit(cur)} disabled={!goldOf(s.tokens, s.roman) && !s.unclear}
-                          style={{ marginTop: 8, fontSize: 13, padding: "7px 16px", borderRadius: 7, border: "none", background: "#1f7a5c", color: "#fff", cursor: "pointer" }}>
+                          style={{ marginTop: 8, fontSize: 13, padding: "7px 16px", borderRadius: 7, border: "none", background: "var(--tx-green)", color: "var(--tx-chosen-label)", cursor: "pointer" }}>
                           Save & next
                         </button>
                       </div>
@@ -982,17 +1019,17 @@ export default function Transcribe() {
 
                 <div style={{ position: "sticky", bottom: 10, marginTop: 14 }}>
                   <button onClick={submit} disabled={!allDone || submitting}
-                    style={{ width: "100%", padding: "12px 0", fontSize: 15, borderRadius: 10, border: "none", cursor: allDone ? "pointer" : "not-allowed", background: allDone ? "#1f7a5c" : "#c8d6d0", color: "#fff" }}>
+                    style={{ width: "100%", padding: "12px 0", fontSize: 15, borderRadius: 10, border: "none", cursor: allDone ? "pointer" : "not-allowed", background: allDone ? "var(--tx-green)" : "var(--tx-submit-dis-bg)", color: "var(--tx-chosen-label)" }}>
                     {submitting ? "Submitting…" : allDone ? "Submit golden transcription" : `Resolve all spikes to submit (${doneCount}/${segs.length})`}
                   </button>
                 </div>
               </section>
 
-              <section style={{ background: "#fff", border: "1px solid #e2e8e5", borderRadius: 10, padding: 12, maxHeight: "72vh", overflow: "auto", position: "sticky", top: 120 }}>
+              <section style={{ background: "var(--tx-input-bg)", border: "1px solid var(--tx-border)", borderRadius: 10, padding: 12, maxHeight: "72vh", overflow: "auto", position: "sticky", top: 120 }}>
                 {/* User turns = the spikes themselves, so mapping is always 1:1.
                     Bolna's telemetry ASR turns don't line up with the cleaned
                     agent-context transcript, so the segment list is authoritative. */}
-                <div style={{ fontSize: 12, color: "#8a988f", marginBottom: 8 }}>User turns ({segs.length}) · click to jump</div>
+                <div style={{ fontSize: 12, color: "var(--tx-ter)", marginBottom: 8 }}>User turns ({segs.length}) · click to jump</div>
                 {segs.map((sg, i) => {
                   const deleted = st(i).kind === "deleted";
                   const said = st(i).status === "done"
@@ -1001,19 +1038,19 @@ export default function Transcribe() {
                   return (
                     <p key={i} onClick={() => playSeg(i)}
                       style={{ fontSize: 12.5, lineHeight: 1.5, margin: "5px 0", padding: "3px 5px", borderRadius: 4, cursor: "pointer",
-                        background: i === cur ? "#fdf3e3" : "transparent", opacity: deleted ? 0.5 : 1,
+                        background: i === cur ? "var(--tx-turnrow)" : "transparent", opacity: deleted ? 0.5 : 1,
                         textDecoration: deleted ? "line-through" : "none",
-                        borderLeft: `3px solid ${deleted ? "#b03636" : st(i).status === "done" ? "#1f7a5c" : sg.official ? "#c8d6d0" : "#c05621"}` }}>
-                      <strong style={{ color: "#5b6b64" }}>{i + 1}. @{fmt(sg.start)}{sg.official ? "" : " · spike"}:</strong>{" "}
-                      {deleted ? <em style={{ color: "#b03636" }}>not a user turn (removed)</em>
-                        : said ? <span style={{ color: "#1f2d28" }}>{said}</span>
-                        : <em style={{ color: "#9b2c2c" }}>needs transcription</em>}
+                        borderLeft: `3px solid ${deleted ? "var(--tx-red-strong)" : st(i).status === "done" ? "var(--tx-green)" : sg.official ? "var(--tx-submit-dis-bg)" : "var(--tx-orange)"}` }}>
+                      <strong style={{ color: "var(--tx-sec)" }}>{i + 1}. @{fmt(sg.start)}{sg.official ? "" : " · spike"}:</strong>{" "}
+                      {deleted ? <em style={{ color: "var(--tx-red-strong)" }}>not a user turn (removed)</em>
+                        : said ? <span style={{ color: "var(--tx-ink)" }}>{said}</span>
+                        : <em style={{ color: "var(--tx-red-deep)" }}>needs transcription</em>}
                     </p>
                   );
                 })}
-                {!blind && <div style={{ fontSize: 12, color: "#8a988f", margin: "16px 0 6px", borderTop: "1px solid #eef2f0", paddingTop: 10 }}>Conversation context (agent + user, read-only)</div>}
+                {!blind && <div style={{ fontSize: 12, color: "var(--tx-ter)", margin: "16px 0 6px", borderTop: "1px solid var(--chip)", paddingTop: 10 }}>Conversation context (agent + user, read-only)</div>}
                 {!blind && call.turns.map((t, i) => (
-                  <p key={i} style={{ fontSize: 12, lineHeight: 1.55, margin: "5px 0", color: t.role === "assistant" ? "#9aa8a1" : "#4a5568" }}>
+                  <p key={i} style={{ fontSize: 12, lineHeight: 1.55, margin: "5px 0", color: t.role === "assistant" ? "var(--tx-ter)" : "var(--tx-slate)" }}>
                     <strong>{t.role === "assistant" ? "agent" : "user"}:</strong> {t.text}
                   </p>
                 ))}

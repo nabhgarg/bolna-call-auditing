@@ -20,7 +20,14 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${instrument.variable} ${grotesk.variable} ${mono.variable}`}>
+    <html lang="en" className={`${instrument.variable} ${grotesk.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Theme before first paint · reads the same key ThemeToggle writes.
+            Default is LIGHT — reviewers are mid-batch and the tool must not
+            change under them on deploy; dark is a choice, not a surprise. */}
+        <script dangerouslySetInnerHTML={{ __html:
+          `try{if(localStorage.getItem("rl-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}` }} />
+      </head>
       <body>{children}</body>
     </html>
   );
