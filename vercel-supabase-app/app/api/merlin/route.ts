@@ -1,8 +1,22 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
-import items from "../../../lib/merlin-items.json";
+import allItems from "../../../lib/merlin-items.json";
+import assignment from "../../../lib/merlin-assignment.json";
 
 export const dynamic = "force-dynamic";
+
+// Who sees what. Everyone grades the same standard 30 — the 19 pairs carrying
+// the audit's claims about Merlin, plus 11 model-comparison pairs chosen to
+// span clear differences, subtle ones, and two expected ties (so we can tell a
+// careless "always pick a winner" rater from a careful one). The two experts
+// see all 49.
+const STANDARD = new Set(assignment.standard as string[]);
+const SEE_ALL = new Set((assignment.all_items_reviewers as string[]).map((e) => e.toLowerCase()));
+
+function itemsFor(reviewer: string) {
+  if (reviewer && SEE_ALL.has(reviewer.trim().toLowerCase())) return allItems;
+  return (allItems as Array<{ item_id: string }>).filter((i) => STANDARD.has(i.item_id));
+}
 
 // Public review panel for the Merlin router audit (review.realloop.in/merlin).
 // GET serves the blinded pairs — the unblinding key (lib/merlin-key.json) is
@@ -12,13 +26,15 @@ export const dynamic = "force-dynamic";
 // localStorage is only a same-session cache.
 export async function GET(req: Request) {
   let done: string[] = [];
-  const reviewer = new URL(req.url).searchParams.get("reviewer")?.trim();
+  const reviewer = new URL(req.url).searchParams.get("reviewer")?.trim() || "";
+  const items = itemsFor(reviewer);
   if (reviewer) {
     const { data } = await supabaseAdmin()
       .from("merlin_judgments")
       .select("item_id")
       .eq("reviewer", reviewer);
-    done = (data || []).map((r) => r.item_id);
+    const mine = new Set(items.map((i) => i.item_id));
+    done = (data || []).map((r) => r.item_id).filter((id) => mine.has(id));
   }
   return NextResponse.json(
     { items, done },
@@ -54,7 +70,7 @@ export async function POST(req: Request) {
   const confidence = String(body.confidence || "");
   const reason = String(body.reason || "").trim().slice(0, 500);
 
-  const known = (items as Array<{ item_id: string }>).some((i) => i.item_id === item_id);
+  const known = (allItems as Array<{ item_id: string }>).some((i) => i.item_id === item_id);
   if (!reviewer || !known || !PREFS.has(preference) || !CONF.has(confidence) || !reason) {
     return NextResponse.json({ error: "missing or invalid fields" }, { status: 400 });
   }

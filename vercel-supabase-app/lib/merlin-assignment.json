@@ -1,0 +1,40 @@
+{
+ "_doc": "Per-reviewer item assignment for /merlin. 'standard' = the 30 every reviewer grades; 'all' reviewers see every item.",
+ "standard": [
+  "m_F01",
+  "m_F09",
+  "m_F11",
+  "m_F12",
+  "m_F13",
+  "m_F17",
+  "m_F20",
+  "m_F22",
+  "m_F25",
+  "m_F30",
+  "m_S01",
+  "m_S11",
+  "m_S16",
+  "m_S21",
+  "m_S22",
+  "m_S30",
+  "w_S17",
+  "w_S51",
+  "w_S52",
+  "c_F01",
+  "c_F04",
+  "c_F05",
+  "c_F12",
+  "c_F15",
+  "c_F19",
+  "c_F20",
+  "c_F21",
+  "c_F23",
+  "c_F24",
+  "c_F30"
+ ],
+ "all_items_reviewers": [
+  "nabh@realloop.in",
+  "manavi@realloop.in",
+  "manavi"
+ ]
+}

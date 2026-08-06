@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ThemeToggle from "../../lib/ThemeToggle";
 
-// Public blind-review panel for the Merlin router audit.
-// Identity: the review.realloop.in login when present (auditReviewerEmail in
-// localStorage, same origin), else a remembered guest name. Progress is
+// Blind-review panel for the Merlin router audit.
+// Identity: the reviewer app's session (localStorage.auditReviewerEmail, set by
+// the OTP login on "/"), exactly like /transcribe — no guest names, because
+// judgments have to attach to a roster identity. Reviewers get the standard 30
+// (lib/merlin-assignment.json); the two experts see all 49. Progress is
 // SERVER-truth: on load we fetch the item_ids this reviewer has already
 // submitted, so reloads and device switches resume exactly where they left
 // off. The left sidebar lists every question with its submitted/pending state.
@@ -27,7 +29,6 @@ const TAGS = [
   "wrong", "incomplete", "ignored-constraint", "truncated",
   "hallucinated", "format", "padding", "refused"
 ];
-const NAME_KEY = "merlinReviewerName";
 
 const blank = (): Judgment => ({ preference: "", confidence: "", tags_a: [], tags_b: [], reason: "" });
 
@@ -110,7 +111,7 @@ export default function MerlinReview() {
   const [items, setItems] = useState<Item[]>([]);
   const [name, setName] = useState("");
   const [rosterEmail, setRosterEmail] = useState("");
-  const [nameInput, setNameInput] = useState("");
+  const [display, setDisplay] = useState("");
   const [started, setStarted] = useState(false);
   const [loadingResume, setLoadingResume] = useState(true);
   const [idx, setIdx] = useState(0);
@@ -188,43 +189,20 @@ export default function MerlinReview() {
     window.scrollTo(0, 0);
   }
 
+  // Identity comes from the reviewer app's session, exactly like /transcribe:
+  // localStorage.auditReviewerEmail, set by the OTP login on "/". No guest
+  // names — judgments have to attach to a real roster identity.
   useEffect(() => {
-    let identity = "";
+    let e = "";
     try {
-      const e = (window.localStorage.getItem("auditReviewerEmail") || "").trim().toLowerCase();
-      if (e) {
-        setRosterEmail(e);
-        identity = e;
-      } else {
-        identity = (window.localStorage.getItem(NAME_KEY) || "").trim();
-      }
+      e = (window.localStorage.getItem("auditReviewerEmail") || "").trim().toLowerCase();
+      setDisplay(window.localStorage.getItem("auditReviewerDisplay") || e);
     } catch {}
-    if (identity) {
-      setName(identity);
-      loadFor(identity).catch(() => { setErr("Could not load review items."); setLoadingResume(false); });
-    } else {
-      // No identity yet: fetch items so the intro can show the count.
-      fetch("/api/merlin")
-        .then((r) => r.json())
-        .then((d) => setItems(d.items || []))
-        .catch(() => setErr("Could not load review items."))
-        .finally(() => setLoadingResume(false));
-    }
+    if (!e) { setLoadingResume(false); return; }
+    setRosterEmail(e);
+    setName(e);
+    loadFor(e).catch(() => { setErr("Could not load review items."); setLoadingResume(false); });
   }, []);
-
-  function begin() {
-    const n = nameInput.trim();
-    if (!n) return;
-    try { localStorage.setItem(NAME_KEY, n); } catch {}
-    setName(n);
-    setLoadingResume(true);
-    loadFor(n).catch(() => { setErr("Could not load review items."); setLoadingResume(false); });
-  }
-
-  function switchReviewer() {
-    try { localStorage.removeItem(NAME_KEY); } catch {}
-    setName(""); setRosterEmail(""); setStarted(false); setNameInput(""); setDone({}); setJ(blank());
-  }
 
   const it = items[idx];
   const nDone = Object.values(done).filter(Boolean).length;
@@ -292,43 +270,32 @@ export default function MerlinReview() {
 
       {loadingResume && <main className="mr-intro"><p className="mr-mutedline">Loading…</p></main>}
 
-      {!loadingResume && !started && (
+      {!loadingResume && !rosterEmail && (
         <main className="mr-intro">
-          <h1>Which answer is better? You decide.</h1>
+          <h1>Merlin audit — blind review</h1>
           <p>
-            We asked the same questions to an AI assistant two different ways and
-            collected both answers. You&apos;ll see them side by side as{" "}
-            <b>A</b> and <b>B</b> — you won&apos;t know which system produced which,
-            and the sides are shuffled every time.
-          </p>
-          <p>
-            For each pair: pick the better answer, say how confident you are, tag
-            anything broken, and give a one-line reason. Two to three minutes per
-            pair, {items.length || "…"} pairs total. Your progress is saved to your
-            name, so you can leave and come back — from any device.
-          </p>
-          <ul>
-            <li>The question is the spec — if it asked for 5 bullets, count them.</li>
-            <li>Correct and plain beats wrong and polished. Don&apos;t reward length.</li>
-            <li>Pick a side when you honestly can; use Tie only when you truly can&apos;t.</li>
-          </ul>
-          <div className="mr-startrow">
-            <input
-              placeholder="Your name"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && begin()}
-            />
-            <button className="mr-primary" onClick={begin} disabled={!nameInput.trim() || !items.length}>
-              Start reviewing
-            </button>
-          </div>
-          <p className="mr-mutedline">
-            On the reviewer roster? <a href="/?next=/merlin">Sign in</a> instead — your
-            judgments then count toward your reviewer record.
+            Log in on the <a href="/">main review app</a> first, then come back
+            to /merlin. Judgments are recorded against your reviewer account, so
+            this page needs your usual sign-in.
           </p>
           {err && <p className="mr-err">{err}</p>}
         </main>
+      )}
+
+      {!loadingResume && rosterEmail && started && nDone === 0 && (
+        <div className="mr-brief">
+          <b>How this works.</b> Each question shows two AI answers, <b>A</b> and
+          <b> B</b>. You will not know which system produced which, and the sides
+          are shuffled every time. Pick the better answer, say how confident you
+          are, tag anything broken, and give a one-line reason — about two
+          minutes each, {items.length} in your set.
+          <ul>
+            <li>The question is the spec — if it asked for 5 bullets, count them.</li>
+            <li>Correct and plain beats wrong and polished. Don&apos;t reward length.</li>
+            <li>Pick a side when you honestly can. Some pairs are genuinely equal —
+              &quot;Tie&quot; is a real answer, not a cop-out.</li>
+          </ul>
+        </div>
       )}
 
       {!loadingResume && started && (
@@ -368,10 +335,8 @@ export default function MerlinReview() {
                   ))}
                 </div>
                 <div className="mr-sidefoot">
-                  <span className="mr-mutedline">{rosterEmail || name}</span>
-                  {!rosterEmail && (
-                    <a href="#" onClick={(e) => { e.preventDefault(); switchReviewer(); }}>switch</a>
-                  )}
+                  <span className="mr-mutedline">{display || rosterEmail}</span>
+                  <a href="/">main app</a>
                 </div>
               </>
             ) : (
