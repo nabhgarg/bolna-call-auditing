@@ -265,11 +265,22 @@ export async function POST(request: Request) {
       }, { status: 409 });
     }
 
+    // Dedupe on the conflict key first. A plan bug once put the same call in
+    // one reviewer's anchor AND distinct set · Postgres then rejects the WHOLE
+    // chunk ("ON CONFLICT cannot affect row a second time", code 21000), and
+    // every retry fails identically while looking like an outage.
+    const seenKey = new Set<string>();
+    const deduped = approved.filter((r) => {
+      const k = `${r.call_id}|${r.audit_mode}`;
+      if (seenKey.has(k)) return false;
+      seenKey.add(k); return true;
+    });
+
     // Insert in chunks. onConflict makes a retry after a partial failure safe:
     // a row that already landed is rewritten identically, not duplicated.
     let written = 0;
-    for (let i = 0; i < approved.length; i += CHUNK) {
-      const chunk = approved.slice(i, i + CHUNK);
+    for (let i = 0; i < deduped.length; i += CHUNK) {
+      const chunk = deduped.slice(i, i + CHUNK);
       const { error } = await supabase
         .from("call_audit_queue")
         .upsert(chunk, { onConflict: "call_id,audit_mode" });
