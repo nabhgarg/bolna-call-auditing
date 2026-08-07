@@ -220,6 +220,9 @@ export default function Transcribe() {
   function pickHear(h: "both" | "user" | "agent") { hearRef.current = h; setHear(h); }
   // click-a-word chooser: 3 Devanagari options + keep Roman
   const [altPick, setAltPick] = useState<{ ti: number; alts: string[]; loading: boolean } | null>(null);
+  const [flagOpen, setFlagOpen] = useState(false);
+  const [flagReason, setFlagReason] = useState("");
+  const [flagNote, setFlagNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState("");
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
@@ -658,7 +661,8 @@ export default function Transcribe() {
   }
 
   async function submit() {
-    if (!call || !allDone || submitting) return;
+    if (!call || submitting) return;
+    if (!allDone && !flagReason) return;
     setSubmitting(true);
     try {
       const issues = segs.map((g, i) => {
@@ -690,17 +694,20 @@ export default function Transcribe() {
           approx_timing: approxMode ? "Yes" : "No"
         };
       });
+      const flagIssues = flagReason
+        ? [{ type: "call_flag", timestamp: "", flag_reason: flagReason, notes: flagNote.trim(), resolved_spikes: `${doneCount}/${segs.length}` }]
+        : [];
       const res = await fetch(demoHref("/api/reviews"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           call_id: call.execution_id, reviewer_name: display, reviewer_email: email, review_mode: MODE,
           vibe_score: "", flow_score: "", llm_rating: "", llm_error_type: "",
-          notes: `golden transcription | ${segs.length} spikes | approx=${approxMode} | blind=${blind}`,
-          issues, started_at: new Date().toISOString(), duration_taken_sec: 0
+          notes: `golden transcription | ${segs.length} spikes | approx=${approxMode} | blind=${blind}${flagReason ? ` | FLAGGED: ${flagReason}` : ""}`,
+          issues: [...issues, ...flagIssues], started_at: new Date().toISOString(), duration_taken_sec: 0
         })
       }).then((r) => r.json());
       if (res.error) { alert(res.error); return; }
-      setSubmittedId(call.execution_id); setCall(null); setCurrentQueueId("");
+      setSubmittedId(call.execution_id); setCall(null); setCurrentQueueId(""); setFlagOpen(false); setFlagReason(""); setFlagNote("");
       setQueueView("pending");
     } finally { setSubmitting(false); }
   }
@@ -1017,10 +1024,44 @@ export default function Transcribe() {
                   </div>
                 )}
 
-                <div style={{ position: "sticky", bottom: 10, marginTop: 14 }}>
-                  <button onClick={submit} disabled={!allDone || submitting}
-                    style={{ width: "100%", padding: "12px 0", fontSize: 15, borderRadius: 10, border: "none", cursor: allDone ? "pointer" : "not-allowed", background: allDone ? "var(--tx-green)" : "var(--tx-submit-dis-bg)", color: "var(--tx-chosen-label)" }}>
-                    {submitting ? "Submitting…" : allDone ? "Submit golden transcription" : `Resolve all spikes to submit (${doneCount}/${segs.length})`}
+                {/* Flag the call · for audio that cannot be transcribed, wrong
+                    call, or anything the reviewer is unsure about. A flagged
+                    call can be submitted without resolving every spike, because
+                    a broken call cannot be finished. */}
+                <div style={{ marginTop: 14 }}>
+                  {!flagOpen && !flagReason && (
+                    <button type="button" onClick={() => setFlagOpen(true)}
+                      style={{ width: "100%", padding: "9px 0", fontSize: 13, borderRadius: 9, border: "1px dashed var(--tx-border)", background: "transparent", color: "var(--tx-ter)", cursor: "pointer" }}>
+                      ⚑ Flag this call — bad audio, wrong call, or unsure
+                    </button>
+                  )}
+                  {(flagOpen || flagReason) && (
+                    <div style={{ border: "1px solid var(--tx-amber)", background: "var(--wash-cream, rgba(255,200,80,.08))", borderRadius: 10, padding: 12 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "var(--tx-amber)" }}>⚑ Flag this call</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                        {["Audio unclear / inaudible", "Wrong or broken recording", "No user speech in call", "Language I cannot transcribe", "Not sure how to tag", "Other"].map((r) => (
+                          <button key={r} type="button" onClick={() => setFlagReason(flagReason === r ? "" : r)}
+                            style={{ fontSize: 12, padding: "6px 10px", borderRadius: 7, cursor: "pointer",
+                              border: flagReason === r ? "1.5px solid var(--tx-amber)" : "1px solid var(--tx-border)",
+                              background: flagReason === r ? "var(--tx-amber)" : "transparent",
+                              color: flagReason === r ? "var(--tx-chosen-label)" : "var(--tx-ter)" }}>{r}</button>
+                        ))}
+                      </div>
+                      <textarea value={flagNote} onChange={(e) => setFlagNote(e.target.value)} rows={2}
+                        placeholder="What is wrong with this call? (optional)"
+                        style={{ width: "100%", fontSize: 13, padding: 8, borderRadius: 7, border: "1px solid var(--tx-border)", background: "var(--tx-input-bg)", color: "inherit" }} />
+                      <button type="button" onClick={() => { setFlagOpen(false); setFlagReason(""); setFlagNote(""); }}
+                        style={{ marginTop: 6, fontSize: 12, background: "none", border: "none", color: "var(--tx-ter)", cursor: "pointer", textDecoration: "underline" }}>
+                        Cancel flag
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ position: "sticky", bottom: 10, marginTop: 10 }}>
+                  <button onClick={submit} disabled={(!allDone && !flagReason) || submitting}
+                    style={{ width: "100%", padding: "12px 0", fontSize: 15, borderRadius: 10, border: "none", cursor: (allDone || flagReason) ? "pointer" : "not-allowed", background: flagReason ? "var(--tx-amber)" : allDone ? "var(--tx-green)" : "var(--tx-submit-dis-bg)", color: "var(--tx-chosen-label)" }}>
+                    {submitting ? "Submitting…" : flagReason ? `Submit flagged call (${doneCount}/${segs.length} resolved)` : allDone ? "Submit golden transcription" : `Resolve all spikes to submit (${doneCount}/${segs.length})`}
                   </button>
                 </div>
               </section>
