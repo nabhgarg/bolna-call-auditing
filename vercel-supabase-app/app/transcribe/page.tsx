@@ -662,7 +662,7 @@ export default function Transcribe() {
 
   async function submit() {
     if (!call || submitting) return;
-    if (!allDone && !flagReason) return;
+    if (!allDone && !flagReason && !flagNote.trim()) return;
     setSubmitting(true);
     try {
       const issues = segs.map((g, i) => {
@@ -694,15 +694,16 @@ export default function Transcribe() {
           approx_timing: approxMode ? "Yes" : "No"
         };
       });
-      const flagIssues = flagReason
-        ? [{ type: "call_flag", timestamp: "", flag_reason: flagReason, notes: flagNote.trim(), resolved_spikes: `${doneCount}/${segs.length}` }]
+      const flagged = Boolean(flagReason || flagNote.trim());
+      const flagIssues = flagged
+        ? [{ type: "call_flag", timestamp: "", flag_reason: flagReason || "Unspecified", notes: flagNote.trim(), resolved_spikes: `${doneCount}/${segs.length}` }]
         : [];
       const res = await fetch(demoHref("/api/reviews"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           call_id: call.execution_id, reviewer_name: display, reviewer_email: email, review_mode: MODE,
           vibe_score: "", flow_score: "", llm_rating: "", llm_error_type: "",
-          notes: `golden transcription | ${segs.length} spikes | approx=${approxMode} | blind=${blind}${flagReason ? ` | FLAGGED: ${flagReason}` : ""}`,
+          notes: `golden transcription | ${segs.length} spikes | approx=${approxMode} | blind=${blind}${flagged ? ` | FLAGGED: ${flagReason || "Unspecified"}${flagNote.trim() ? ` — ${flagNote.trim()}` : ""}` : ""}`,
           issues: [...issues, ...flagIssues], started_at: new Date().toISOString(), duration_taken_sec: 0
         })
       }).then((r) => r.json());
@@ -1047,9 +1048,12 @@ export default function Transcribe() {
                               color: flagReason === r ? "var(--tx-chosen-label)" : "var(--tx-ter)" }}>{r}</button>
                         ))}
                       </div>
-                      <textarea value={flagNote} onChange={(e) => setFlagNote(e.target.value)} rows={2}
-                        placeholder="What is wrong with this call? (optional)"
-                        style={{ width: "100%", fontSize: 13, padding: 8, borderRadius: 7, border: "1px solid var(--tx-border)", background: "var(--tx-input-bg)", color: "inherit" }} />
+                      <label style={{ display: "block", fontSize: 12, color: "var(--tx-ter)", marginBottom: 4 }}>
+                        Your remarks {flagReason === "Other" || flagReason === "Not sure how to tag" ? "(please describe)" : "(optional)"}
+                      </label>
+                      <textarea value={flagNote} onChange={(e) => setFlagNote(e.target.value)} rows={4}
+                        placeholder="What exactly is wrong, or what are you unsure about? Mention a timestamp if it helps."
+                        style={{ width: "100%", fontSize: 13, padding: 9, borderRadius: 7, border: "1px solid var(--tx-border)", background: "var(--tx-input-bg)", color: "inherit", resize: "vertical", lineHeight: 1.45 }} />
                       <button type="button" onClick={() => { setFlagOpen(false); setFlagReason(""); setFlagNote(""); }}
                         style={{ marginTop: 6, fontSize: 12, background: "none", border: "none", color: "var(--tx-ter)", cursor: "pointer", textDecoration: "underline" }}>
                         Cancel flag
@@ -1059,9 +1063,9 @@ export default function Transcribe() {
                 </div>
 
                 <div style={{ position: "sticky", bottom: 10, marginTop: 10 }}>
-                  <button onClick={submit} disabled={(!allDone && !flagReason) || submitting}
-                    style={{ width: "100%", padding: "12px 0", fontSize: 15, borderRadius: 10, border: "none", cursor: (allDone || flagReason) ? "pointer" : "not-allowed", background: flagReason ? "var(--tx-amber)" : allDone ? "var(--tx-green)" : "var(--tx-submit-dis-bg)", color: "var(--tx-chosen-label)" }}>
-                    {submitting ? "Submitting…" : flagReason ? `Submit flagged call (${doneCount}/${segs.length} resolved)` : allDone ? "Submit golden transcription" : `Resolve all spikes to submit (${doneCount}/${segs.length})`}
+                  <button onClick={submit} disabled={(!allDone && !flagReason && !flagNote.trim()) || submitting}
+                    style={{ width: "100%", padding: "12px 0", fontSize: 15, borderRadius: 10, border: "none", cursor: (allDone || flagReason || flagNote.trim()) ? "pointer" : "not-allowed", background: (flagReason || flagNote.trim()) ? "var(--tx-amber)" : allDone ? "var(--tx-green)" : "var(--tx-submit-dis-bg)", color: "var(--tx-chosen-label)" }}>
+                    {submitting ? "Submitting…" : (flagReason || flagNote.trim()) ? `Submit flagged call (${doneCount}/${segs.length} resolved)` : allDone ? "Submit golden transcription" : `Resolve all spikes to submit (${doneCount}/${segs.length})`}
                   </button>
                 </div>
               </section>
