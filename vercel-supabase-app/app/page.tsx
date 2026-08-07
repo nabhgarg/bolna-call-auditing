@@ -258,6 +258,11 @@ export default function Page() {
     // localhost alike, where an absolute portal URL would bounce off-origin.
     if (reviewerRole === "client") window.location.replace("/portal/agents");
     else if (reviewerRole === "issue_logger") window.location.replace("/transcribe");
+    // The panel works exclusively in the transcription workbench now, so a
+    // reviewer opening review.realloop.in goes straight to /transcribe ·
+    // no more landing on a finished vibe queue and concluding there is no
+    // work today. Experts stay: the vibe cockpit, ops and GT tools live here.
+    else if (reviewerRole === "reviewer") window.location.replace("/transcribe");
   }, [reviewerRole, loginVisible, roleConfirmed]);
 
   // Draw waveform: agent channel up (green), user channel down (blue), playhead line
