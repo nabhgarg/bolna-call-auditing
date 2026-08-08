@@ -1,0 +1,596 @@
+{
+ "items": [
+  {
+   "id": "69a2758b-1a5a-4883-864b-c8608cfee81a",
+   "metric": "tool_name_leak",
+   "category": "quality",
+   "criteria": "Whether the agent voiced an internal tool/function name or an internal identifier to the caller.",
+   "recording_url": "https://api.bolna.ai/recordings/call/ffb2d703-fd19-47b2-9e2f-2a35c3153a63",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "नमस्ते, मैं Neha बोल रही हूँ Vedix से, क्या मैं Farzana से बात कर रही हूँ?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "किससे बात करनी"
+    },
+    {
+     "role": "agent",
+     "text": "मैं Neha, वेदिक्स से बोल रही हूँ, Farzana जी से बात करनी थी। क्या Farzana जी अभी available हैं?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "sir"
+    },
+    {
+     "role": "agent",
+     "text": "मैं Neha बोल रही हूँ वेदिक्स से, Farzana जी से बात कर रही हूँ?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    }
+   ],
+   "_judge": {
+    "verdict": "PASS",
+    "score": 1.0
+   }
+  },
+  {
+   "id": "95fafa25-92ac-48a5-a91c-c780e841f49c",
+   "metric": "tool_name_leak",
+   "category": "quality",
+   "criteria": "Whether the agent voiced an internal tool/function name or an internal identifier to the caller.",
+   "recording_url": "https://api.bolna.ai/recordings/call/e153437c-5008-4a13-8679-7c1fc2d09694",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "Hello, am I speaking with Arpita?"
+    },
+    {
+     "role": "user",
+     "text": "yes  hello"
+    },
+    {
+     "role": "agent",
+     "text": "We noticed you were checking out Silver Celeste Love Ring. Would you like to know about some offers on it?"
+    },
+    {
+     "role": "user",
+     "text": "not for now"
+    },
+    {
+     "role": "agent",
+     "text": "Just curious, may I know for what occasion you're exploring this?"
+    },
+    {
+     "role": "user",
+     "text": "not for any ok then i'm checking just"
+    },
+    {
+     "role": "agent",
+     "text": "अच्छा तो वैसे अभी आप orders above one thousand four hundred and ninety nine rupees पर flat ten percent off और अगर first purchase कर रही ह"
+    },
+    {
+     "role": "user",
+     "text": "ok ok i will call you later"
+    },
+    {
+     "role": "agent",
+     "text": "क्या मैं आपके लिए एक callback schedule कर दूं? कब सही रहेगा?"
+    },
+    {
+     "role": "user",
+     "text": "ok  anytime"
+    },
+    {
+     "role": "agent",
+     "text": "Your call has been successfully rescheduled."
+    },
+    {
+     "role": "agent",
+     "text": "ठीक है, मैं कभी भी callback schedule कर देती हूँ। धन्यवाद! जीवा के साथ खरीदारी का आनंद लें, आपका दिन शुभ हो।"
+    }
+   ],
+   "_judge": {
+    "verdict": "FAIL",
+    "score": 0.13
+   }
+  },
+  {
+   "id": "7d39a703-576c-4d00-9af0-b0895294cfb6",
+   "metric": "tool_name_leak",
+   "category": "quality",
+   "criteria": "Whether the agent voiced an internal tool/function name or an internal identifier to the caller.",
+   "recording_url": "https://api.bolna.ai/recordings/call/fd6c7347-410f-4faf-8465-3759c47ca239",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "Hello, am i speaking with Parth?"
+    },
+    {
+     "role": "user",
+     "text": "hello"
+    },
+    {
+     "role": "agent",
+     "text": "I am Neha from DeoDap. We noticed you left Black Pyramid Mobile Stand in your cart. Was there any issue completing your purchase?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "हां"
+    },
+    {
+     "role": "agent",
+     "text": "कृपया बताइए, क्या दिक्कत आई थी purchase पूरी करने में?"
+    },
+    {
+     "role": "user",
+     "text": "hello"
+    },
+    {
+     "role": "agent",
+     "text": "आपके cart में Black Pyramid Mobile Stand है - क्या कुछ पूछना चाहेंगे?"
+    },
+    {
+     "role": "agent",
+     "text": "Hey, are you still there"
+    }
+   ],
+   "_judge": {
+    "verdict": "PASS",
+    "score": 0.87
+   }
+  },
+  {
+   "id": "0ccebf0c-7b59-45b8-8de2-50887b76d65c",
+   "metric": "tool_name_leak",
+   "category": "quality",
+   "criteria": "Whether the agent voiced an internal tool/function name or an internal identifier to the caller.",
+   "recording_url": "https://api.bolna.ai/recordings/call/fdd4442b-2498-43cd-b97b-ea1c4c3e4805",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "Hello, am i speaking with Kishan?"
+    },
+    {
+     "role": "user",
+     "text": "yes"
+    },
+    {
+     "role": "agent",
+     "text": "Would you like to speak in english या आप हिन्दी में बात करना चाहते है?"
+    },
+    {
+     "role": "user",
+     "text": "हिंदी में"
+    },
+    {
+     "role": "agent",
+     "text": "ठीक है, तो आप Dr Sheth's के Neem and Salicylic Acid Face Wash और Neem and Salicylic Acid Foaming Face Wash खरीदना चाह रहे थे? क्या order में कोई दिक्कत आ रही है?"
+    },
+    {
+     "role": "user",
+     "text": "तो आपने बताया था कि one plus one है और उसमें one one नहीं आ रहा है"
+    },
+    {
+     "role": "agent",
+     "text": "मैं आपके cart की editing नहीं कर सकती हूँ, uhh…, आपके पास जो items हैं वही हैं। आप चाहें तो मैं checkout link भेज सकती हूँ, जहाँ से आप खुद add या change कर सकते हैं। Feel free to ask if you need help with anything else."
+    },
+    {
+     "role": "user",
+     "text": "ma'am उसमें b one जीवन का offer आ रहा था वह आ नहीं रहा है उसमें इसलिए मैंने cancel कर दिया"
+    },
+    {
+     "role": "agent",
+     "text": "मैं कोई extra discount नहीं दे सकती हूँ, uhh…,"
+    }
+   ],
+   "_judge": {
+    "verdict": "FAIL",
+    "score": 0.0
+   }
+  },
+  {
+   "id": "514940ab-606e-494c-ac0d-9d2b18f971d3",
+   "metric": "language_adherence",
+   "category": "language",
+   "criteria": "Whether the agent spoke the right language throughout: matching what the user speaks, following explicit requests and substantive switches promptly, and never flip-flopping unprompted.",
+   "recording_url": "https://api.bolna.ai/recordings/call/ffb2d703-fd19-47b2-9e2f-2a35c3153a63",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "नमस्ते, मैं Neha बोल रही हूँ Vedix से, क्या मैं Farzana से बात कर रही हूँ?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "किससे बात करनी"
+    },
+    {
+     "role": "agent",
+     "text": "मैं Neha, वेदिक्स से बोल रही हूँ, Farzana जी से बात करनी थी। क्या Farzana जी अभी available हैं?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "sir"
+    },
+    {
+     "role": "agent",
+     "text": "मैं Neha बोल रही हूँ वेदिक्स से, Farzana जी से बात कर रही हूँ?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    }
+   ],
+   "_judge": {
+    "verdict": "PASS",
+    "score": 0.67
+   }
+  },
+  {
+   "id": "14bec654-981f-4b38-b792-dcd44527433f",
+   "metric": "language_adherence",
+   "category": "language",
+   "criteria": "Whether the agent spoke the right language throughout: matching what the user speaks, following explicit requests and substantive switches promptly, and never flip-flopping unprompted.",
+   "recording_url": "https://api.bolna.ai/recordings/call/fc99a4b3-461c-40d3-86d3-3380613c4ef5",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "Hello, am i speaking with Anshumaan?"
+    },
+    {
+     "role": "user",
+     "text": "yeah yeah ma'am"
+    },
+    {
+     "role": "agent",
+     "text": "Would you like to speak in english याआप हिन्द में बात करना चाहते है?"
+    },
+    {
+     "role": "user",
+     "text": "हिंदी में कर लूंगा कोई दिक्कत नहीं"
+    },
+    {
+     "role": "agent",
+     "text": "ठीक है, तो हम हिंदी में बात करेंगे। वैसे, हमने देखा कि आपने Godfather Revenge Eau De Parf"
+    },
+    {
+     "role": "user",
+     "text": "हां ma'am लिया है"
+    },
+    {
+     "role": "agent",
+     "text": "आपने Godfather"
+    },
+    {
+     "role": "user",
+     "text": "आवाज़ नहीं आ रही"
+    },
+    {
+     "role": "agent",
+     "text": "मैं Zara हूं, बीयर्डो से। आपका order अभी भी cart में है और अगर आप चाहें तो मैं इसे complete कर"
+    },
+    {
+     "role": "user",
+     "text": "no ma'am मैंने दूसरी web"
+    },
+    {
+     "role": "agent",
+     "text": "धन्यवाद, मुझे बताने के लिए। हम हमेशा यहाँ हैं अगर आपको भविष्य में कोई मदद चाहिए। धन्यवाद! ब"
+    }
+   ],
+   "_judge": {
+    "verdict": "FAIL",
+    "score": 0.26
+   }
+  },
+  {
+   "id": "2aeb050f-1e3b-48f0-91f5-7dc098dee199",
+   "metric": "language_adherence",
+   "category": "language",
+   "criteria": "Whether the agent spoke the right language throughout: matching what the user speaks, following explicit requests and substantive switches promptly, and never flip-flopping unprompted.",
+   "recording_url": "https://api.bolna.ai/recordings/call/fe30f335-d824-4718-bfb2-5f46cfe63e2a",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "Hello, am i speaking with Rajni?"
+    },
+    {
+     "role": "user",
+     "text": "hello"
+    },
+    {
+     "role": "agent",
+     "text": "I am Zara from RENÉE Cosmetics. Were you looking to buy Face Gloss with Hyaluronic Acid? We noticed you left it in your cart."
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "जी"
+    },
+    {
+     "role": "user",
+     "text": "हां मैं line पर हूं"
+    },
+    {
+     "role": "agent",
+     "text": "अगर आप अभी checkout करें तो मैं आपको 10percent discount दे सकती हूँ, आपका total Four Hundred Seventy Three Rupees होगा। हमारा makeup cruelty- free, 100% vegan, और FDA- approved है। साथ ही, rupees seven hundred ninety nine से ऊपर के orders पर एक FREE product भी मिलेगा। Chaliye?"
+    }
+   ],
+   "_judge": {
+    "verdict": "PASS",
+    "score": 0.79
+   }
+  },
+  {
+   "id": "7bc55300-a28d-4f70-bd31-d02731c82a3c",
+   "metric": "language_adherence",
+   "category": "language",
+   "criteria": "Whether the agent spoke the right language throughout: matching what the user speaks, following explicit requests and substantive switches promptly, and never flip-flopping unprompted.",
+   "recording_url": "https://api.bolna.ai/recordings/call/ffcc3f62-6766-4c1a-aba9-a16f0cf6b453",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "Hello, am i speaking with Mohd?"
+    },
+    {
+     "role": "user",
+     "text": "जी"
+    },
+    {
+     "role": "agent",
+     "text": "मैं Neha हूँ from Zarf Studios. We noticed you left Wall Art Frame Flowers in your cart. Was there any issue completing your purchase?"
+    },
+    {
+     "role": "user",
+     "text": "कौन सी company से"
+    },
+    {
+     "role": "agent",
+     "text": "I am Neha from Zarf Studios. We noticed you were checking out our Zarf All Season Premium AC Blanket with Two Cushion Covers - Cobalt on the site."
+    },
+    {
+     "role": "user",
+     "text": "जी"
+    },
+    {
+     "role": "agent",
+     "text": "If you check out now, I can give you 200 Rupees discount, bringing your total to just Two Thousand Nine Hundred Ninety Nine Rupees. Shall I get your checkout ready?"
+    },
+    {
+     "role": "user",
+     "text": "no"
+    },
+    {
+     "role": "agent",
+     "text": "What stopped you from completing the purchase?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    }
+   ],
+   "_judge": {
+    "verdict": "FAIL",
+    "score": 0.23
+   }
+  },
+  {
+   "id": "3e9f7dc2-55ff-42fb-9edc-116e3a2fecf7",
+   "metric": "stuck_in_loop",
+   "category": "conversation",
+   "criteria": "Whether the agent is stuck in a loop — autonomously repeating the same or semantically equivalent questions, statements, requests, or actions, or cycling between the same states without advancing toward resolving the user's need.",
+   "recording_url": "https://api.bolna.ai/recordings/call/ffb2d703-fd19-47b2-9e2f-2a35c3153a63",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "नमस्ते, मैं Neha बोल रही हूँ Vedix से, क्या मैं Farzana से बात कर रही हूँ?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "किससे बात करनी"
+    },
+    {
+     "role": "agent",
+     "text": "मैं Neha, वेदिक्स से बोल रही हूँ, Farzana जी से बात करनी थी। क्या Farzana जी अभी available हैं?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "sir"
+    },
+    {
+     "role": "agent",
+     "text": "मैं Neha बोल रही हूँ वेदिक्स से, Farzana जी से बात कर रही हूँ?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    }
+   ],
+   "_judge": {
+    "verdict": "PASS",
+    "score": 0.61
+   }
+  },
+  {
+   "id": "5fc4f192-6100-48ef-9ecd-fa00d369fc1d",
+   "metric": "stuck_in_loop",
+   "category": "conversation",
+   "criteria": "Whether the agent is stuck in a loop — autonomously repeating the same or semantically equivalent questions, statements, requests, or actions, or cycling between the same states without advancing toward resolving the user's need.",
+   "recording_url": "https://api.bolna.ai/recordings/call/fd6c7347-410f-4faf-8465-3759c47ca239",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "Hello, am i speaking with Parth?"
+    },
+    {
+     "role": "user",
+     "text": "hello"
+    },
+    {
+     "role": "agent",
+     "text": "I am Neha from DeoDap. We noticed you left Black Pyramid Mobile Stand in your cart. Was there any issue completing your purchase?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "हां"
+    },
+    {
+     "role": "agent",
+     "text": "कृपया बताइए, क्या दिक्कत आई थी purchase पूरी करने में?"
+    },
+    {
+     "role": "user",
+     "text": "hello"
+    },
+    {
+     "role": "agent",
+     "text": "आपके cart में Black Pyramid Mobile Stand है - क्या कुछ पूछना चाहेंगे?"
+    },
+    {
+     "role": "agent",
+     "text": "Hey, are you still there"
+    }
+   ],
+   "_judge": {
+    "verdict": "FAIL",
+    "score": 0.47
+   }
+  },
+  {
+   "id": "d5668375-3b53-43c1-a5f7-8be92b69bd80",
+   "metric": "stuck_in_loop",
+   "category": "conversation",
+   "criteria": "Whether the agent is stuck in a loop — autonomously repeating the same or semantically equivalent questions, statements, requests, or actions, or cycling between the same states without advancing toward resolving the user's need.",
+   "recording_url": "https://api.bolna.ai/recordings/call/fedeb988-f1fa-4670-b838-9a49743d8699",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "Hello, am i speaking with Shaikh?"
+    },
+    {
+     "role": "user",
+     "text": "yes"
+    },
+    {
+     "role": "agent",
+     "text": "I am Neha from The Derma Co. Before we move on, is it okay if we continue in English?"
+    },
+    {
+     "role": "user",
+     "text": "हां बोलिए  hello"
+    },
+    {
+     "role": "agent",
+     "text": "आपका order में 15% Vitamin C Face Serum है, जो cart में है। क्या आप कोई issue face कर रहे थे?"
+    },
+    {
+     "role": "user",
+     "text": "vitamin c है ही नहीं"
+    },
+    {
+     "role": "agent",
+     "text": "Sorry for the confusion, but I am referring to the 15% Vitamin C Face Serum in your cart. क्या आप इसे खरीदना चाहेंगे?"
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "yes"
+    },
+    {
+     "role": "agent",
+     "text": "बस एक मिनट दीजिए, मैं अभी वापस आती हूँ।"
+    },
+    {
+     "role": "agent",
+     "text": "Great - I've sent the checkout link to your WhatsApp. Is there anything else I can help you with?"
+    }
+   ],
+   "_judge": {
+    "verdict": "PASS",
+    "score": 0.68
+   }
+  },
+  {
+   "id": "7121aabd-512b-483b-8dcd-b372bcc01df5",
+   "metric": "stuck_in_loop",
+   "category": "conversation",
+   "criteria": "Whether the agent is stuck in a loop — autonomously repeating the same or semantically equivalent questions, statements, requests, or actions, or cycling between the same states without advancing toward resolving the user's need.",
+   "recording_url": "https://api.bolna.ai/recordings/call/fe30f335-d824-4718-bfb2-5f46cfe63e2a",
+   "turns": [
+    {
+     "role": "agent",
+     "text": "Hello, am i speaking with Rajni?"
+    },
+    {
+     "role": "user",
+     "text": "hello"
+    },
+    {
+     "role": "agent",
+     "text": "I am Zara from RENÉE Cosmetics. Were you looking to buy Face Gloss with Hyaluronic Acid? We noticed you left it in your cart."
+    },
+    {
+     "role": "agent",
+     "text": "क्या आप अभी भी लाइन पर हैं?"
+    },
+    {
+     "role": "user",
+     "text": "जी"
+    },
+    {
+     "role": "user",
+     "text": "हां मैं line पर हूं"
+    },
+    {
+     "role": "agent",
+     "text": "अगर आप अभी checkout करें तो मैं आपको 10percent discount दे सकती हूँ, आपका total Four Hundred Seventy Three Rupees होगा। हमारा makeup cruelty- free, 100% vegan, और FDA- approved है। साथ ही, rupees seven hundred ninety nine से ऊपर के orders पर एक FREE product भी मिलेगा। Chaliye?"
+    }
+   ],
+   "_judge": {
+    "verdict": "FAIL",
+    "score": 0.26
+   }
+  }
+ ]
+}
