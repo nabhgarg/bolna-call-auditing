@@ -33,7 +33,9 @@ export async function GET(request: Request) {
   const suffix = `${mode ? `_${exportMode}` : ""}${reviewerSlug}`;
   const csv = toCsv(
     exportRowsFromReviews((data || []) as ReviewRow[], exportMode),
-    REVIEW_EXPORT_COLUMNS_BY_MODE[exportMode]
+    // judge_audit_* modes pass through normalization with no column set of
+    // their own · the legacy layout is the safe fallback for a CSV export.
+    REVIEW_EXPORT_COLUMNS_BY_MODE[exportMode as keyof typeof REVIEW_EXPORT_COLUMNS_BY_MODE] ?? REVIEW_EXPORT_COLUMNS_BY_MODE.pronunciation_tone
   );
   return new NextResponse(csv, {
     status: 200,

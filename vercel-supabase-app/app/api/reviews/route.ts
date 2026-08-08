@@ -88,3 +88,26 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, review_id: inserted.id, sheets_sync: { ok: true, queued: true } });
 }
+
+
+// Resume support for per-item workbenches (judge audit). Returns this
+// reviewer's live rows whose mode starts with the prefix · the client mines
+// issues_json for item-level answers. Scoped narrow on purpose: reviewer AND
+// prefix are required, so this can't become a general review-dump endpoint.
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const reviewer = String(url.searchParams.get("reviewer") || "").trim().toLowerCase();
+  const prefix = String(url.searchParams.get("mode_prefix") || "").trim();
+  if (!reviewer || !prefix) {
+    return NextResponse.json({ error: "reviewer and mode_prefix are required" }, { status: 400 });
+  }
+  const { data, error } = await supabaseAdmin()
+    .from("reviews")
+    .select("call_id,review_mode,issues_json,submitted_at")
+    .eq("reviewer_email", reviewer)
+    .like("review_mode", `${prefix}%`)
+    .order("id", { ascending: true })
+    .range(0, 999);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ reviews: data || [] }, { headers: { "Cache-Control": "no-store" } });
+}

@@ -340,7 +340,11 @@ export default function Page() {
       const data = await fetch(url).then((r) => r.json());
       const pending = (data.calls || []).filter((call: CallSummary) => !call.reviewed).length;
       setTxPending(pending);
-      if (autoRoute && pending > 0 && !vibeRows.some((call) => !call.reviewed)) {
+      // ?work=judge means the person came for the judge-audit workbench ·
+      // yanking them to /transcribe because their vibe queue is empty would
+      // make the judge tab unreachable for exactly the people it is for.
+      const wantsJudge = new URLSearchParams(window.location.search).get("work") === "judge";
+      if (autoRoute && !wantsJudge && pending > 0 && !vibeRows.some((call) => !call.reviewed)) {
         window.location.replace("/transcribe");
       }
     } catch {

@@ -289,6 +289,11 @@ export function normalizeReviewMode(mode?: string | null) {
   ].includes(normalized)) {
     return "response_vibe";
   }
+  // Judge-audit answers are one review per (call, metric) · the metric rides
+  // in the mode itself. Collapsing these to the legacy default would make
+  // answers on the same call's other metrics clear each other, and resume
+  // impossible.
+  if (normalized.startsWith("judge_audit")) return normalized;
   return "pronunciation_tone";
 }
 

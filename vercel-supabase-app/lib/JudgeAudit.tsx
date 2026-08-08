@@ -10,13 +10,18 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 // computed later, off-tool. Blind by design: showing the verdict would anchor
 // the reviewer and the whole point is to measure the judge, not confirm it.
 //
-// LOCAL PREVIEW: loads /judge_demo.json (12 sampled rows from
-// LLM_Eval_check.xlsx) and keeps answers in memory. The Supabase-backed queue
-// wiring lands after the layout is approved.
+// Wired to the FULL set: /judge_items.json carries all 300 judgments from
+// LLM_Eval_check.xlsx WITHOUT verdicts (those live server-side only, in
+// lib/judge-key.json, exactly like the Merlin key). Answers persist through
+// /api/reviews — one review per (call, metric) via review_mode
+// judge_audit_<metric>, so re-answering replaces and answers on the same
+// call's other metrics are never clobbered by the route's clear-then-insert.
+// Progress is SERVER truth: reload and resume on any device.
 
 type Turn = { role: string; text: string };
 type Item = {
   id: string;
+  execution_id: string;
   metric: string;
   category: string;
   criteria: string;
@@ -59,28 +64,64 @@ export default function JudgeAudit({ onBack }: { onBack?: () => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, "yes" | "no">>({});
   const [unsure, setUnsure] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState<Record<string, "saving" | "saved" | "error">>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const email = typeof window !== "undefined" ? String(window.localStorage.getItem("auditReviewerEmail") || "").toLowerCase() : "";
+  const display = typeof window !== "undefined" ? String(window.localStorage.getItem("auditReviewerName") || email) : "";
 
   useEffect(() => {
-    fetch("/judge_demo.json")
-      .then((r) => r.json())
-      .then((d) => {
-        setItems(d.items || []);
-        if (d.items?.length) setOpenId(d.items[0].id);
-      })
-      .catch(() => setItems([]));
-  }, []);
+    Promise.all([
+      fetch("/judge_items.json").then((r) => r.json()),
+      // resume · server truth, so a reload or a second device continues
+      fetch(`/api/reviews?reviewer=${encodeURIComponent(email)}&mode_prefix=judge_audit`).then((r) => r.json()).catch(() => ({ reviews: [] }))
+    ]).then(([d, prev]) => {
+      const its: Item[] = d.items || [];
+      setItems(its);
+      const a: Record<string, "yes" | "no"> = {}; const u: Record<string, boolean> = {};
+      for (const r of prev.reviews || []) {
+        for (const f of r.issues_json || []) {
+          if (f && f.type === "judge_audit" && f.item_id) {
+            if (f.answer === "yes" || f.answer === "no") a[f.item_id] = f.answer;
+            if (f.unsure) u[f.item_id] = true;
+          }
+        }
+      }
+      setAnswers(a); setUnsure(u);
+      const first = its.find((i) => !a[i.id]) || its[0];
+      if (first) setOpenId(first.id);
+    }).catch(() => setItems([]));
+  }, [email]);
 
   const open = useMemo(() => items.find((i) => i.id === openId) || null, [items, openId]);
   const doneCount = Object.keys(answers).length;
 
-  function answer(id: string, v: "yes" | "no") {
+  async function answer(id: string, v: "yes" | "no") {
     setAnswers((a) => ({ ...a, [id]: v }));
+    const it = items.find((i) => i.id === id);
     // Auto-advance to the next unanswered call · one question per call means
     // the answer IS the submit, so the queue should just keep flowing.
     const idx = items.findIndex((i) => i.id === id);
     const next = [...items.slice(idx + 1), ...items.slice(0, idx)].find((i) => !( { ...answers, [id]: v } )[i.id]);
     if (next) setTimeout(() => setOpenId(next.id), 350);
+    if (!it) return;
+    setSaving((s) => ({ ...s, [id]: "saving" }));
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          call_id: it.execution_id,
+          reviewer_name: display, reviewer_email: email,
+          review_mode: `judge_audit_${it.metric}`,
+          vibe_score: "", flow_score: "", llm_rating: "", llm_error_type: "",
+          notes: `judge audit · ${it.metric} · ${v}${unsure[id] ? " · unsure" : ""}`,
+          issues: [{ type: "judge_audit", item_id: it.id, metric: it.metric, answer: v, unsure: !!unsure[id] }],
+          started_at: new Date().toISOString(), duration_taken_sec: 0
+        })
+      }).then((r) => r.json());
+      setSaving((s) => ({ ...s, [id]: res.error ? "error" : "saved" }));
+    } catch {
+      setSaving((s) => ({ ...s, [id]: "error" }));
+    }
   }
 
   const groups = useMemo(() => {
@@ -129,8 +170,10 @@ export default function JudgeAudit({ onBack }: { onBack?: () => void }) {
             </div>
           ))}
         </div>
-        <div style={{ padding: 12, borderTop: "1px solid var(--line)", fontSize: 11, color: "var(--muted)" }}>
-          Local preview · answers are not saved
+        <div style={{ padding: 12, borderTop: "1px solid var(--line)", fontSize: 11, color: Object.values(saving).includes("error") ? "var(--danger)" : "var(--muted)" }}>
+          {Object.values(saving).includes("error")
+            ? "Some answers failed to save · re-answer them"
+            : "Every answer saves on click · reload resumes where you left off"}
         </div>
       </aside>
 
@@ -154,7 +197,7 @@ export default function JudgeAudit({ onBack }: { onBack?: () => void }) {
 
             {/* Audio */}
             <div style={{ marginTop: 14, background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 14, padding: "12px 16px", boxShadow: "var(--shadow)" }}>
-              <audio ref={audioRef} key={open.id} controls src={open.recording_url} style={{ width: "100%" }} />
+              <audio ref={audioRef} key={open.id} controls preload="none" src={`/api/audio?url=${encodeURIComponent(open.recording_url)}`} style={{ width: "100%" }} />
             </div>
 
             {/* Transcript */}
