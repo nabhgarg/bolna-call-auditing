@@ -53,6 +53,7 @@ const COL_COMPREHENSION: Record<string, string[]> = {
     "Couldn't assess - call cut short etc",
     "Others"
   ],
+  "Cant say": [],
   "Others": []
 };
 const COL_INTENT: Record<string, string[]> = {
@@ -69,6 +70,7 @@ const COL_INTENT: Record<string, string[]> = {
   "Dispute / Fraud claimed": ["Not my loan / fraud", "Amount or charges wrong", "Others"],
   "Cant pay - no money": ["No money", "Emergency / unemployment", "Other debts too", "Others"],
   "Claims already paid": ["Paid online", "Paid offline (cash/agent)", "Unspecified / no proof offered", "Others"],
+  "Cant say": [],
   "Others": []
 };
 
