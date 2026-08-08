@@ -172,6 +172,7 @@ export default function Page() {
   const [txPending, setTxPending] = useState(0);
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
   const [agentView, setAgentView] = useState<"all" | "ai" | "human">("all");
+  const [clientView, setClientView] = useState<"all" | "oolka" | "bolna">("all");
   // Set-4 dual assignment: vibe reviewers carry a vibe queue (s4v_*) AND an
   // issue-logging queue (s4i_*). Tabs split the two; the review panel adapts
   // to whichever kind of call is open.
@@ -360,20 +361,30 @@ export default function Page() {
   const aiCount = tabCalls.filter((call) => agentKind(call) === "ai").length;
   const humanCount = tabCalls.filter((call) => agentKind(call) === "human").length;
   const showAgentFilter = aiCount > 0 && humanCount > 0;
+  // Client filter · a reviewer holding both Oolka and Bolna work switches
+  // between the two rubrics constantly; let them work one client at a time.
+  // Hidden unless the queue actually mixes clients.
+  const clientOf = (call: CallSummary) =>
+    `${call.queue_id || ""} ${call.source_sheet || ""}`.toLowerCase().includes("oolka") ? "oolka" : "bolna";
+  const oolkaCount = tabCalls.filter((call) => clientOf(call) === "oolka").length;
+  const bolnaCount = tabCalls.length - oolkaCount;
+  const showClientFilter = oolkaCount > 0 && bolnaCount > 0;
   const filteredCalls = useMemo(() => {
     return tabCalls
       .filter((call) => {
         if (queueView === "pending" && call.reviewed) return false;
         if (queueView === "submitted" && !call.reviewed) return false;
         if (showAgentFilter && agentView !== "all" && agentKind(call) !== agentView) return false;
+        if (showClientFilter && clientView !== "all" && clientOf(call) !== clientView) return false;
         return true;
       })
       // priority (★) calls float to the top, then by id
       .sort((a, b) => (Number(isPriority(b)) - Number(isPriority(a))) || a.execution_id.localeCompare(b.execution_id));
-  }, [tabCalls, queueView, agentView, showAgentFilter]);
-  const agentScopedCalls = showAgentFilter && agentView !== "all"
+  }, [tabCalls, queueView, agentView, showAgentFilter, clientView, showClientFilter]);
+  const agentScopedCalls = (showAgentFilter && agentView !== "all"
     ? tabCalls.filter((call) => agentKind(call) === agentView)
-    : tabCalls;
+    : tabCalls
+  ).filter((call) => !showClientFilter || clientView === "all" || clientOf(call) === clientView);
   const reviewedCount = agentScopedCalls.filter((call) => call.reviewed).length;
   const pendingCount = agentScopedCalls.length - reviewedCount;
   const currentCallSummary = currentCall
@@ -1215,6 +1226,20 @@ export default function Page() {
               >
                 Issue logging <span>{calls.filter((c) => isIssueAssignment(c.queue_id)).length}</span>
               </button>
+            </div>
+          )}
+          {showClientFilter && (
+            <div className="queue-tabs" role="tablist" aria-label="Client">
+              {([["all", "All", oolkaCount + bolnaCount], ["oolka", "Oolka", oolkaCount], ["bolna", "Bolna", bolnaCount]] as const).map(([key, label, count]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={clientView === key ? "active" : ""}
+                  onClick={() => { setClientView(key); setQueueView("pending"); }}
+                >
+                  {label} <span>{count}</span>
+                </button>
+              ))}
             </div>
           )}
           {showAgentFilter && (

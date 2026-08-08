@@ -226,6 +226,7 @@ export default function Transcribe() {
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState("");
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
+  const [clientView, setClientView] = useState<"all" | "oolka" | "bolna">("all");
   // The canvas cannot resolve var() · it needs real values, so the waveform
   // redraw must know when the theme flips. Everything else follows CSS alone.
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -739,7 +740,14 @@ export default function Transcribe() {
     </main>;
   }
 
-  const pendingCount = queue.filter((c) => !c.reviewed).length;
+  // Client filter · same rule as the vibe tool: oolka work is tagged in the
+  // queue id, everything else is Bolna. Hidden unless the queue mixes both.
+  const clientOf = (c: QueueItem) => (String(c.queue_id || "").toLowerCase().includes("oolka") ? "oolka" : "bolna");
+  const oolkaCount = queue.filter((c) => clientOf(c) === "oolka").length;
+  const bolnaCount = queue.length - oolkaCount;
+  const showClientFilter = oolkaCount > 0 && bolnaCount > 0;
+  const scopedQueue = showClientFilter && clientView !== "all" ? queue.filter((c) => clientOf(c) === clientView) : queue;
+  const pendingCount = scopedQueue.filter((c) => !c.reviewed).length;
   // Blind arm of the transcript-visibility experiment: txb_* queue rows hide
   // the ASR everywhere · the reviewer transcribes from audio alone.
   const blind = currentQueueId.startsWith("txb_");
@@ -758,11 +766,21 @@ export default function Transcribe() {
           <h1 style={{ fontSize: 18 }}>Transcription</h1>
           <p>golden dataset · {display} · <a href="/">main app</a></p>
         </div>
-        <div className="queue-stats">{pendingCount} pending · {queue.length - pendingCount} submitted · {queue.length} assigned</div>
+        <div className="queue-stats">{pendingCount} pending · {scopedQueue.length - pendingCount} submitted · {scopedQueue.length} assigned</div>
         {/* Pending / Submitted tabs · same pattern and classes as the vibe
             app. A submitted call leaves the pending list instead of sitting
             in it greyed out; counts come from the SAME rows as the list so
             the rail never shows two different pending numbers 50px apart. */}
+        {showClientFilter && (
+          <div className="queue-tabs" role="tablist" aria-label="Client">
+            {([["all", "All", queue.length], ["oolka", "Oolka", oolkaCount], ["bolna", "Bolna", bolnaCount]] as const).map(([key, label, count]) => (
+              <button key={key} role="tab" aria-selected={clientView === key} className={clientView === key ? "active" : ""}
+                onClick={() => { setClientView(key); setQueueView("pending"); }}>
+                {label} <span>{count}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="queue-tabs" role="tablist" aria-label="Transcription queue status">
           <button role="tab" aria-selected={queueView === "pending"} className={queueView === "pending" ? "active" : ""}
             onClick={() => setQueueView("pending")}>
@@ -770,14 +788,14 @@ export default function Transcribe() {
           </button>
           <button role="tab" aria-selected={queueView === "submitted"} className={queueView === "submitted" ? "active" : ""}
             onClick={() => setQueueView("submitted")}>
-            Submitted <span>{queue.length - pendingCount}</span>
+            Submitted <span>{scopedQueue.length - pendingCount}</span>
           </button>
         </div>
         <nav className="call-list">
           {/* Experiment queues render as two labeled sections: with transcript
               (txv) first, then blind (txb). Everything else renders flat. */}
           {(() => {
-            const shown = queue.filter((c) => (queueView === "pending" ? !c.reviewed : c.reviewed));
+            const shown = scopedQueue.filter((c) => (queueView === "pending" ? !c.reviewed : c.reviewed));
             const vis = shown.filter((c) => String(c.queue_id || "").startsWith("txv_"));
             const bl = shown.filter((c) => String(c.queue_id || "").startsWith("txb_"));
             const rest = shown.filter((c) => !String(c.queue_id || "").startsWith("txv_") && !String(c.queue_id || "").startsWith("txb_"));
