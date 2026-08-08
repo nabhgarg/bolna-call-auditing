@@ -41,6 +41,7 @@ void combinedIssueTypes;
 // actually occurs in the Oolka call set, not a generic collections taxonomy.
 const COL_COMPREHENSION: Record<string, string[]> = {
   "Full comprehension": [],
+  "Understood debt, but disputes / claims fraud": [],
   "Partial comprehension": [
     "Questions Oolka's relationship with lender",
     "Not clear on which debt",
@@ -50,9 +51,10 @@ const COL_COMPREHENSION: Record<string, string[]> = {
   ],
   "No comprehension": [
     "Language barrier",
-    "Couldn't assess - call cut short etc",
     "Others"
   ],
+  "Call cut short / No engagement": [],
+  "Not the person whose loan this is": [],
   "Cant say": [],
   "Others": []
 };
@@ -1484,7 +1486,7 @@ export default function Page() {
                     <span>Oolka</span>
                   </div>
                   <p className="helper-copy">
-                    Pick L1, then L2 where it applies. All optional. Tie-breakers: a contest of the debt goes under intent, not comprehension.
+                    Pick L1, then L2 where it applies. All optional. If comprehension is “Call cut short / No engagement” or “Not the person whose loan this is”, leave intent empty — intent is not gauged on those calls. Tie-breakers: a contest of the debt goes under intent, not comprehension.
                     Soft commitment = the customer said something about paying themselves; passive acknowledgment = only haan / hmm / theek hai.
                   </p>
                   <div className="rating-card">
