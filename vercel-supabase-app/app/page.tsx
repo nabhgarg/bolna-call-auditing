@@ -1,6 +1,7 @@
 "use client";
 
 import ThemeToggle from "../lib/ThemeToggle";
+import JudgeAudit from "../lib/JudgeAudit";
 import React, { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { readRole, writeRole, clearRole } from "../lib/role";
 
@@ -173,6 +174,9 @@ export default function Page() {
   const [queueView, setQueueView] = useState<"pending" | "submitted">("pending");
   const [agentView, setAgentView] = useState<"all" | "ai" | "human">("all");
   const [clientView, setClientView] = useState<"all" | "oolka" | "bolna">("all");
+  // Judge-audit work-type tab · pilot for Bolna's LLM-judge calibration, so
+  // only the two of us see it until real assignments exist.
+  const [workView, setWorkView] = useState<"calls" | "judge">("calls");
   // Set-4 dual assignment: vibe reviewers carry a vibe queue (s4v_*) AND an
   // issue-logging queue (s4i_*). Tabs split the two; the review panel adapts
   // to whichever kind of call is open.
@@ -336,6 +340,10 @@ export default function Page() {
     }
   }
 
+  const canJudge = ["nabh@realloop.in", "manavi@realloop.in"].includes(reviewerEmail.trim().toLowerCase());
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("work") === "judge") setWorkView("judge");
+  }, []);
   const isPriority = (call: CallSummary) => String(call.source_sheet || "").includes("★");
   // \d+ , not \d · batch numbers reached double digits at b10i and a
   // single-digit pattern silently dropped those calls into the vibe tab,
@@ -1179,6 +1187,7 @@ export default function Page() {
         </section>
       )}
 
+      {workView === "judge" && canJudge && <JudgeAudit onBack={() => setWorkView("calls")} />}
       <div className="app-shell">
         <aside className="sidebar">
           <div className="brand">
@@ -1210,6 +1219,16 @@ export default function Page() {
           {/* Sheet import is retired: calls are loaded directly into Supabase;
               the sheet only receives review syncs (one-way, DB -> sheet). */}
 
+          {canJudge && (
+            <div className="queue-tabs" role="tablist" aria-label="Work type" style={{ marginBottom: 6 }}>
+              <button type="button" className={workView === "calls" ? "active" : ""} onClick={() => setWorkView("calls")}>
+                Call review
+              </button>
+              <button type="button" className={workView === "judge" ? "active" : ""} onClick={() => setWorkView("judge")}>
+                Judge audit
+              </button>
+            </div>
+          )}
           {hasIssueQueue && (
             <div className="queue-tabs" role="tablist" aria-label="Assignment type" style={{ marginBottom: 6 }}>
               <button
