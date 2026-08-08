@@ -431,6 +431,10 @@ h1, h2, .brand h1 {
 
 .workspace {
   min-width: 0;
+  /* min-height 0 is what makes the whole lock work: without it this grid
+     item grows past the 100vh shell, the BODY becomes the scroller, and the
+     panels' own overflow rules never engage · the page scrolls as one. */
+  min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -786,17 +790,17 @@ audio {
     grid-template-columns: 1fr;
   }
 
+  /* Stacked layout: the page itself never scrolls. The review form and the
+     transcript are TWO fixed rows, each scrolling internally · scrolling the
+     transcript can never move the tagging panel off screen. */
   .content-grid {
     grid-template-columns: 1fr;
-    overflow: auto;
+    grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr);
+    overflow: hidden;
   }
 
-  /* Stacked layout: the transcript scrolls INSIDE its own capped panel, so
-     reading a long call never scrolls the tagging panel away · the review
-     form stays where it is and only the transcript moves. */
   .transcript-panel {
-    min-height: 420px;
-    max-height: 74vh;
+    min-height: 0;
   }
 }
 
